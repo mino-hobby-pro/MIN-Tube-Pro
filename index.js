@@ -12,7 +12,7 @@ const API_HEALTH_CHECKER = "https://airy-gamy-exoplanet.glitch.me/check";
 // public フォルダ内の静的ファイル（index.html、error.html など）を提供
 app.use(express.static(path.join(__dirname, "public")));
 
-// 検索結果を保持するためのグローバル変数（任意）
+// 検索結果を保持するためのグローバル変数
 let currentPage = 0;
 let currentQuery = "";
 
@@ -511,11 +511,11 @@ app.get("/video/:id", async (req, res, next) => {
       } else {
         document.getElementById("playlist-container").innerHTML = "<p>チャネル情報がありません。</p>";
       }
-
+      
       // クライアントサイド用：2種類の動画埋め込み用HTMLを作成
       const streamEmbedHTML = \`${streamEmbedHTML.replace(/`/g, '\\`')}\`;
       const youtubeEmbedHTML = \`${youtubeEmbedHTML.replace(/`/g, '\\`')}\`;
-
+      
       // ページが完全に読み込まれてから1秒後に、デフォルトの動画（DL‑Yvideo版＝Stream URL版）を埋め込む
       setTimeout(() => {
         const container = document.getElementById("video-player-container");
@@ -523,14 +523,14 @@ app.get("/video/:id", async (req, res, next) => {
           container.innerHTML = streamEmbedHTML;
         }
       }, 1000);
-
+      
       // 各コントロールボタンの処理
       const btnStream = document.getElementById("switch-stream-url");
       const btnNocookie = document.getElementById("switch-nocookie");
       const btnReload = document.getElementById("reload-video");
       const btnRefetch = document.getElementById("refetch-video");
       const btnDownload = document.getElementById("download-video");
-
+      
       btnStream.addEventListener("click", () => {
         document.getElementById("video-player-container").innerHTML = streamEmbedHTML;
         btnStream.classList.add("active");
@@ -559,13 +559,117 @@ app.get("/video/:id", async (req, res, next) => {
       btnDownload.addEventListener("click", () => {
         // ダウンロード用リンク：もし DL‑Yvideo 用URL（videoData.stream_url）が "youtube-nocookie" でなければそのまま、
         // そうでなければ YouTube公式ページを開く
-        const dlLink = ( "${videoData.stream_url}" !== "youtube-nocookie" ) 
-            ? "${videoData.stream_url}" 
+        const dlLink = ( "${videoData.stream_url}" !== "youtube-nocookie" )
+            ? "${videoData.stream_url}"
             : "https://www.youtube.com/watch?v=${videoId}";
         window.open(dlLink, '_blank');
       });
     });
   </script>
+</body>
+</html>
+    `;
+    res.send(html);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/* =====================================================
+   /channel/:channelId エンドポイント
+   検索結果やプレイリストでチャンネルがタップされた際に、
+   外部API (/api/v1/channels/channelId) を利用してチャンネル情報を取得し表示する
+===================================================== */
+app.get("/channel/:channelId", async (req, res, next) => {
+  const channelId = req.params.channelId;
+  if (!channelId) {
+    return res.status(400).send("チャンネルIDが必要です");
+  }
+
+  try {
+    // キャッシュされているAPIリストのうち、1件目を利用（必要に応じて戦略を変更してください）
+    const apiBase = apiListCache[0];
+    if (!apiBase) {
+      return res.status(500).send("有効なAPIリストが取得できませんでした。");
+    }
+    const apiUrl = `${apiBase}/api/v1/channels/${channelId}`;
+    const response = await fetchWithTimeout(apiUrl, {}, 4000);
+    if (!response.ok) {
+      return res.status(500).send("チャンネル情報の取得に失敗しました");
+    }
+    const channelData = await response.json();
+    
+    const html = `
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${channelData.author || "チャンネル情報"}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #121212;
+      color: #e0e0e0;
+    }
+    header {
+      padding: 20px;
+      text-align: center;
+      background-color: #1e1e1e;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .container {
+      padding: 20px;
+    }
+    .banner {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+    }
+    .channel-info {
+      display: flex;
+      align-items: center;
+      margin-top: 20px;
+    }
+    .avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      margin-right: 20px;
+    }
+    .details {
+      flex: 1;
+    }
+    .details h2 {
+      margin: 0;
+    }
+    .details p {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>${channelData.author || "チャンネル情報"}</h1>
+  </header>
+  <div class="container">
+    <img class="banner" src="${channelData.authorBanners[0]?.url || ''}" alt="チャンネルバナー">
+    <div class="channel-info">
+      <img class="avatar" src="${channelData.authorThumbnails[0]?.url || ''}" alt="チャンネルアバター">
+      <div class="details">
+        <h2>${channelData.author || "不明なチャンネル"}</h2>
+        <p>登録者数: ${channelData.subCount?.toLocaleString() || "不明"}</p>
+        <p>総再生回数: ${channelData.totalViews?.toLocaleString() || "不明"}</p>
+        <p><a href="${channelData.authorUrl}" target="_blank">YouTubeで見る</a></p>
+      </div>
+    </div>
+    <p>${channelData.description || "説明はありません。"}</p>
+  </div>
 </body>
 </html>
     `;
@@ -585,13 +689,12 @@ app.get("/nothing/*", (req, res) => {
 
 /* =====================================================
    エラーハンドリングおよび404ハンドリング
+   存在しないURLの場合は public/error.html を返す
+   内部エラーの場合はエラーログを出力し public/error.html を返す
 ===================================================== */
-// 存在しないURLの場合は public/error.html を返す
 app.use((req, res, next) => {
   res.status(404).sendFile(path.join(__dirname, "public", "error.html"));
 });
-
-// 内部エラーの場合はエラーログを出力し public/error.html を返す
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).sendFile(path.join(__dirname, "public", "error.html"));
