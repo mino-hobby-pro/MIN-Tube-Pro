@@ -123,8 +123,7 @@ app.get("/api/playlist", async (req, res, next) => {
    ・全体の最大待機時間は 15 秒
    ・15 秒以内に stream_url が取得できなかった場合、fallback として
      https://www.youtube-nocookie.com/embed/動画ID?autoplay=1 を利用
-   ・ページ内では右側にプレイリスト表示、そして動画下部に【動画を再読み込み】、【動画を再取得】ボタンと
-     サーバー切り替えボタン（DL‑Yvideo／YouTube‑nocookie）を配置します。
+   ・ページ内では右側にプレイリスト表示、そしてコントロールボタン（DL‑Yvideo／YouTube‑nocookie／動画を再読み込み／動画を再取得／ダウンロード）を配置します。
 ===================================================== */
 app.get("/video/:id", async (req, res, next) => {
   const videoId = req.params.id;
@@ -200,7 +199,7 @@ app.get("/video/:id", async (req, res, next) => {
     }
 
     // サーバー側で動画再生用HTMLを作成
-    // (1) DL‐Yvideo版（デフォルト、※videoData.stream_url が "youtube-nocookie" でない場合は video タグ）
+    // (1) DL‑Yvideo版（通常は video タグで埋め込み）
     const streamEmbedHTML =
       videoData.stream_url !== "youtube-nocookie"
         ? `<video controls autoplay>
@@ -209,8 +208,8 @@ app.get("/video/:id", async (req, res, next) => {
            </video>`
         : `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
 
-    // (2) YouTube‑nocookie 版（iframe に inline style で埋め込みサイズを指定）
-    const youtubeEmbedHTML = `<iframe style="width: 100%; height: 100%;" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+    // (2) YouTube‑nocookie 版（iframe に inline style でサイズと border を指定）
+    const youtubeEmbedHTML = `<iframe style="width: 100%; height: 100%; border: none;" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
 
     // コメント部分の HTML 生成
     let commentsHTML = "";
@@ -244,7 +243,9 @@ app.get("/video/:id", async (req, res, next) => {
 
     // HTML ページの生成
     // ・プレイリストは即時表示、動画部分はまずローディングアニメーション（スピナー）表示し、
-    //   ページ読み込み完了後1秒で、サーバー切り替えに対応した動画埋め込み用コンテナにデフォルト（DL‑Yvideo版）が挿入されるようにしています。
+    //   ページ読み込み完了後1秒で、サーバー切り替えに対応した動画埋め込み用コンテナにデフォルト（DL‑Yvideo版＝Stream URL版）が挿入されるようにしています。
+    // ・下部に統合されたコントロールボタン（DL‑Yvideo／YouTube‑nocookie／動画を再読み込み／動画を再取得／ダウンロード）が一列に表示されます。
+    //   ※画面幅に合わせてオーバーフロー時はスワイプ／横スクロール可能です。
     const html = `
 <!DOCTYPE html>
 <html lang="ja">
@@ -290,14 +291,16 @@ app.get("/video/:id", async (req, res, next) => {
       height: auto;
       background-color: black;
     }
-    /* ボタン領域 */
-    .video-buttons {
+    /* コントロールボタン用コンテナ（統合） */
+    #controls {
       display: flex;
       justify-content: center;
       gap: 10px;
-      margin-top: 10px;
+      overflow-x: auto;
+      padding: 10px 0;
     }
-    .video-buttons button {
+    #controls button {
+      flex: 0 0 auto;
       padding: 8px 12px;
       font-size: 14px;
       cursor: pointer;
@@ -306,26 +309,10 @@ app.get("/video/:id", async (req, res, next) => {
       color: #e0e0e0;
       border-radius: 4px;
     }
-    .video-buttons button:hover {
+    #controls button:hover {
       background-color: #555;
     }
-    /* サーバー切り替え用コンテナ */
-    #server-switcher {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin: 10px 0;
-    }
-    #server-switcher button {
-      padding: 6px 10px;
-      font-size: 14px;
-      cursor: pointer;
-      background-color: #333;
-      border: none;
-      color: #e0e0e0;
-      border-radius: 4px;
-    }
-    #server-switcher button.active {
+    #controls button.active {
       background-color: #bb86fc;
       color: #121212;
     }
@@ -455,15 +442,13 @@ app.get("/video/:id", async (req, res, next) => {
         <div class="video-player" id="video-player-container">
           <div class="loading-animation"><div class="spinner"></div></div>
         </div>
-        <!-- サーバー切り替え用のボタン（DL‑Yvideo／YouTube‑nocookie） -->
-        <div id="server-switcher">
+        <!-- 統合されたコントロールボタン -->
+        <div id="controls">
           <button id="switch-stream-url" class="active">DL‑Yvideo</button>
           <button id="switch-nocookie">YouTube‑nocookie</button>
-        </div>
-        <!-- 動画再生エリア下にボタンを配置 -->
-        <div class="video-buttons">
           <button id="reload-video">動画を再読み込み</button>
           <button id="refetch-video">動画を再取得</button>
+          <button id="download-video">ダウンロード</button>
         </div>
         <div class="details">
           <h2>動画詳細</h2>
@@ -539,9 +524,13 @@ app.get("/video/:id", async (req, res, next) => {
         }
       }, 1000);
 
-      // サーバー切り替えボタンの処理
+      // 各コントロールボタンの処理
       const btnStream = document.getElementById("switch-stream-url");
       const btnNocookie = document.getElementById("switch-nocookie");
+      const btnReload = document.getElementById("reload-video");
+      const btnRefetch = document.getElementById("refetch-video");
+      const btnDownload = document.getElementById("download-video");
+
       btnStream.addEventListener("click", () => {
         document.getElementById("video-player-container").innerHTML = streamEmbedHTML;
         btnStream.classList.add("active");
@@ -552,9 +541,7 @@ app.get("/video/:id", async (req, res, next) => {
         btnNocookie.classList.add("active");
         btnStream.classList.remove("active");
       });
-
-      // 「動画を再読み込み」ボタンの処理
-      document.getElementById("reload-video").addEventListener("click", () => {
+      btnReload.addEventListener("click", () => {
         const videoElem = document.querySelector('.video-player video');
         if (videoElem) {
           videoElem.load();
@@ -562,15 +549,20 @@ app.get("/video/:id", async (req, res, next) => {
         } else {
           const iframeElem = document.querySelector('.video-player iframe');
           if (iframeElem) {
-            // src を再設定して iframe をリロード
             iframeElem.src = iframeElem.src;
           }
         }
       });
-
-      // 「動画を再取得」ボタンの処理 → ページ全体を再読み込み
-      document.getElementById("refetch-video").addEventListener("click", () => {
+      btnRefetch.addEventListener("click", () => {
         window.location.reload();
+      });
+      btnDownload.addEventListener("click", () => {
+        // ダウンロード用リンク：もし DL‑Yvideo 用URL（videoData.stream_url）が "youtube-nocookie" でなければそのまま、
+        // そうでなければ YouTube公式ページを開く
+        const dlLink = ( "${videoData.stream_url}" !== "youtube-nocookie" ) 
+            ? "${videoData.stream_url}" 
+            : "https://www.youtube.com/watch?v=${videoId}";
+        window.open(dlLink, '_blank');
       });
     });
   </script>
