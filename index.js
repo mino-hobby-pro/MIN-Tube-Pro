@@ -123,7 +123,7 @@ app.get("/api/playlist", async (req, res, next) => {
    ・全体の最大待機時間は 15 秒
    ・15 秒以内に stream_url が取得できなかった場合、fallback として
      https://www.youtube-nocookie.com/embed/動画ID?autoplay=1 を利用
-   ・ページ内では右側にプレイリスト表示、そしてコントロールボタン（DL‑Yvideo／YouTube‑nocookie／動画を再読み込み／動画を再取得／ダウンロード）を配置します。
+   ・ページ内では右側にプレイリスト表示、そしてコントロールボタン（DL‑Yvideo／YouTube‑nocookie／動画を再読み込み／動画を再取得／ダウンロード）が配置されます。
 ===================================================== */
 app.get("/video/:id", async (req, res, next) => {
   const videoId = req.params.id;
@@ -199,17 +199,17 @@ app.get("/video/:id", async (req, res, next) => {
     }
 
     // サーバー側で動画再生用HTMLを作成
-    // (1) DL‑Yvideo版（通常は video タグで埋め込み）
+    // (1) DL‑Yvideo版（通常は video タグの埋め込み）
     const streamEmbedHTML =
       videoData.stream_url !== "youtube-nocookie"
-        ? `<video controls autoplay>
+        ? `<video controls autoplay style="border-radius: 8px;">
              <source src="${videoData.stream_url}" type="video/mp4">
              お使いのブラウザは video タグに対応していません。
            </video>`
-        : `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+        : `<iframe src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="border-radius: 8px;"></iframe>`;
 
-    // (2) YouTube‑nocookie 版（iframe に inline style でサイズと border を指定）
-    const youtubeEmbedHTML = `<iframe style="width: 100%; height: 100%; border: none;" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+    // (2) YouTube‑nocookie 版（iframe：サイズを 932×524、border:none、角丸）
+    const youtubeEmbedHTML = `<iframe style="width: 932px; height:524px; border: none; border-radius: 8px;" src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
 
     // コメント部分の HTML 生成
     let commentsHTML = "";
@@ -243,9 +243,8 @@ app.get("/video/:id", async (req, res, next) => {
 
     // HTML ページの生成
     // ・プレイリストは即時表示、動画部分はまずローディングアニメーション（スピナー）表示し、
-    //   ページ読み込み完了後1秒で、サーバー切り替えに対応した動画埋め込み用コンテナにデフォルト（DL‑Yvideo版＝Stream URL版）が挿入されるようにしています。
-    // ・下部に統合されたコントロールボタン（DL‑Yvideo／YouTube‑nocookie／動画を再読み込み／動画を再取得／ダウンロード）が一列に表示されます。
-    //   ※画面幅に合わせてオーバーフロー時はスワイプ／横スクロール可能です。
+    //   ページ読み込み完了後1秒で、コントロールボタンに対応した動画埋め込み用コンテナにデフォルト（DL‑Yvideo版＝Stream URL版）が挿入されます。
+    // ・コントロールボタン（DL‑Yvideo／YouTube‑nocookie／動画を再読み込み／動画を再取得／ダウンロード）はひとまとめに配置し、画面幅に合わせて横スクロール可能です。
     const html = `
 <!DOCTYPE html>
 <html lang="ja">
@@ -291,7 +290,7 @@ app.get("/video/:id", async (req, res, next) => {
       height: auto;
       background-color: black;
     }
-    /* コントロールボタン用コンテナ（統合） */
+    /* 統合されたコントロールボタン */
     #controls {
       display: flex;
       justify-content: center;
@@ -404,6 +403,7 @@ app.get("/video/:id", async (req, res, next) => {
       width: 90px;
       height: auto;
       display: block;
+      border-radius: 8px;
     }
     .playlist-item-title {
       font-size: 14px;
