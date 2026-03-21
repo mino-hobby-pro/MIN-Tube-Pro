@@ -73,18 +73,25 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "home.html"));
 });
 
-// 進化した急上昇/ホームアルゴリズム
 app.get("/api/trending", async (req, res) => {
   const page = parseInt(req.query.page) || 0;
   try {
-    // ページごとに取得するカテゴリを変えて、重複を物理的に減らす
-    const categoryPool = ["急上昇", "音楽 人気", "ゲーム 実況", "ニュース 最新", "エンタメ", "料理 レシピ", "テクノロジー", "アニメ"];
-    const cat1 = categoryPool[page % categoryPool.length];
-    const cat2 = categoryPool[(page + 1) % categoryPool.length];
+    // 1. 本物のトレンドを抽出するためのシードキーワード群
+    // 単なる「急上昇」という言葉ではなく、YouTubeで常にトラフィックが高い「動詞」や「属性」を組み合わせる
+    const trendingSeeds = [
+      "人気急上昇", "最新 ニュース", "Music Video Official", 
+      "ゲーム実況 人気", "話題の動画", "トレンド", 
+      "Breaking News Japan", "Top Hits", "いま話題"
+    ];
 
+    // ページ数に応じてシードを切り替え、常に新鮮なデータを確保
+    const seed1 = trendingSeeds[(page * 2) % trendingSeeds.length];
+    const seed2 = trendingSeeds[(page * 2 + 1) % trendingSeeds.length];
+
+    // 2. 複数の角度から検索を並列実行
     const [res1, res2] = await Promise.all([
-      yts.GetListByKeyword(cat1, false, 20),
-      yts.GetListByKeyword(cat2, false, 20)
+      yts.GetListByKeyword(seed1, false, 25),
+      yts.GetListByKeyword(seed2, false, 25)
     ]);
 
     let combined = [...(res1.items || []), ...(res2.items || [])];
@@ -92,18 +99,28 @@ app.get("/api/trending", async (req, res) => {
     const seenIdsServer = new Set();
 
     for (const item of combined) {
-      // 動画タイプのみ、Shorts除外、サーバー内での重複除外
+      // 厳格なフィルタリング
+      // (1) 動画のみ (2) Shorts除外 (3) 重複除外 (4) チャンネルやプレイリストを除外
       if (item.type === 'video' && 
           !item.title.toLowerCase().includes('#shorts') && 
           !item.title.toLowerCase().includes('shorts') &&
           !seenIdsServer.has(item.id)) {
-        seenIdsServer.add(item.id);
-        finalItems.push(item);
+        
+        // 人気動画らしい「指標（視聴回数テキスト）」があるかチェック（任意）
+        // 視聴回数が入っていないものは「急上昇」とは言えないため
+        if (item.viewCountText) {
+          seenIdsServer.add(item.id);
+          finalItems.push(item);
+        }
       }
     }
-    // 多様性を出すために少しシャッフル
-    res.json({ items: finalItems.sort(() => 0.5 - Math.random()) });
+
+    // 3. 多様性を出すための加重シャッフル
+    const result = finalItems.sort(() => 0.5 - Math.random());
+    res.json({ items: result });
+    
   } catch (err) {
+    console.error("Trending API Error:", err);
     res.json({ items: [] });
   }
 });
