@@ -20,42 +20,46 @@
       font-family: "Roboto", Arial, sans-serif;
     }
 
-    /* Header */
+    /* Header & Navigation */
     header {
       position: fixed; top: 0; width: 100%; height: 56px;
       background: var(--bg); display: flex; align-items: center;
       justify-content: space-between; padding: 0 16px; z-index: 1000;
+      border-bottom: 1px solid #222;
     }
-    .logo { font-size: 20px; font-weight: bold; text-decoration: none; color: white; }
-    .logo span { color: var(--accent); }
+    .logo { font-size: 20px; font-weight: bold; text-decoration: none; color: white; display: flex; align-items: center; gap: 5px; }
+    .logo span { color: var(--accent); font-size: 24px; }
 
     .search-area { flex: 0 1 720px; display: flex; position: relative; }
     .search-form { display: flex; width: 100%; background: #121212; border: 1px solid var(--border); border-radius: 40px; overflow: hidden; }
-    .search-form input { flex: 1; background: transparent; border: none; color: white; height: 40px; padding: 0 16px; outline: none; }
+    .search-form input { flex: 1; background: transparent; border: none; color: white; height: 38px; padding: 0 16px; outline: none; font-size: 16px; }
     .search-form button { background: #222; border: none; border-left: 1px solid var(--border); color: white; padding: 0 20px; cursor: pointer; }
 
-    /* Chips */
+    /* Chips (Category) */
     .chips-bar {
       position: fixed; top: 56px; width: 100%; background: var(--bg);
       padding: 12px 16px; display: flex; gap: 12px; overflow-x: auto; z-index: 999;
-      scrollbar-width: none;
+      scrollbar-width: none; border-bottom: 1px solid #222;
     }
-    .chip { background: rgba(255,255,255,0.1); padding: 6px 12px; border-radius: 8px; font-size: 14px; white-space: nowrap; cursor: pointer; }
+    .chip { background: rgba(255,255,255,0.1); padding: 6px 15px; border-radius: 8px; font-size: 14px; white-space: nowrap; cursor: pointer; transition: 0.2s; }
+    .chip:hover { background: rgba(255,255,255,0.2); }
     .chip.active { background: white; color: black; }
 
-    /* Grid */
-    .container { margin-top: 120px; padding: 16px; }
+    /* Video Grid */
+    .container { margin-top: 130px; padding: 0 24px; }
     .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; row-gap: 32px; }
 
-    .video-card { cursor: pointer; text-decoration: none; color: inherit; }
-    .thumb { width: 100%; aspect-ratio: 16/9; background: #222; border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+    .video-card { cursor: pointer; text-decoration: none; color: inherit; display: flex; flex-direction: column; }
+    .thumb { width: 100%; aspect-ratio: 16/9; background: #222; border-radius: 12px; overflow: hidden; margin-bottom: 12px; position: relative; }
     .thumb img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
-    .video-card:hover img { transform: scale(1.05); }
+    .video-card:hover .thumb img { transform: scale(1.03); }
 
-    .meta h3 { margin: 0; font-size: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .meta p { margin: 4px 0 0; font-size: 14px; color: var(--text-muted); }
+    .meta { display: flex; gap: 12px; }
+    .channel-avatar { width: 36px; height: 36px; border-radius: 50%; background: #333; flex-shrink: 0; }
+    .details h3 { margin: 0; font-size: 16px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .details p { margin: 4px 0 0; font-size: 14px; color: var(--text-muted); }
 
-    #loading { text-align: center; padding: 20px; color: var(--text-muted); }
+    #loading { text-align: center; padding: 40px; color: var(--text-muted); }
   </style>
 </head>
 <body>
@@ -63,7 +67,7 @@
     <a href="/" class="logo"><span>●</span>YouTube Pro</a>
     <div class="search-area">
       <form id="searchForm" class="search-form">
-        <input id="searchInput" type="text" placeholder="検索">
+        <input id="searchInput" type="text" placeholder="検索" autocomplete="off">
         <button type="submit">🔍</button>
       </form>
     </div>
@@ -72,10 +76,11 @@
 
   <div class="chips-bar">
     <div class="chip active" data-q="trending">すべて</div>
-    <div class="chip" data-q="音楽">音楽</div>
-    <div class="chip" data-q="ゲーム">ゲーム</div>
-    <div class="chip" data-q="ニュース">ニュース</div>
-    <div class="chip" data-q="お笑い">お笑い</div>
+    <div class="chip" data-q="2024 ヒット曲">音楽</div>
+    <div class="chip" data-q="新作ゲーム 実況">ゲーム</div>
+    <div class="chip" data-q="最新ニュース">ニュース</div>
+    <div class="chip" data-q="人気バラエティ">エンタメ</div>
+    <div class="chip" data-q="最新ガジェット">テック</div>
   </div>
 
   <div class="container">
@@ -89,26 +94,26 @@
     const searchInput = document.getElementById('searchInput');
     const loading = document.getElementById('loading');
 
-    // ★ 重複排除のためのセット
     let displayedIds = new Set();
     let isFetching = false;
     let currentPage = 0;
     let currentQuery = '';
 
+    // 本当に人気のある動画を読み込む
     async function loadContent(query = '', page = 0) {
       if (isFetching) return;
       isFetching = true;
       loading.style.display = 'block';
 
-      // 最初から読み込む場合はIDリストをリセット
       if (page === 0) {
         displayedIds.clear();
         videoGrid.innerHTML = '';
       }
 
-      const endpoint = (query && query !== 'trending')
-        ? `/api/search?q=${encodeURIComponent(query)}&page=${page}`
-        : `/api/trending?page=${page}`;
+      const isDefault = !query || query === 'trending';
+      const endpoint = isDefault 
+        ? `/api/trending?page=${page}`
+        : `/api/search?q=${encodeURIComponent(query)}&page=${page}`;
 
       try {
         const res = await fetch(endpoint);
@@ -116,62 +121,53 @@
         const items = data.items || [];
 
         items.forEach(item => {
-          // ★ 既に表示されているIDなら無視して次の動画へ
           if (displayedIds.has(item.id)) return;
-          
           displayedIds.add(item.id);
 
           const card = document.createElement('a');
           card.className = 'video-card';
           card.href = `/video/${item.id}`;
           card.innerHTML = `
-            <div class="thumb"><img src="https://i3.ytimg.com/vi/${item.id}/mqdefault.jpg" loading="lazy"></div>
+            <div class="thumb">
+              <img src="https://i3.ytimg.com/vi/${item.id}/mqdefault.jpg" loading="lazy">
+            </div>
             <div class="meta">
-              <h3>${item.title}</h3>
-              <p>${item.channelTitle || 'YouTube Pro User'}</p>
+              <div class="channel-avatar"></div>
+              <div class="details">
+                <h3>${item.title}</h3>
+                <p>${item.channelTitle}</p>
+                <p>${item.viewCountText || ''} • ${item.publishedTimeText || ''}</p>
+              </div>
             </div>
           `;
           videoGrid.appendChild(card);
         });
 
-        // もし読み込んだ結果が少なすぎたら、自動的に次のページを試す（多様性確保）
-        if (items.length < 5 && page < 5) {
+        // データが極端に少ない場合は次ページを自動試行
+        if (items.length < 4 && page < 3) {
           isFetching = false;
           loadContent(query, page + 1);
-          return;
         }
 
       } catch (err) {
-        console.error("Fetch Error:", err);
+        console.error("Fetch failed", err);
       } finally {
         isFetching = false;
         loading.style.display = 'none';
       }
     }
 
-    // 初期化とイベント
-    function init() {
-      const params = new URLSearchParams(window.location.search);
-      const q = params.get('q');
-      if (q) {
-        currentQuery = q;
-        searchInput.value = q;
-        loadContent(q, 0);
-      } else {
-        loadContent('trending', 0);
-      }
-    }
-
+    // イベント設定
     searchForm.onsubmit = (e) => {
       e.preventDefault();
       const q = searchInput.value.trim();
       if (!q) return;
       currentQuery = q;
+      currentPage = 0;
       history.pushState(null, '', `/search?q=${encodeURIComponent(q)}`);
       loadContent(q, 0);
     };
 
-    // 無限スクロール
     window.onscroll = () => {
       if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
         if (!isFetching) {
@@ -181,18 +177,28 @@
       }
     };
 
-    // チップス選択
     document.querySelector('.chips-bar').onclick = (e) => {
       if (e.target.classList.contains('chip')) {
         document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
         e.target.classList.add('active');
-        currentPage = 0;
         currentQuery = e.target.dataset.q;
+        currentPage = 0;
         loadContent(currentQuery, 0);
       }
     };
 
-    window.onload = init;
+    // 初期化
+    window.onload = () => {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('q');
+      if (q) {
+        currentQuery = q;
+        searchInput.value = q;
+        loadContent(q, 0);
+      } else {
+        loadContent('trending', 0);
+      }
+    };
   </script>
 </body>
 </html>
