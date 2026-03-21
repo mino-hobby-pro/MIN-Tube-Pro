@@ -76,32 +76,21 @@ app.get("/", (req, res) => {
 app.get("/api/trending", async (req, res) => {
   const page = parseInt(req.query.page) || 0;
   try {
-    // 1. 多様なジャンルのシードキーワード
+    // 確実に結果が出る幅広いキーワード群
     const baseTopics = [
-      "Official Music Video", 
-      "ライブ 配信 ニュース", 
-      "ゲーム 実況 人気", 
-      "THE FIRST TAKE", 
-      "Vlog 日常", 
-      "歌ってみた 人気", 
-      "切り抜き 面白い", 
-      "ハイライト スポーツ", 
-      "料理 レシピ 簡単", 
-      "エンタメ バラエティ", 
-      "アニメ 最新話"
+      "音楽", "ニュース", "ゲーム実況", "エンタメ", 
+      "Vlog", "料理", "スポーツ", "アニメ", "バラエティ"
     ];
 
-    // 2. キーワード自体をランダムにシャッフル
+    // キーワードをシャッフルして、毎回違うジャンルが混ざるようにする
     const shuffledTopics = shuffleArray([...baseTopics]);
-    
-    // シャッフルされたキーワードから今回のリクエスト用の2つを選択
     const seed1 = shuffledTopics[0];
     const seed2 = shuffledTopics[1];
 
-    // 3. 複数のキーワードで並列取得
+    // 並列で取得して効率化
     const [res1, res2] = await Promise.all([
-      yts.GetListByKeyword(seed1, false, 35),
-      yts.GetListByKeyword(seed2, false, 35)
+      yts.GetListByKeyword(seed1, false, 40),
+      yts.GetListByKeyword(seed2, false, 40)
     ]);
 
     let combined = [...(res1.items || []), ...(res2.items || [])];
@@ -117,15 +106,15 @@ app.get("/api/trending", async (req, res) => {
       const thumbUrl = item.thumbnail?.thumbnails?.[0]?.url || "";
       if (thumbUrl.includes('shorts')) continue;
 
-      // 重複排除
+      // 重複排除してマップに格納
       if (!uniqueItemsMap.has(item.id)) {
         uniqueItemsMap.set(item.id, item);
       }
     }
 
-    // 4. 全体を完全にランダムにシャッフルして表示順をバラバラにする
+    // 全体をシャッフルして、特定のジャンルが固まらないようにする
     let finalItems = Array.from(uniqueItemsMap.values());
-    finalItems = shuffleArray(finalItems).slice(0, 24);
+    finalItems = shuffleArray(finalItems).slice(0, 30);
 
     res.json({ items: finalItems });
     
