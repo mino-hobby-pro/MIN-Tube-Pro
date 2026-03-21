@@ -7,59 +7,113 @@
   <style>
     :root {
       --bg: #0f0f0f;
+      --surface: #0b0b0b;
+      --card: #121212;
+      --muted-card: #1a1a1a;
       --text: #ffffff;
-      --text-muted: #aaaaaa;
+      --text-muted: #bdbdbd;
       --accent: #ff0000;
-      --border: #303030;
+      --border: #2b2b2b;
+      --chip-bg: rgba(255,255,255,0.06);
+      --chip-hover: rgba(255,255,255,0.12);
+      --radius: 12px;
+      --glass: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
     }
     * { box-sizing: border-box; }
+    html,body { height: 100%; }
     body {
       margin: 0;
-      background: var(--bg);
+      background: linear-gradient(180deg, #070707 0%, #0f0f0f 100%);
       color: var(--text);
-      font-family: "Roboto", Arial, sans-serif;
+      font-family: "Roboto", "Noto Sans JP", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: 1.4;
     }
 
     /* Header */
     header {
-      position: fixed; top: 0; width: 100%; height: 56px;
-      background: var(--bg); display: flex; align-items: center;
-      justify-content: space-between; padding: 0 16px; z-index: 1000;
-      border-bottom: 1px solid #222;
+      position: fixed; top: 0; width: 100%; height: 64px;
+      background: rgba(11,11,11,0.85); display: flex; align-items: center;
+      justify-content: space-between; padding: 0 20px; z-index: 1000;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      backdrop-filter: blur(6px);
     }
-    .logo { font-size: 20px; font-weight: bold; text-decoration: none; color: white; display: flex; align-items: center; gap: 5px; }
-    .logo span { color: var(--accent); font-size: 24px; }
+    .logo { font-size: 20px; font-weight: 700; text-decoration: none; color: white; display: flex; align-items: center; gap: 8px; }
+    .logo span { color: var(--accent); font-size: 26px; line-height: 1; transform: translateY(-1px); }
 
-    .search-area { flex: 0 1 720px; display: flex; position: relative; }
-    .search-form { display: flex; width: 100%; background: #121212; border: 1px solid var(--border); border-radius: 40px; overflow: hidden; }
-    .search-form input { flex: 1; background: transparent; border: none; color: white; height: 38px; padding: 0 16px; outline: none; font-size: 16px; }
-    .search-form button { background: #222; border: none; border-left: 1px solid var(--border); color: white; padding: 0 20px; cursor: pointer; }
+    .search-area { flex: 0 1 720px; display: flex; position: relative; margin: 0 20px; }
+    .search-form { display: flex; width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 40px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+    .search-form input { flex: 1; background: transparent; border: none; color: white; height: 42px; padding: 0 16px; outline: none; font-size: 15px; }
+    .search-form button { background: rgba(255,255,255,0.03); border: none; border-left: 1px solid var(--border); color: white; padding: 0 18px; cursor: pointer; font-size: 16px; }
 
     /* Chips Navigation */
     .chips-bar {
-      position: fixed; top: 56px; width: 100%; background: var(--bg);
-      padding: 12px 16px; display: flex; gap: 12px; overflow-x: auto; z-index: 999;
-      scrollbar-width: none; border-bottom: 1px solid #222;
+      position: fixed; top: 64px; width: 100%; background: linear-gradient(180deg, rgba(11,11,11,0.9), rgba(11,11,11,0.85));
+      padding: 12px 20px; display: flex; gap: 12px; overflow-x: auto; z-index: 999;
+      scrollbar-width: none; border-bottom: 1px solid rgba(255,255,255,0.03);
     }
-    .chip { background: rgba(255,255,255,0.1); padding: 6px 15px; border-radius: 8px; font-size: 14px; white-space: nowrap; cursor: pointer; transition: 0.2s; }
-    .chip:hover { background: rgba(255,255,255,0.2); }
-    .chip.active { background: white; color: black; }
+    .chips-bar::-webkit-scrollbar { display: none; }
+    .chip { background: var(--chip-bg); padding: 8px 16px; border-radius: 999px; font-size: 14px; white-space: nowrap; cursor: pointer; transition: 0.18s ease; color: var(--text); border: 1px solid transparent; }
+    .chip:hover { background: var(--chip-hover); transform: translateY(-2px); }
+    .chip.active { background: white; color: black; box-shadow: 0 4px 14px rgba(0,0,0,0.6); }
+
+    /* Container */
+    .container { margin-top: 140px; padding: 0 28px 80px; max-width: 1400px; margin-left: auto; margin-right: auto; }
+
+    /* Shorts Row */
+    .shorts-section { margin-bottom: 22px; }
+    .shorts-header { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+    .shorts-title { font-weight:700; font-size:18px; color:var(--text); display:flex; align-items:center; gap:10px; }
+    .shorts-row {
+      display:flex; gap:12px; overflow-x:auto; padding-bottom:8px;
+      scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.12) transparent;
+    }
+    .shorts-row::-webkit-scrollbar { height:10px; }
+    .shorts-row::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 999px; }
+    .short-card {
+      min-width: 180px; max-width: 220px; background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius: 12px; padding: 8px; cursor: pointer; text-decoration: none; color: inherit; display:flex; flex-direction:column; gap:8px;
+      transition: transform .18s ease, box-shadow .18s ease;
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+    .short-card:hover { transform: translateY(-6px); box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+    .short-thumb { width:100%; aspect-ratio: 9/16; border-radius: 10px; overflow:hidden; background:#111; position:relative; }
+    .short-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+    .short-meta { display:flex; gap:10px; align-items:flex-start; }
+    .short-meta .short-title { font-size:13px; font-weight:600; line-height:1.3; color:var(--text); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+    .short-meta .short-channel { font-size:12px; color:var(--text-muted); }
 
     /* Video Grid */
-    .container { margin-top: 130px; padding: 0 24px; }
-    .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; row-gap: 32px; }
+    .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; row-gap: 36px; align-items:start; }
 
-    .video-card { cursor: pointer; text-decoration: none; color: inherit; display: flex; flex-direction: column; }
+    .video-card { cursor: pointer; text-decoration: none; color: inherit; display: flex; flex-direction: column; transition: transform .18s ease, box-shadow .18s ease; border-radius: 12px; }
+    .video-card:hover { transform: translateY(-6px); box-shadow: 0 12px 30px rgba(0,0,0,0.6); }
     .thumb { width: 100%; aspect-ratio: 16/9; background: #222; border-radius: 12px; overflow: hidden; margin-bottom: 12px; position: relative; }
-    .thumb img { width: 100%; height: 100%; object-fit: cover; transition: 0.3s; }
-    .video-card:hover .thumb img { transform: scale(1.03); }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.35s cubic-bezier(.2,.8,.2,1); display:block; }
+    .video-card:hover .thumb img { transform: scale(1.04); }
 
-    .meta { display: flex; gap: 12px; }
-    .channel-avatar { width: 36px; height: 36px; border-radius: 50%; background: #333; flex-shrink: 0; }
-    .details h3 { margin: 0; font-size: 16px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .details p { margin: 4px 0 0; font-size: 14px; color: var(--text-muted); }
+    .meta { display: flex; gap: 12px; align-items:flex-start; }
+    .channel-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(180deg,#2b2b2b,#151515); flex-shrink: 0; display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-weight:700; font-size:14px; }
+    .details h3 { margin: 0; font-size: 15px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight:600; color:var(--text); }
+    .details p { margin: 6px 0 0; font-size: 13px; color: var(--text-muted); }
 
-    #loading { text-align: center; padding: 40px; color: var(--text-muted); font-weight: bold; }
+    /* Loading / Empty */
+    #loading { text-align: center; padding: 40px; color: var(--text-muted); font-weight: 700; }
+    .empty { text-align:center; color:var(--text-muted); padding:40px 0; font-weight:600; }
+
+    /* Responsive tweaks */
+    @media (max-width: 900px) {
+      .search-area { flex: 1 1 60%; }
+      .video-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+      .short-card { min-width: 150px; }
+    }
+    @media (max-width: 520px) {
+      header { padding: 0 12px; height: 56px; }
+      .chips-bar { top: 56px; padding: 10px 12px; }
+      .container { padding: 0 14px 80px; margin-top: 120px; }
+      .video-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; row-gap: 20px; }
+    }
   </style>
 </head>
 <body>
@@ -84,6 +138,15 @@
   </div>
 
   <div class="container">
+    <!-- Shorts dedicated area -->
+    <div id="shortsSection" class="shorts-section" style="display:none;">
+      <div class="shorts-header">
+        <div class="shorts-title">ショート動画</div>
+        <div style="color:var(--text-muted); font-size:13px;">横にスクロールして他のショートを表示</div>
+      </div>
+      <div id="shortsRow" class="shorts-row"></div>
+    </div>
+
     <div id="videoGrid" class="video-grid"></div>
     <div id="loading" style="display:none;">読み込み中...</div>
   </div>
@@ -93,6 +156,8 @@
     const searchForm = document.getElementById('searchForm');
     const searchInput = document.getElementById('searchInput');
     const loading = document.getElementById('loading');
+    const shortsSection = document.getElementById('shortsSection');
+    const shortsRow = document.getElementById('shortsRow');
 
     let displayedIds = new Set();
     let isFetching = false;
@@ -128,6 +193,9 @@
       if (page === 0) {
         displayedIds.clear();
         videoGrid.innerHTML = '';
+        // clear shorts area
+        shortsRow.innerHTML = '';
+        shortsSection.style.display = 'none';
       }
 
       const isDefault = query === 'trending';
@@ -138,6 +206,18 @@
       try {
         // Primary fetch
         let items = await fetchEndpoint(endpoint);
+
+        // Filter out items whose id starts with "UC" (channel IDs) and normalize id if needed
+        items = items.filter(it => {
+          if (!it) return false;
+          const id = (typeof it.id === 'string') ? it.id : (it.id && (it.id.videoId || it.id.channelId || it.id.playlistId || it.id));
+          if (!id) return false;
+          // Exclude channel-like IDs starting with UC
+          if (String(id).startsWith('UC')) return false;
+          // attach normalized id back for consistent usage
+          it.id = String(id);
+          return true;
+        });
 
         // If first page and too few items, supplement with other categories and shuffle
         if (page === 0) {
@@ -165,10 +245,21 @@
             const supplementResults = await Promise.all(supplementPromises);
             // Flatten and combine
             const combined = items.concat(...supplementResults.flat());
+
+            // Filter out UC ids from combined and normalize
+            const filteredCombined = combined.filter(it => {
+              if (!it) return false;
+              const id = (typeof it.id === 'string') ? it.id : (it.id && (it.id.videoId || it.id.channelId || it.id.playlistId || it.id));
+              if (!id) return false;
+              if (String(id).startsWith('UC')) return false;
+              it.id = String(id);
+              return true;
+            });
+
             // Deduplicate by id while preserving order
             const seen = new Set();
             const deduped = [];
-            for (const it of combined) {
+            for (const it of filteredCombined) {
               if (!it || !it.id) continue;
               if (seen.has(it.id)) continue;
               seen.add(it.id);
@@ -181,11 +272,55 @@
         }
 
         if (items.length === 0 && page === 0) {
-           videoGrid.innerHTML = '<p style="text-align:center; width:100%;">動画が見つかりませんでした。</p>';
+           videoGrid.innerHTML = '<p class="empty">動画が見つかりませんでした。</p>';
         }
 
-        // Render items but ensure no duplicates across pages
+        // Separate shorts (title contains '#') and normal items
+        const shorts = [];
+        const normals = [];
+
         items.forEach(item => {
+          if (!item || !item.id) return;
+          const title = item.title || '';
+          if (title.includes('#')) {
+            shorts.push(item);
+          } else {
+            normals.push(item);
+          }
+        });
+
+        // Render shorts only on first page (recommended area)
+        if (page === 0 && shorts.length > 0) {
+          shortsSection.style.display = 'block';
+          // Render each short horizontally; ensure no duplicates across pages
+          shorts.forEach(item => {
+            if (!item || !item.id) return;
+            if (displayedIds.has(item.id)) return;
+            displayedIds.add(item.id);
+
+            const a = document.createElement('a');
+            a.className = 'short-card';
+            a.href = `/video/${item.id}`;
+            const thumbUrl = `https://i3.ytimg.com/vi/${item.id}/hqdefault.jpg`;
+            const channel = item.channelTitle || '';
+            const viewText = item.viewCountText || '';
+            a.innerHTML = `
+              <div class="short-thumb">
+                <img src="${thumbUrl}" loading="lazy" alt="${(item.title||'ショート')}">
+              </div>
+              <div class="short-meta">
+                <div style="flex:1;">
+                  <div class="short-title">${item.title || ''}</div>
+                  <div class="short-channel">${channel} • ${viewText}</div>
+                </div>
+              </div>
+            `;
+            shortsRow.appendChild(a);
+          });
+        }
+
+        // Render normal videos (grid)
+        normals.forEach(item => {
           if (!item || !item.id) return;
           if (displayedIds.has(item.id)) return;
           displayedIds.add(item.id);
@@ -193,16 +328,20 @@
           const card = document.createElement('a');
           card.className = 'video-card';
           card.href = `/video/${item.id}`;
+          const thumbUrl = `https://i3.ytimg.com/vi/${item.id}/mqdefault.jpg`;
+          const channel = item.channelTitle || '';
+          const viewText = item.viewCountText || '';
+          const published = item.publishedTimeText || '';
           card.innerHTML = `
             <div class="thumb">
-              <img src="https://i3.ytimg.com/vi/${item.id}/mqdefault.jpg" loading="lazy">
+              <img src="${thumbUrl}" loading="lazy" alt="${(item.title||'動画')}">
             </div>
             <div class="meta">
-              <div class="channel-avatar"></div>
+              <div class="channel-avatar">${(channel && channel[0]) ? channel[0].toUpperCase() : 'C'}</div>
               <div class="details">
-                <h3>${item.title}</h3>
-                <p>${item.channelTitle}</p>
-                <p>${item.viewCountText || ''} • ${item.publishedTimeText || ''}</p>
+                <h3>${item.title || ''}</h3>
+                <p>${channel}</p>
+                <p>${viewText} • ${published}</p>
               </div>
             </div>
           `;
