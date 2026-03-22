@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <title><%= channel.author || "OK" %></title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      body {
+          font-family: Arial, sans-serif;
+          margin: 0;
+          padding: 0;
+          background-color: #121212;
+          color: #e0e0e0;
+      }
+      header {
+          padding: 20px;
+          text-align: center;
+          background-color: #1e1e1e;
+      }
+      header h1 {
+          margin: 0;
+          font-size: 24px;
+      }
+      .container {
+          padding: 20px;
+      }
+      .banner {
+          width: 100%;
+          max-height: 300px;
+          object-fit: cover;
+      }
+      .channel-info {
+          display: flex;
+          align-items: center;
+          margin-top: 20px;
+      }
+      .avatar {
+          width: 100px;
+          height: 100px;
+          border-radius: 50%;
+          margin-right: 20px;
+      }
+      .details {
+          flex: 1;
+      }
+      .details h2 {
+          margin: 0;
+      }
+      .details p {
+          margin: 5px 0;
+      }
+      .playlist {
+          margin-top: 40px;
+      }
+      .playlist h2 {
+          font-size: 20px;
+          margin-bottom: 20px;
+      }
+  
+      #playlistContainer {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          gap: 20px;
+      }
+
+      .card {
+          background-color: #1e1e1e;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+          transition: transform 0.2s, box-shadow 0.2s;
+      }
+      .card:hover {
+          transform: scale(1.02);
+          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.7);
+      }
+      .card img {
+          width: 100%;
+          height: auto;
+          display: block;
+      }
+      .card-content {
+          padding: 10px;
+      }
+      .card-content h3 {
+          font-size: 18px;
+          margin: 0;
+          color: #e0e0e0;
+      }
+      .card-content p {
+          font-size: 14px;
+          color: #aaa;
+          margin: 5px 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1><%= channel.author || "チャンネル情報" %></h1>
+    </header>
+    <div class="container">
+      <% if (channel.authorBanners && channel.authorBanners.length > 0) { %>
+        <img class="banner" src="<%= channel.authorBanners[0].url %>" alt="チャンネルバナー">
+      <% } %>
+      <div class="channel-info">
+        <% if (channel.authorThumbnails && channel.authorThumbnails.length > 0) { %>
+          <img class="avatar" src="<%= channel.authorThumbnails[0].url %>" alt="チャンネルアバター">
+        <% } %>
+        <div class="details">
+          <h2><%= channel.author || "不明なチャンネル" %></h2>
+          <p>登録者数: <%= channel.subCount ? channel.subCount.toLocaleString() : "不明" %></p>
+          <p>総再生回数: <%= channel.totalViews ? channel.totalViews.toLocaleString() : "不明" %></p>
+          <p><a href="<%= channel.authorUrl %>" target="_blank">YouTubeで見る</a></p>
+        </div>
+      </div>
+      <p><%= channel.description || "説明はありません。" %></p>
+      <div class="playlist">
+        <h2>動画プレイリスト</h2>
+        <div id="playlistContainer">
+          <p>プレイリストを読み込み中...</p>
+        </div>
+      </div>
+    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', async () => {
+          const playlistContainer = document.getElementById('playlistContainer');
+          try {
+              const url = '/api/playlist-ejs?channelID=' + encodeURIComponent('<%= channel.authorId %>') +
+                          '&authorName=' + encodeURIComponent('<%= channel.author %>');
+              const response = await fetch(url);
+              if (!response.ok) {
+                  playlistContainer.innerHTML = "<p>プレイリストの読み込みに失敗しました。</p>";
+                  return;
+              }
+              const data = await response.json();
+              if (data.playlist && data.playlist.length > 0) {
+                  let html = "";
+                  data.playlist.forEach(item => {
+
+                      if (item.id.startsWith("UC")) return;
+                      html += `
+                      <div class="card">
+                          <img src="https://i3.ytimg.com/vi/${item.id}/sddefault.jpg" alt="${item.title}">
+                          <div class="card-content">
+                              <h3><a href="/video/${item.id}" style="color:#bb86fc; text-decoration:none;">${item.title}</a></h3>
+                          </div>
+                      </div>`;
+                  });
+                  playlistContainer.innerHTML = html ? html : "<p>動画がありません。</p>";
+              } else {
+                  playlistContainer.innerHTML = "<p>動画がありません。</p>";
+              }
+          } catch (error) {
+              console.error(error);
+              playlistContainer.innerHTML = "<p>プレイリストの読み込みに失敗しました。</p>";
+          }
+      });
+    </script>
+  </body>
+</html>
