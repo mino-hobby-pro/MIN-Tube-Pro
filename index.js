@@ -467,6 +467,41 @@ app.get("/video/:id", async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+const videoRouter = tryRequireRouter('api/video') || null;
+const watchRouter = tryRequireRouter('api/watch') || null;
+const testRouter = tryRequireRouter('api/test') || null;
+
+if (videoRouter) {
+  app.use('/stream', videoRouter);
+} else {
+  // フォールバック: /stream/:id にレスポンス
+  app.get('/stream/:id', (req, res) => {
+    res.json({ ok: true, route: '/stream/:id', id: req.params.id, note: 'api/video.js not found' });
+  });
+}
+
+if (watchRouter) {
+  app.use('/watch', watchRouter);
+} else {
+  app.get('/watch/:id', (req, res) => {
+    res.json({ ok: true, route: '/watch/:id', id: req.params.id, note: 'api/watch.js not found' });
+  });
+}
+
+if (testRouter) {
+  app.use('/test', testRouter);
+} else {
+  
+  app.get('/test', (req, res) => {
+    res.json({
+      ok: true,
+      message: '/api/test not found, returning server info instead',
+      serverTime: new Date().toISOString(),
+      envPort: process.env.PORT || null
+    });
+  });
+}
+
 app.get("/nothing/*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "home.html"));
 });
