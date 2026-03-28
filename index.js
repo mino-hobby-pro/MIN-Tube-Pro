@@ -394,7 +394,6 @@ const shortsHtml = `
         .container { margin-top: 56px; display: flex; justify-content: center; padding: 24px; gap: 24px; max-width: 1700px; margin-left: auto; margin-right: auto; }
         .main-content { flex: 1; min-width: 0; position: relative; }
         .sidebar { width: 400px; flex-shrink: 0; }
-        /* プレイヤーのレイヤーを絶対的に上にする */
         .player-container { width: 100%; aspect-ratio: 16 / 9; background: black; border-radius: 12px; overflow: hidden; position: relative; z-index: 100; box-shadow: 0 4px 30px rgba(0,0,0,0.7); }
         .video-title { font-size: 20px; font-weight: bold; margin: 12px 0; line-height: 28px; }
         .owner-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
@@ -407,14 +406,12 @@ const shortsHtml = `
         .comment-item { display: flex; gap: 16px; margin-bottom: 20px; }
         .comment-avatar { width: 40px; height: 40px; border-radius: 50%; }
         .comment-author { font-weight: bold; font-size: 13px; margin-bottom: 4px; display: block; }
-
         .rec-item { display: flex; gap: 8px; margin-bottom: 12px; cursor: pointer; text-decoration: none; color: inherit; }
         .rec-thumb { width: 160px; height: 90px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #222; }
         .rec-thumb img { width: 100%; height: 100%; object-fit: cover; }
         .rec-info { display: flex; flex-direction: column; justify-content: flex-start; }
         .rec-title { font-size: 14px; font-weight: bold; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; }
         .rec-meta { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
-
         .shorts-shelf-container { margin-top: 24px; border-top: 4px solid var(--bg-secondary); padding-top: 20px; margin-bottom: 24px; }
         .shorts-shelf-title { display: flex; align-items: center; font-size: 18px; font-weight: bold; margin-bottom: 16px; color: white; }
         .shorts-shelf-title svg { margin-right: 8px; width: 24px; height: 24px; }
@@ -425,8 +422,6 @@ const shortsHtml = `
         .short-info { margin-top: 8px; }
         .short-title { font-size: 14px; font-weight: 500; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .short-views { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
-
-        /* サーバー選択ドロップダウン用スタイル */
         .server-dropdown-container { position: relative; display: inline-block; margin-left: 12px; }
         .btn-server { background: var(--bg-secondary); color: var(--text-main); border: none; padding: 0 16px; height: 36px; border-radius: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: background 0.2s; }
         .btn-server:hover { background: var(--bg-hover); }
@@ -435,13 +430,10 @@ const shortsHtml = `
         .server-option { padding: 12px 16px; cursor: pointer; font-size: 14px; transition: background 0.2s; display: flex; align-items: center; }
         .server-option:hover { background: var(--bg-hover); }
         .server-option.active { background: #333; border-left: 4px solid var(--yt-red); padding-left: 12px; }
-        
-        /* 動画ローディング用スタイル */
         .video-loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 150; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; backdrop-filter: blur(2px); }
         .video-loading-overlay.active { opacity: 1; pointer-events: auto; }
         .spinner { border: 4px solid rgba(255, 255, 255, 0.1); width: 50px; height: 50px; border-radius: 50%; border-top-color: var(--yt-red); animation: spin 1s ease-in-out infinite; margin-bottom: 16px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
         @media (max-width: 1000px) { .container { flex-direction: column; padding: 0; } .sidebar { width: 100%; padding: 16px; box-sizing: border-box; } .player-container { border-radius: 0; } .main-content { padding: 16px; } }
     </style>
 </head>
@@ -469,7 +461,6 @@ const shortsHtml = `
                 <img src="${videoData.channelImage || 'https://via.placeholder.com/40'}">
                 <div class="channel-name">${videoData.channelName}</div>
                 <button class="btn-sub">チャンネル登録</button>
-                
                 <div class="server-dropdown-container">
                     <button class="btn-server" onclick="toggleServerMenu()">
                         <i class="fas fa-server"></i> 動画サーバー <i class="fas fa-chevron-down" style="font-size: 12px; margin-left: 2px;"></i>
@@ -508,61 +499,37 @@ const shortsHtml = `
 </div>
 
 <script>
-    // --- サーバー切り替え機能のロジック開始 ---
-    function toggleServerMenu() {
-        document.getElementById('serverMenu').classList.toggle('show');
-    }
+    function toggleServerMenu() { document.getElementById('serverMenu').classList.toggle('show'); }
+    window.addEventListener('click', function(e) { if (!e.target.closest('.server-dropdown-container')) { const menu = document.getElementById('serverMenu'); if (menu && menu.classList.contains('show')) menu.classList.remove('show'); } });
 
-    // メニュー外クリックでドロップダウンを閉じる
-    window.addEventListener('click', function(e) {
-        if (!e.target.closest('.server-dropdown-container')) {
-            const menu = document.getElementById('serverMenu');
-            if (menu && menu.classList.contains('show')) {
-                menu.classList.remove('show');
-            }
-        }
-    });
-
-    // サーバー変更時の非同期処理
     async function changeServer(serverName, endpointPath, event) {
-        // メニューUIの更新
         document.getElementById('serverMenu').classList.remove('show');
         const options = document.querySelectorAll('.server-option');
         options.forEach(opt => opt.classList.remove('active'));
         event.currentTarget.classList.add('active');
 
-        // ローディングアニメーション開始
         const overlay = document.getElementById('videoLoadingOverlay');
         overlay.classList.add('active');
 
-        // 再生中の動画を一旦止める
-        const currentVideo = document.getElementById('mainPlayer');
-        if (currentVideo) {
-            currentVideo.pause();
-            currentVideo.removeAttribute('src');
-            currentVideo.load();
-        }
-
         try {
             let newUrl = '';
-            
+            // --- ロジックの条件分岐 ---
             if (serverName === 'googlevideo') {
-                // 初期状態のURLを復元
-                if ("${videoData.stream_url}" === "youtube-nocookie") {
-                    newUrl = \`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1\`;
-                } else {
-                    newUrl = "${videoData.stream_url}";
-                }
+                newUrl = "${videoData.stream_url}" === "youtube-nocookie" ? \`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1\` : "${videoData.stream_url}";
+            } else if (serverName === 'Youtube-Pro') {
+                // Youtube-ProはエンドポイントURLをそのまま使用
+                newUrl = endpointPath;
             } else {
-                // 指定されたエンドポイントからテキストでURLを取得
+                // それ以外はサーバーから生のURLを取得
                 const res = await fetch(endpointPath);
-                if (!res.ok) throw new Error("サーバーからの応答エラー");
+                if (!res.ok) throw new Error("サーバーエラー");
                 newUrl = await res.text();
             }
 
             const playerContainer = document.getElementById('playerWrapper');
-            // URLにembedが含まれているかでiframeかvideoかを簡易判定
-            const isIframe = newUrl.includes('youtube.com/embed') || newUrl.includes('youtube-nocookie.com/embed');
+            // Kahoot, Scratch, Youtube-Pro, およびnocookieは強制的にiframe
+            const forceIframe = ['YoutubeEdu-Kahoot', 'YoutubeEdu-Scratch', 'Youtube-Pro', 'youtube-nocookie'].includes(serverName);
+            const isIframe = forceIframe || newUrl.includes('embed');
 
             let playerHtml = '';
             if (isIframe) {
@@ -570,36 +537,18 @@ const shortsHtml = `
             } else {
                 playerHtml = \`<video id="mainPlayer" controls autoplay style="width:100%; height:100%; position:relative; z-index:10; background:#000;"><source src="\${newUrl}" type="video/mp4"></video>\`;
             }
-            
-            // プレイヤーを新しく埋め込む
             playerContainer.innerHTML = playerHtml;
-
-            // <video>タグの場合は自動再生を試みる
             const newVideo = document.getElementById('mainPlayer');
-            if (newVideo) {
-                newVideo.load();
-                newVideo.play().catch(e => console.log("Autoplay blocked"));
-            }
-
-        } catch (error) {
-            console.error('通信エラー:', error);
-            alert('動画サーバーとの通信に失敗しました。');
-        } finally {
-            // ローディングアニメーション終了
-            overlay.classList.remove('active');
-        }
+            if (newVideo) { newVideo.load(); newVideo.play().catch(e => console.log("Auto")); }
+        } catch (error) { console.error(error); alert('サーバー切り替えに失敗しました。'); } finally { overlay.classList.remove('active'); }
     }
-    // --- サーバー切り替え機能のロジック終了 ---
-
 
     async function loadRecommendations() {
         const params = new URLSearchParams({ title: "${videoData.videoTitle}", channel: "${videoData.channelName}", id: "${videoId}" });
         const res = await fetch(\`/api/recommendations?\${params.toString()}\`);
         const data = await res.json();
-        
         const shorts = data.items.filter(item => item.title.includes('#'));
         const regulars = data.items.filter(item => !item.title.includes('#'));
-
         document.getElementById('recommendations').innerHTML = regulars.map(item => \`
             <a href="/video/\${item.id}" class="rec-item">
                 <div class="rec-thumb"><img src="https://i.ytimg.com/vi/\${item.id}/mqdefault.jpg"></div>
@@ -610,7 +559,6 @@ const shortsHtml = `
                 </div>
             </a>
         \`).join('');
-
         if (shorts.length > 0) {
             const shelf = document.getElementById('shortsShelf');
             const grid = document.getElementById('shortsGrid');
@@ -626,28 +574,20 @@ const shortsHtml = `
             \`).join('');
         }
     }
-
     window.onload = () => {
-        // 1. おすすめ動画の読み込み
         loadRecommendations();
-        
-        // 2. ページが完全にロードされたら動画ソースをセットして再生開始
         const video = document.getElementById('mainPlayer');
         const iframe = document.getElementById('mainIframe');
-        
-        if (video) {
-            const source = video.querySelector('source');
-            source.src = source.dataset.src;
-            video.load();
-            video.play().catch(e => console.log("Autoplay blocked"));
-        }
-        if (iframe) {
-            iframe.src = iframe.dataset.src;
-        }
+        if (video) { const source = video.querySelector('source'); source.src = source.dataset.src; video.load(); video.play().catch(e => {}); }
+        if (iframe) { iframe.src = iframe.dataset.src; }
     };
 </script>
 </body>
 </html>
+    `;
+    res.send(html);
+  } catch (err) { next(err); }
+});
     `;
     res.send(html);
   } catch (err) { next(err); }
