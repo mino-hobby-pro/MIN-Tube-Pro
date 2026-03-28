@@ -239,7 +239,7 @@ app.get("/video/:id", async (req, res, next) => {
 
     if (isShortForm) {
       // --- SHORTS MODE HTML ---
-      const shortsHtml = `
+const shortsHtml = `
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -426,6 +426,22 @@ app.get("/video/:id", async (req, res, next) => {
         .short-title { font-size: 14px; font-weight: 500; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .short-views { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
 
+        /* サーバー選択ドロップダウン用スタイル */
+        .server-dropdown-container { position: relative; display: inline-block; margin-left: 12px; }
+        .btn-server { background: var(--bg-secondary); color: var(--text-main); border: none; padding: 0 16px; height: 36px; border-radius: 18px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 14px; transition: background 0.2s; }
+        .btn-server:hover { background: var(--bg-hover); }
+        .server-menu { display: none; position: absolute; top: 100%; left: 0; margin-top: 8px; background: var(--bg-secondary); border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 200; min-width: 220px; border: 1px solid #333; }
+        .server-menu.show { display: block; }
+        .server-option { padding: 12px 16px; cursor: pointer; font-size: 14px; transition: background 0.2s; display: flex; align-items: center; }
+        .server-option:hover { background: var(--bg-hover); }
+        .server-option.active { background: #333; border-left: 4px solid var(--yt-red); padding-left: 12px; }
+        
+        /* 動画ローディング用スタイル */
+        .video-loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); z-index: 150; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; backdrop-filter: blur(2px); }
+        .video-loading-overlay.active { opacity: 1; pointer-events: auto; }
+        .spinner { border: 4px solid rgba(255, 255, 255, 0.1); width: 50px; height: 50px; border-radius: 50%; border-top-color: var(--yt-red); animation: spin 1s ease-in-out infinite; margin-bottom: 16px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
         @media (max-width: 1000px) { .container { flex-direction: column; padding: 0; } .sidebar { width: 100%; padding: 16px; box-sizing: border-box; } .player-container { border-radius: 0; } .main-content { padding: 16px; } }
     </style>
 </head>
@@ -438,10 +454,36 @@ app.get("/video/:id", async (req, res, next) => {
 
 <div class="container">
     <div class="main-content">
-        <div class="player-container">${streamEmbedPlaceholder}</div>
+        <div class="player-container">
+            <div id="playerWrapper" style="width:100%; height:100%;">
+                ${streamEmbedPlaceholder}
+            </div>
+            <div id="videoLoadingOverlay" class="video-loading-overlay">
+                <div class="spinner"></div>
+                <div style="font-weight: bold; font-size: 16px;">動画サーバーに接続中...</div>
+            </div>
+        </div>
         <h1 class="video-title">${videoData.videoTitle}</h1>
         <div class="owner-row">
-            <div class="owner-info"><img src="${videoData.channelImage || 'https://via.placeholder.com/40'}"><div class="channel-name">${videoData.channelName}</div><button class="btn-sub">チャンネル登録</button></div>
+            <div class="owner-info">
+                <img src="${videoData.channelImage || 'https://via.placeholder.com/40'}">
+                <div class="channel-name">${videoData.channelName}</div>
+                <button class="btn-sub">チャンネル登録</button>
+                
+                <div class="server-dropdown-container">
+                    <button class="btn-server" onclick="toggleServerMenu()">
+                        <i class="fas fa-server"></i> 動画サーバー <i class="fas fa-chevron-down" style="font-size: 12px; margin-left: 2px;"></i>
+                    </button>
+                    <div id="serverMenu" class="server-menu">
+                        <div class="server-option active" onclick="changeServer('googlevideo', '', event)">googlevideo (現在)</div>
+                        <div class="server-option" onclick="changeServer('youtube-nocookie', '/nocookie/${videoId}', event)">youtube-nocookie</div>
+                        <div class="server-option" onclick="changeServer('DL-Pro', '/360/${videoId}', event)">DL-Pro</div>
+                        <div class="server-option" onclick="changeServer('YoutubeEdu-Kahoot', '/kahoot-edu/${videoId}', event)">YoutubeEdu-Kahoot</div>
+                        <div class="server-option" onclick="changeServer('YoutubeEdu-Scratch', '/scratch-edu/${videoId}', event)">YoutubeEdu-Scratch</div>
+                        <div class="server-option" onclick="changeServer('Youtube-Pro', '/pro-stream/${videoId}', event)">Youtube-Pro</div>
+                    </div>
+                </div>
+            </div>
             <div style="display:flex; gap:8px;"><button class="action-btn">👍 ${videoData.likeCount || 0}</button><button class="action-btn">共有</button></div>
         </div>
         <div class="description-box"><b>${videoData.videoViews || '0'} 回視聴</b><br><br>${videoData.videoDes || ''}</div>
@@ -466,6 +508,90 @@ app.get("/video/:id", async (req, res, next) => {
 </div>
 
 <script>
+    // --- サーバー切り替え機能のロジック開始 ---
+    function toggleServerMenu() {
+        document.getElementById('serverMenu').classList.toggle('show');
+    }
+
+    // メニュー外クリックでドロップダウンを閉じる
+    window.addEventListener('click', function(e) {
+        if (!e.target.closest('.server-dropdown-container')) {
+            const menu = document.getElementById('serverMenu');
+            if (menu && menu.classList.contains('show')) {
+                menu.classList.remove('show');
+            }
+        }
+    });
+
+    // サーバー変更時の非同期処理
+    async function changeServer(serverName, endpointPath, event) {
+        // メニューUIの更新
+        document.getElementById('serverMenu').classList.remove('show');
+        const options = document.querySelectorAll('.server-option');
+        options.forEach(opt => opt.classList.remove('active'));
+        event.currentTarget.classList.add('active');
+
+        // ローディングアニメーション開始
+        const overlay = document.getElementById('videoLoadingOverlay');
+        overlay.classList.add('active');
+
+        // 再生中の動画を一旦止める
+        const currentVideo = document.getElementById('mainPlayer');
+        if (currentVideo) {
+            currentVideo.pause();
+            currentVideo.removeAttribute('src');
+            currentVideo.load();
+        }
+
+        try {
+            let newUrl = '';
+            
+            if (serverName === 'googlevideo') {
+                // 初期状態のURLを復元
+                if ("${videoData.stream_url}" === "youtube-nocookie") {
+                    newUrl = \`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1\`;
+                } else {
+                    newUrl = "${videoData.stream_url}";
+                }
+            } else {
+                // 指定されたエンドポイントからテキストでURLを取得
+                const res = await fetch(endpointPath);
+                if (!res.ok) throw new Error("サーバーからの応答エラー");
+                newUrl = await res.text();
+            }
+
+            const playerContainer = document.getElementById('playerWrapper');
+            // URLにembedが含まれているかでiframeかvideoかを簡易判定
+            const isIframe = newUrl.includes('youtube.com/embed') || newUrl.includes('youtube-nocookie.com/embed');
+
+            let playerHtml = '';
+            if (isIframe) {
+                playerHtml = \`<iframe id="mainIframe" src="\${newUrl}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:relative; z-index:10;"></iframe>\`;
+            } else {
+                playerHtml = \`<video id="mainPlayer" controls autoplay style="width:100%; height:100%; position:relative; z-index:10; background:#000;"><source src="\${newUrl}" type="video/mp4"></video>\`;
+            }
+            
+            // プレイヤーを新しく埋め込む
+            playerContainer.innerHTML = playerHtml;
+
+            // <video>タグの場合は自動再生を試みる
+            const newVideo = document.getElementById('mainPlayer');
+            if (newVideo) {
+                newVideo.load();
+                newVideo.play().catch(e => console.log("Autoplay blocked"));
+            }
+
+        } catch (error) {
+            console.error('通信エラー:', error);
+            alert('動画サーバーとの通信に失敗しました。');
+        } finally {
+            // ローディングアニメーション終了
+            overlay.classList.remove('active');
+        }
+    }
+    // --- サーバー切り替え機能のロジック終了 ---
+
+
     async function loadRecommendations() {
         const params = new URLSearchParams({ title: "${videoData.videoTitle}", channel: "${videoData.channelName}", id: "${videoId}" });
         const res = await fetch(\`/api/recommendations?\${params.toString()}\`);
