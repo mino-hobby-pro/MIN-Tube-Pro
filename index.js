@@ -466,8 +466,8 @@ const shortsHtml = `
                         <i class="fas fa-server"></i> 動画サーバー <i class="fas fa-chevron-down" style="font-size: 12px; margin-left: 2px;"></i>
                     </button>
                     <div id="serverMenu" class="server-menu">
-                        <div class="server-option active" onclick="changeServer('googlevideo', '', event)">googlevideo (現在)</div>
-                        <div class="server-option" onclick="changeServer('youtube-nocookie', '/nocookie/${videoId}', event)">youtube-nocookie</div>
+                        <div class="server-option active" onclick="changeServer('googlevideo', '', event)">Googlevideo</div>
+                        <div class="server-option" onclick="changeServer('youtube-nocookie', '/nocookie/${videoId}', event)">Youtube-nocookie</div>
                         <div class="server-option" onclick="changeServer('DL-Pro', '/360/${videoId}', event)">DL-Pro</div>
                         <div class="server-option" onclick="changeServer('YoutubeEdu-Kahoot', '/kahoot-edu/${videoId}', event)">YoutubeEdu-Kahoot</div>
                         <div class="server-option" onclick="changeServer('YoutubeEdu-Scratch', '/scratch-edu/${videoId}', event)">YoutubeEdu-Scratch</div>
