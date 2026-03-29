@@ -57,7 +57,8 @@ app.use(async (req, res, next) => {
   if (req.path.startsWith("/api") || req.path.startsWith("/video") || req.path === "/") {
     if (!req.cookies || req.cookies.humanVerified !== "true") {
       const pages = [
-        'https://raw.githubusercontent.com/mino-hobby-pro/memo/refs/heads/main/min-tube-pro-main-loading.txt'
+        'https://raw.githubusercontent.com/mino-hobby-pro/memo/refs/heads/main/min-tube-pro-main-loading.txt',
+        'https://raw.githubusercontent.com/mino-hobby-pro/memo/refs/heads/main/min-tube-pro-sub-roading-like-command-loader-local.txt'
       ];
       const randomPage = pages[Math.floor(Math.random() * pages.length)];
       try {
