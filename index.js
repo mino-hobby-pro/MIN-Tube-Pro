@@ -1083,26 +1083,42 @@ app.get('/ai-fetch/:videoId', async (req, res) => {
 
         let videoTitle = videoId; 
         let channelName = videoId;
-        
+        let found = false;
+
         try {
-            let page = 0;
-            let found = false;
-            while (page < 10 && !found) {
-                const searchResults = await yts.GetListByKeyword(videoId, false, 20, page);
-                if (searchResults && searchResults.items && searchResults.items.length > 0) {
-                    const matchedVideo = searchResults.items.find(item => item.id === videoId);
-                    if (matchedVideo) {
-                        videoTitle = matchedVideo.title || videoId;
-                        channelName = (matchedVideo.author && matchedVideo.author.name) ? matchedVideo.author.name : videoId;
-                        found = true;
-                    }
-                } else {
-                    break;
+            const noEmbedRes = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+            if (noEmbedRes.ok) {
+                const noEmbedData = await noEmbedRes.json();
+                if (noEmbedData && !noEmbedData.error) {
+                    videoTitle = noEmbedData.title || videoId;
+                    channelName = noEmbedData.author_name || videoId;
+                    found = true;
                 }
-                page++;
             }
-        } catch (searchErr) {
-            console.error("Search API Error:", searchErr);
+        } catch (noEmbedErr) {
+
+        }
+
+        if (!found) {
+            try {
+                let page = 0;
+                while (page < 10 && !found) {
+                    const searchResults = await yts.GetListByKeyword(videoId, false, 20, page);
+                    if (searchResults && searchResults.items && searchResults.items.length > 0) {
+                        const matchedVideo = searchResults.items.find(item => item.id === videoId);
+                        if (matchedVideo) {
+                            videoTitle = matchedVideo.title || videoId;
+                            channelName = (matchedVideo.author && matchedVideo.author.name) ? matchedVideo.author.name : videoId;
+                            found = true;
+                        }
+                    } else {
+                        break;
+                    }
+                    page++;
+                }
+            } catch (searchErr) {
+                console.error("Search API Error:", searchErr);
+            }
         }
 
         const protocol = req[_0x42f1('0x6')];
