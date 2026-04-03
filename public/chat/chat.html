@@ -152,7 +152,6 @@
       transform: none;
     }
 
-    /* JavaScriptによる固定値の上書きを防ぐため !important を付与 */
     .page-wrap {
       max-width: 1200px;
       margin: 0 auto;
@@ -322,6 +321,8 @@
       flex-direction: column;
       gap: 12px;
       margin-bottom: 16px;
+      max-height: 400px; /* 多すぎる部屋によるレイアウト崩れ防止 */
+      overflow-y: auto;
     }
 
     .room-item {
@@ -544,6 +545,7 @@
   </div>
 
   <div id="mainWrap" class="page-wrap" role="main">
+    <div id="errorAlert" style="display:none; background:#fee2e2; color:#b91c1c; padding:12px; border-radius:8px; margin-bottom:16px; border:1px solid #fca5a5;"></div>
 
     <div id="splitContainer">
       <div id="chatColumn" class="chat-column" aria-live="polite" aria-atomic="false"></div>
@@ -556,7 +558,7 @@
 
         <div id="roomsControls" style="margin-top:8px">
           <div style="display:flex;gap:8px;margin-bottom:8px">
-            <input id="roomInput" placeholder="部屋ID（任意）" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:8px" />
+            <input id="roomInput" placeholder="部屋ID（任意）" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:8px" maxlength="30" />
             <button id="createRoomBtn" class="btn">新しく作る</button>
             <button id="refreshRoomsBtn" class="btn ghost">更新</button>
           </div>
@@ -668,6 +670,7 @@
     const roomsControls = document.getElementById('roomsControls');
     const turnBadge = document.getElementById('turnBadge');
     const overlay = document.getElementById('overlay');
+    const errorAlert = document.getElementById('errorAlert');
 
     let messages = [];
     let currentRoom = null;
@@ -675,6 +678,13 @@
     let myColor = null;
     let adminList = [];
     let adminRedirectUrl = null;
+
+    /* エラー通知表示関数 */
+    function showError(msg) {
+      errorAlert.textContent = msg;
+      errorAlert.style.display = 'block';
+      setTimeout(() => { errorAlert.style.display = 'none'; }, 5000);
+    }
 
     /* Server Select Logic */
     if (localStorage.getItem('selectedServer')) {
@@ -702,7 +712,6 @@
       const msgUint8 = new TextEncoder().encode(seed);
       const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      // ハッシュの最初の16文字を識別子として利用
       return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
     }
 
@@ -731,14 +740,12 @@
       return btn;
     }
 
-    /* Render a single message and prepend to top (newest at top) */
+    /* Render a single message and prepend to top */
     function appendMessageElement(m){
-      // message wrapper
       const item = document.createElement('article');
       item.className = 'message';
       item.setAttribute('data-id', m.id);
 
-      // avatar (Clickable)
       const av = document.createElement('div'); 
       av.className = 'avatar'; 
       av.textContent = avatarText(m.username);
@@ -746,11 +753,9 @@
       av.title = '識別子を表示';
       av.onclick = () => showUserIdentity(m.seed, m.username);
 
-      // body
       const body = document.createElement('div'); body.className = 'body';
       const meta = document.createElement('div'); meta.className = 'meta';
       
-      // name (Clickable)
       const name = document.createElement('div'); 
       name.className = 'name'; 
       name.textContent = m.username || '匿名';
@@ -758,13 +763,11 @@
       name.title = '識別子を表示';
       name.onclick = () => showUserIdentity(m.seed, m.username);
 
-      // 修正箇所: サーバーから渡される m.isAdmin を直接参照してバッジを表示する
       if(m.isAdmin === true){
         const badge = document.createElement('span'); badge.className = 'admin-badge'; badge.textContent = '管理者';
         name.appendChild(badge);
       }
 
-      // BAN button (Visible if toggle is checked and user is not system or admin)
       if(banToggle && banToggle.checked && m.username !== 'システム' && !m.isAdmin){
         const banBtn = document.createElement('button');
         banBtn.textContent = 'BAN';
@@ -799,16 +802,14 @@
       body.appendChild(meta); body.appendChild(text); body.appendChild(reactions);
       item.appendChild(av); item.appendChild(body);
 
-      // system messages are rendered same as others
       if(m.username === 'システム'){
         item.classList.add('system-note');
       }
 
-      // Prepend instead of append to keep newest at top
       chatColumn.prepend(item);
     }
 
-    /* Load messages from REST and render (latest at top) */
+    /* Load messages from REST */
     async function loadMessages(){
       try{
         const res = await fetch(BASE + '/api/messages');
@@ -831,9 +832,9 @@
         const res = await fetch(BASE + '/api/messages', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
         });
-        if(!res.ok){ const err = await res.json(); alert(err.error || '送信に失敗しました'); return; }
+        if(!res.ok){ const err = await res.json(); showError(err.error || '送信に失敗しました'); return; }
         messageInput.value = '';
-      }catch(e){ console.error(e); }
+      }catch(e){ console.error(e); showError('通信エラーが発生しました'); }
     }
 
     /* Clear messages (admin) */
@@ -852,13 +853,12 @@
 
     /* Admin login flow */
     async function adminLoginFlow(){
-      const username = usernameInput.value.trim() || '匿名';
       const password = prompt('管理者パスワードを入力してください');
       if(!password) return;
       try{
         const res = await fetch(BASE + '/api/admin-login', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ password })
         });
         const data = await res.json();
         if(res.ok && data.ok){
@@ -887,6 +887,15 @@
     /* Socket handlers */
     socket.on('connect', () => {});
     
+    // 追加: サーバーからのエラー通知ハンドラ
+    socket.on('serverError', (msg) => {
+      showError(msg);
+    });
+    
+    socket.on('serverMessage', (msg) => {
+      alert(msg);
+    });
+
     socket.on('banned', (data) => {
       const myUsername = usernameInput.value.trim() || '匿名';
       const mySeed = seedInput.value.trim() || '';
@@ -922,8 +931,6 @@
       adminList = Array.isArray(list) ? list : [];
       chatColumn.querySelectorAll('.message, .system-note').forEach(n => n.remove());
       messages.forEach(m => appendMessageElement(m));
-      const me = usernameInput.value.trim() || '匿名';
-      if(adminList.includes(me) && adminRedirectUrl) adminModalBtn.style.display = 'inline-block';
     });
 
     /* Othello Logic */
@@ -958,9 +965,7 @@
       const id = roomInput.value.trim() || ('room-' + Math.random().toString(36).slice(2,8));
       const username = usernameInput.value.trim() || '匿名';
       socket.emit('createGame', { roomId: id, username });
-      socket.emit('joinGame', { roomId: id, username });
       openRoom(id);
-      fetchRooms();
     });
 
     refreshRoomsBtn.addEventListener('click', fetchRooms);
@@ -976,6 +981,12 @@
       roomsControls.style.display = 'block';
       fetchRooms();
     }
+
+    // 追加: 部屋が強制削除された際のハンドリング
+    socket.on('roomClosed', () => {
+      if(leaveRoomBtn) leaveRoomBtn.click();
+      fetchRooms();
+    });
 
     leaveRoomBtn.addEventListener('click', () => {
       if(!currentRoom) return;
@@ -1081,16 +1092,16 @@
     }
 
     function onCellClick(r,c){
-      if(!gameState || gameState.status !== 'playing'){ alert('対戦中ではありません'); return; }
-      if(!myColor){ alert('観戦中です。'); return; }
-      if(gameState.turn !== myColor){ alert('あなたの手番ではありません'); return; }
+      if(!gameState || gameState.status !== 'playing'){ showError('対戦中ではありません'); return; }
+      if(!myColor){ showError('観戦中です。'); return; }
+      if(gameState.turn !== myColor){ showError('あなたの手番ではありません'); return; }
       const legal = (gameState.legalMoves || []).some(([rr,cc]) => rr===r && cc===c);
       if(!legal) return;
       socket.emit('makeMove', { roomId: currentRoom, r, c, color: myColor });
     }
 
     joinGameBtn.addEventListener('click', () => {
-      if(!currentRoom) { alert('先に部屋を開いてください'); return; }
+      if(!currentRoom) { showError('先に部屋を開いてください'); return; }
       socket.emit('joinGame', { roomId: currentRoom, username: usernameInput.value.trim() || '匿名' });
       joinGameBtn.disabled = true;
       joinGameBtn.textContent = '参加リクエスト中';
