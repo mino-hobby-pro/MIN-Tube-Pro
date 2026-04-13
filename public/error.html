@@ -120,60 +120,115 @@
       .video-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; row-gap: 20px; }
     }
 
-.home-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px; 
-  color: #fff;
-  text-decoration: none;
-  font-size: 20px;
-  font-weight: 600;
-  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
-  border: 3px solid rgba(255,255,255,0.12); 
-  box-shadow: 0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
-  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease;
-  backdrop-filter: blur(4px);
-}
+    .home-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 12px; 
+      color: #fff;
+      text-decoration: none;
+      font-size: 20px;
+      font-weight: 600;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border: 3px solid rgba(255,255,255,0.12); 
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+      backdrop-filter: blur(4px);
+    }
 
-.home-btn:hover,
-.home-btn:focus {
-  transform: translateY(-3px);
-  border-color: var(--chip-hover);
-  background: linear-gradient(180deg, var(--chip-hover), color-mix(in srgb, var(--chip-hover) 60%, black));
-  box-shadow: 0 12px 30px rgba(0,0,0,0.45), 0 0 18px rgba(0,0,0,0.12);
-  outline: none;
-}
+    .home-btn:hover,
+    .home-btn:focus {
+      transform: translateY(-3px);
+      border-color: var(--chip-hover);
+      background: linear-gradient(180deg, var(--chip-hover), color-mix(in srgb, var(--chip-hover) 60%, black));
+      box-shadow: 0 12px 30px rgba(0,0,0,0.45), 0 0 18px rgba(0,0,0,0.12);
+      outline: none;
+    }
 
-.home-btn:focus-visible {
-  box-shadow: 0 0 0 4px rgba(100,150,255,0.18), 0 12px 30px rgba(0,0,0,0.45);
-  border-color: #6496ff;
-}
-
-
-.home-btn .icon {
-  display: inline-block;
-  line-height: 1;
-  transform: translateY(-1px);
-}
+    .home-btn:focus-visible {
+      box-shadow: 0 0 0 4px rgba(100,150,255,0.18), 0 12px 30px rgba(0,0,0,0.45);
+      border-color: #6496ff;
+    }
 
 
-.home-btn.neon {
-  border-radius: 50%;
-  width: 56px;
-  height: 56px;
-  background: linear-gradient(135deg, #0ff 10%, #6cf 60%);
-  border: 2px solid rgba(255,255,255,0.06);
-  box-shadow: 0 0 18px rgba(102,204,255,0.28), 0 8px 24px rgba(0,0,0,0.45);
-}
-.home-btn.neon:hover {
-  box-shadow: 0 0 30px rgba(102,204,255,0.45), 0 12px 36px rgba(0,0,0,0.5);
-  transform: translateY(-4px) scale(1.03);
-}
+    .home-btn .icon {
+      display: inline-block;
+      line-height: 1;
+      transform: translateY(-1px);
+    }
 
 
+    .home-btn.neon {
+      border-radius: 50%;
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #0ff 10%, #6cf 60%);
+      border: 2px solid rgba(255,255,255,0.06);
+      box-shadow: 0 0 18px rgba(102,204,255,0.28), 0 8px 24px rgba(0,0,0,0.45);
+    }
+    .home-btn.neon:hover {
+      box-shadow: 0 0 30px rgba(102,204,255,0.45), 0 12px 36px rgba(0,0,0,0.5);
+      transform: translateY(-4px) scale(1.03);
+    }
+
+    /* --- 新規追加: バージョン表示用スタイル (モダンネオン・ダーク虹色) --- */
+    .version-badge {
+      position: absolute;
+      right: 80px; /* ホームボタンのすぐ左側に配置 */
+      top: 50%;
+      transform: translateY(-50%);
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #fff;
+      background: rgba(15, 15, 15, 0.6);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 
+        0 0 10px rgba(255, 105, 180, 0.15), 
+        0 0 15px rgba(0, 255, 255, 0.15),
+        inset 0 1px 2px rgba(255, 255, 255, 0.05);
+      opacity: 0; /* JSでフェードイン */
+      transition: opacity 0.8s ease, transform 0.3s ease, box-shadow 0.3s ease;
+      letter-spacing: 0.5px;
+      z-index: 10;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    
+    .version-badge.show {
+      opacity: 1;
+    }
+
+    .version-badge::before {
+      content: '✨'; /* クールなアクセント */
+      font-size: 11px;
+      filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.6));
+    }
+
+    .version-badge-text {
+      background: linear-gradient(135deg, #ff7eb3, #7eb3ff, #00f2fe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 8px rgba(126, 179, 255, 0.3);
+    }
+
+    @media (max-width: 520px) {
+      .version-badge {
+        right: 65px;
+        padding: 3px 8px;
+        font-size: 11px;
+      }
+      .version-badge::before {
+        font-size: 9px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -185,7 +240,8 @@
         <button type="submit">🔍</button>
       </form>
     </div>
- <a href="/youtube-pro" class="home-btn" title="ホーム">🏠</a>
+    <a href="/youtube-pro" class="home-btn" title="ホーム">🏠</a>
+    <div id="appVersion" class="version-badge"><span class="version-badge-text"></span></div>
   </header>
 
   <div class="chips-bar">
@@ -530,6 +586,26 @@
         loadContent('trending', 0);
       }
     };
+
+    async function fetchAndShowVersion() {
+      try {
+        const res = await fetch('/version');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data && data.version) {
+          const badge = document.getElementById('appVersion');
+          const textEl = badge.querySelector('.version-badge-text');
+          if (badge && textEl) {
+            textEl.textContent = 'v' + data.version;
+            badge.classList.add('show');
+          }
+        }
+      } catch (err) {
+        console.error('バージョン取得エラー', err);
+      }
+    }
+
+    fetchAndShowVersion();
   </script>
 </body>
 </html>
