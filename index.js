@@ -490,9 +490,19 @@ const shortsHtml = `
         </div>
         <div class="description-box"><b>${videoData.videoViews || '0'} 回視聴</b><br><br>${videoData.videoDes || ''}</div>
         <div class="comments-section">
-            <h3>コメント ${commentsData.commentCount} 件</h3>
-            ${commentsData.comments.map(c => `<div class="comment-item"><img class="comment-avatar" src="${c.authorThumbnails?.[0]?.url || ''}"><div><span class="comment-author">${c.author}</span><div style="font-size:14px;">${c.content}</div></div></div>`).join('')}
-        </div>
+    <h3>コメント ${commentsData.commentCount || 0} 件</h3>
+    ${(commentsData && commentsData.comments && Array.isArray(commentsData.comments) && commentsData.comments.length > 0) 
+        ? commentsData.comments.map(c => `
+            <div class="comment-item">
+                <img class="comment-avatar" src="${c.authorThumbnails?.[0]?.url || ''}">
+                <div>
+                    <span class="comment-author">${c.author}</span>
+                    <div style="font-size:14px;">${c.content}</div>
+                </div>
+            </div>`).join('') 
+        : '<p style="color:gray; padding:10px;">コメントは0件です。</p>'
+    }
+</div>
     </div>
     <div class="sidebar">
         <div id="recommendations"></div>
