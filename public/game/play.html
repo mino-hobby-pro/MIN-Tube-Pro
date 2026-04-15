@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>プレイ中 — MIN-Tube-Pro Games</title>
+<style>
+  :root{
+    --bg1:#0f1724;
+    --bg2:#071029;
+    --accent:#00d4ff;
+    --glass:rgba(255,255,255,0.06);
+    --card:rgba(255,255,255,0.03);
+    --glass-border:rgba(255,255,255,0.08);
+    --radius:14px;
+    --glass-blur:10px;
+    --text:#e6f7ff;
+    --muted:#9fb7c9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{
+    height:100%;
+    font-family:Inter,"Noto Sans JP",system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+
+  /* ── layout: topbar + frame ── */
+  .layout{display:flex;flex-direction:column;height:100vh}
+
+  /* ── top bar ── */
+  .topbar{
+    display:flex;align-items:center;gap:12px;
+    padding:10px 18px;
+    background:rgba(7,16,41,0.85);
+    border-bottom:1px solid var(--glass-border);
+    backdrop-filter:blur(var(--glass-blur));
+    flex-shrink:0;
+    z-index:100;
+  }
+
+  .back-btn{
+    display:inline-flex;align-items:center;gap:6px;
+    color:var(--muted);font-size:13px;text-decoration:none;
+    padding:6px 12px;border-radius:8px;
+    border:1px solid var(--glass-border);
+    background:var(--card);
+    transition:color .18s,background .18s;
+    white-space:nowrap;
+  }
+  .back-btn:hover{color:var(--accent);background:rgba(0,212,255,0.07)}
+  .back-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+  .divider{width:1px;height:24px;background:var(--glass-border);flex-shrink:0}
+
+  .game-info{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+  .game-emoji{font-size:22px;flex-shrink:0}
+  .game-name{font-weight:700;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .game-sub{font-size:12px;color:var(--muted)}
+
+  /* live indicator */
+  .live-badge{
+    display:flex;align-items:center;gap:6px;
+    padding:4px 10px;border-radius:20px;
+    background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);
+    font-size:12px;color:#4ade80;font-weight:600;white-space:nowrap;
+    flex-shrink:0;
+  }
+  .live-dot{
+    width:7px;height:7px;border-radius:50%;
+    background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,0.7);
+    position:relative;
+  }
+  .live-dot::after{
+    content:'';position:absolute;inset:0;border-radius:50%;
+    background:#22c55e;opacity:0.4;
+    animation:ping 2s ease-in-out infinite;
+  }
+  @keyframes ping{0%{transform:scale(1);opacity:0.6}70%{transform:scale(2.4);opacity:0}100%{transform:scale(2.4);opacity:0}}
+
+  /* action buttons */
+  .action-btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:5px;
+    padding:6px 12px;border-radius:8px;border:1px solid var(--glass-border);
+    background:var(--card);color:var(--muted);font-size:12px;cursor:pointer;
+    transition:all .18s;white-space:nowrap;
+  }
+  .action-btn:hover{color:var(--text);border-color:rgba(255,255,255,0.18);background:rgba(255,255,255,0.06)}
+  .action-btn.fullscreen-active{color:var(--accent);border-color:rgba(0,212,255,0.3);background:rgba(0,212,255,0.07)}
+  .action-btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ── iframe container ── */
+  .frame-wrap{
+    flex:1;position:relative;overflow:hidden;
+    background:#000;
+  }
+
+  /* loading screen */
+  .loading{
+    position:absolute;inset:0;z-index:10;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    transition:opacity .4s;
+  }
+  .loading.hidden{opacity:0;pointer-events:none}
+  .spinner{
+    width:48px;height:48px;border-radius:50%;
+    border:3px solid rgba(0,212,255,0.15);
+    border-top-color:var(--accent);
+    animation:spin 0.8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-text{color:var(--muted);font-size:14px}
+  .loading-sub{color:rgba(159,183,201,0.5);font-size:12px}
+
+  /* error screen */
+  .error-screen{
+    position:absolute;inset:0;z-index:11;
+    display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    text-align:center;padding:40px;
+  }
+  .error-screen.show{display:flex}
+  .error-icon{font-size:56px}
+  .error-title{font-size:20px;font-weight:700;color:var(--text)}
+  .error-msg{color:var(--muted);font-size:14px;max-width:400px;line-height:1.6}
+  .retry-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:10px 22px;border-radius:10px;
+    background:linear-gradient(135deg,var(--accent),#6a00ff);
+    color:#fff;font-size:14px;font-weight:600;cursor:pointer;border:none;
+    box-shadow:0 0 20px rgba(0,212,255,0.3);
+    transition:transform .15s,box-shadow .15s;
+  }
+  .retry-btn:hover{transform:translateY(-2px);box-shadow:0 4px 24px rgba(0,212,255,0.45)}
+
+  iframe#gameFrame{
+    width:100%;height:100%;border:none;display:block;
+  }
+
+  /* fullscreen overrides */
+  .layout.is-fullscreen .topbar{ display:none }
+  .layout.is-fullscreen .frame-wrap{ height:100vh }
+
+  /* ── side panel (optional info) ── */
+  .side-toggle{
+    position:fixed;right:0;top:50%;transform:translateY(-50%);
+    width:28px;height:64px;
+    background:rgba(7,16,41,0.85);border:1px solid var(--glass-border);
+    border-right:none;border-radius:8px 0 0 8px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;z-index:200;backdrop-filter:blur(8px);
+    transition:background .18s;
+  }
+  .side-toggle:hover{background:rgba(0,212,255,0.1)}
+  .side-toggle svg{width:14px;height:14px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .18s}
+  .side-toggle:hover svg{stroke:var(--accent)}
+
+  .side-panel{
+    position:fixed;right:-300px;top:0;bottom:0;width:300px;
+    background:rgba(7,16,41,0.95);border-left:1px solid var(--glass-border);
+    backdrop-filter:blur(16px);z-index:199;
+    transition:right .3s cubic-bezier(.4,0,.2,1);
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .side-panel.open{right:0}
+  .panel-header{
+    padding:18px 20px 14px;border-bottom:1px solid var(--glass-border);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .panel-title{font-weight:700;font-size:15px}
+  .panel-close{
+    width:28px;height:28px;border-radius:6px;background:var(--card);border:1px solid var(--glass-border);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    color:var(--muted);transition:color .18s;
+  }
+  .panel-close:hover{color:var(--text)}
+  .panel-body{padding:20px;display:flex;flex-direction:column;gap:16px;overflow-y:auto;flex:1}
+
+  .info-block{display:flex;flex-direction:column;gap:6px}
+  .info-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px}
+  .info-value{font-size:14px;color:var(--text);line-height:1.5}
+
+  .tag-list{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{font-size:12px;padding:3px 10px;border-radius:20px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);color:var(--accent)}
+
+  @media(max-width:600px){
+    .game-sub,.live-badge .live-label{display:none}
+    .side-panel,.side-toggle{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="layout" id="layout">
+
+  <!-- top bar -->
+  <div class="topbar" id="topbar">
+    <a href="game.html" class="back-btn" aria-label="ゲーム一覧へ戻る">
+      <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      ゲーム一覧
+    </a>
+
+    <div class="divider"></div>
+
+    <div class="game-info">
+      <span class="game-emoji" id="gameEmoji">🎮</span>
+      <div>
+        <div class="game-name" id="gameName">ゲームを読み込み中…</div>
+        <div class="game-sub" id="gameSub">MIN‑Tube‑Pro Games</div>
+      </div>
+    </div>
+
+    <div class="live-badge" id="liveBadge" style="display:none">
+      <div class="live-dot"></div>
+      <span class="live-label">プレイ中</span>
+    </div>
+
+    <button class="action-btn" id="reloadBtn" title="リロード" aria-label="ゲームをリロード">
+      <svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      リロード
+    </button>
+
+    <button class="action-btn" id="fsBtn" title="フルスクリーン" aria-label="フルスクリーン切替">
+      <svg viewBox="0 0 24 24" id="fsIcon"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      全画面
+    </button>
+  </div>
+
+  <!-- frame -->
+  <div class="frame-wrap" id="frameWrap">
+
+    <!-- loading -->
+    <div class="loading" id="loadingScreen">
+      <div class="spinner"></div>
+      <div class="loading-text">ゲームを読み込んでいます…</div>
+      <div class="loading-sub" id="loadingGameName"></div>
+    </div>
+
+    <!-- error -->
+    <div class="error-screen" id="errorScreen">
+      <div class="error-icon">⚠️</div>
+      <div class="error-title">ゲームを読み込めませんでした</div>
+      <div class="error-msg" id="errorMsg">ゲームファイルが見つかりません。ゲーム一覧に戻って再試行してください。</div>
+      <button class="retry-btn" id="retryBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        再試行
+      </button>
+    </div>
+
+    <iframe id="gameFrame" title="ゲームプレイエリア" allowfullscreen></iframe>
+  </div>
+</div>
+
+<!-- side toggle -->
+<div class="side-toggle" id="sideToggle" title="ゲーム情報" aria-label="ゲーム情報を開く">
+  <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+</div>
+
+<!-- side panel -->
+<div class="side-panel" id="sidePanel" role="complementary" aria-label="ゲーム情報">
+  <div class="panel-header">
+    <span class="panel-title">ゲーム情報</span>
+    <div class="panel-close" id="panelClose" aria-label="パネルを閉じる">✕</div>
+  </div>
+  <div class="panel-body" id="panelBody">
+    <!-- filled by JS -->
+  </div>
+</div>
+
+<script>
+// ── Game registry ──────────────────────────────────────────────────
+// Add new games here: key = ?game= URL param value
+const GAMES = {
+  'tower-defense': {
+    name: 'タワーディフェンス',
+    emoji: '🏰',
+    sub: 'ストラテジー · 1人プレイ',
+    file: 'tower-defense.html',   // path relative to play.html
+    desc: '押し寄せる敵の波からベースを守れ。タワーを配置してリソースを管理し、すべてのウェーブを乗り越えろ！',
+    genre: 'ストラテジー',
+    players: '1人プレイ',
+    difficulty: '★★★☆☆',
+    time: '約15分/ゲーム',
+    tags: ['ストラテジー', 'タワーディフェンス', 'リアルタイム'],
+  },
+  // 追加ゲームの例:
+  // 'snake': {
+  //   name: 'スネーク',
+  //   emoji: '🐍',
+  //   sub: 'アーケード · 1人プレイ',
+  //   file: 'snake.html',
+  //   desc: '古典的なスネークゲーム。',
+  //   genre: 'アーケード',
+  //   players: '1人プレイ',
+  //   difficulty: '★★☆☆☆',
+  //   time: '自由',
+  //   tags: ['アーケード', 'クラシック'],
+  // },
+};
+
+// ── Parse URL param ────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+const gameKey = params.get('game') || '';
+const game = GAMES[gameKey];
+
+const frame = document.getElementById('gameFrame');
+const loading = document.getElementById('loadingScreen');
+const errorScreen = document.getElementById('errorScreen');
+const liveBadge = document.getElementById('liveBadge');
+const gameName = document.getElementById('gameName');
+const gameEmoji = document.getElementById('gameEmoji');
+const gameSub = document.getElementById('gameSub');
+const loadingGameName = document.getElementById('loadingGameName');
+const errorMsg = document.getElementById('errorMsg');
+const panelBody = document.getElementById('panelBody');
+
+function showError(msg) {
+  loading.classList.add('hidden');
+  errorScreen.classList.add('show');
+  if (msg) errorMsg.textContent = msg;
+}
+
+function loadGame() {
+  if (!game) {
+    showError('ゲーム「' + (gameKey || '?') + '」はレジストリに登録されていません。game.htmlへ戻ってください。');
+    document.title = 'エラー — MIN-Tube-Pro Games';
+    return;
+  }
+
+  // Update UI
+  document.title = game.name + ' — MIN-Tube-Pro Games';
+  gameName.textContent = game.name;
+  gameEmoji.textContent = game.emoji;
+  gameSub.textContent = game.sub;
+  loadingGameName.textContent = game.name;
+
+  // Build side panel
+  panelBody.innerHTML = `
+    <div class="info-block">
+      <div class="info-label">説明</div>
+      <div class="info-value">${game.desc}</div>
+    </div>
+    <div class="info-block">
+      <div class="info-label">ジャンル</div>
+      <div class="info-value">${game.genre}</div>
+    </div>
+    <div class="info-block">
+      <div class="info-label">プレイ人数</div>
+      <div class="info-value">${game.players}</div>
+    </div>
+    <div class="info-block">
+      <div class="info-label">難易度</div>
+      <div class="info-value">${game.difficulty}</div>
+    </div>
+    <div class="info-block">
+      <div class="info-label">プレイ時間</div>
+      <div class="info-value">${game.time}</div>
+    </div>
+    <div class="info-block">
+      <div class="info-label">タグ</div>
+      <div class="tag-list">${game.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
+    </div>
+  `;
+
+  // Load iframe
+  frame.onload = () => {
+    loading.classList.add('hidden');
+    liveBadge.style.display = 'flex';
+  };
+  frame.onerror = () => {
+    showError('ゲームファイル「' + game.file + '」の読み込みに失敗しました。');
+  };
+
+  // Timeout fallback (if onload doesn't fire e.g. same-origin restriction)
+  const timeout = setTimeout(() => {
+    if (!loading.classList.contains('hidden') && !errorScreen.classList.contains('show')) {
+      loading.classList.add('hidden');
+      liveBadge.style.display = 'flex';
+    }
+  }, 6000);
+
+  frame.src = game.file;
+}
+
+// ── Reload ─────────────────────────────────────────────────────────
+document.getElementById('reloadBtn').addEventListener('click', () => {
+  if (!game) return;
+  liveBadge.style.display = 'none';
+  loading.classList.remove('hidden');
+  errorScreen.classList.remove('show');
+  frame.src = '';
+  setTimeout(() => { frame.src = game.file; }, 80);
+});
+
+document.getElementById('retryBtn').addEventListener('click', () => {
+  errorScreen.classList.remove('show');
+  loading.classList.remove('hidden');
+  loadGame();
+});
+
+// ── Fullscreen ─────────────────────────────────────────────────────
+const layout = document.getElementById('layout');
+const fsBtn = document.getElementById('fsBtn');
+const fsIconSvg = document.getElementById('fsIcon');
+
+const FS_EXPAND = `<polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>`;
+const FS_SHRINK = `<polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="10" y1="14" x2="3" y2="21"/><line x1="21" y1="3" x2="14" y2="10"/>`;
+
+let isFull = false;
+fsBtn.addEventListener('click', () => {
+  isFull = !isFull;
+  layout.classList.toggle('is-fullscreen', isFull);
+  fsBtn.classList.toggle('fullscreen-active', isFull);
+  fsIconSvg.innerHTML = isFull ? FS_SHRINK : FS_EXPAND;
+  fsBtn.querySelector('.fs-label') && (fsBtn.querySelector('.fs-label').textContent = isFull ? '戻す' : '全画面');
+});
+
+// Escape to exit fullscreen
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && isFull) {
+    isFull = false;
+    layout.classList.remove('is-fullscreen');
+    fsBtn.classList.remove('fullscreen-active');
+    fsIconSvg.innerHTML = FS_EXPAND;
+  }
+});
+
+// ── Side panel ─────────────────────────────────────────────────────
+const sidePanel = document.getElementById('sidePanel');
+document.getElementById('sideToggle').addEventListener('click', () => sidePanel.classList.toggle('open'));
+document.getElementById('panelClose').addEventListener('click', () => sidePanel.classList.remove('open'));
+
+// ── Init ───────────────────────────────────────────────────────────
+loadGame();
+</script>
+</body>
+</html>
