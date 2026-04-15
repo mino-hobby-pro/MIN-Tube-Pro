@@ -271,32 +271,32 @@
 
 <script>
 // ── Game registry ──────────────────────────────────────────────────
-// Add new games here: key = ?game= URL param value
 const GAMES = {
   'tower-defense': {
     name: 'タワーディフェンス',
     emoji: '🏰',
     sub: 'ストラテジー · 1人プレイ',
-    file: 'fun/tower-defense.html'
-    desc: '押し寄せる敵の波からベースを守れ。タワーを配置してリソースを管理し、すべてのウェーブを乗り越えろ！',
+    file: 'fun/tower-defense.html', // ← 修正
+    desc: '押し寄せる敵の波からベースを守れ。',
     genre: 'ストラテジー',
     players: '1人プレイ',
     difficulty: '★★★☆☆',
     time: '約15分/ゲーム',
-    tags: ['ストラテジー', 'タワーディフェンス', 'リアルタイム'],
+    tags: ['ストラテジー'],
   },
   'brick-breaker': {
-  name: 'ブロック崩し',
-  emoji: '🧱',
-  sub: 'アーケード · 1人プレイ',
-  file: 'fun/brick-breaker.html',
-  desc: 'ボールを跳ね返してブロックを壊せ！',
-  genre: 'アーケード',
-  players: '1人プレイ',
-  difficulty: '★★☆☆☆',
-  time: '約5分/ゲーム',
-  tags: ['アーケード', 'ブロック崩し'],
-},
+    name: 'BrickBreaker', // ← 名前変更
+    emoji: '🧱',
+    sub: 'アーケード · 1人プレイ',
+    file: 'fun/brick-breaker.html', // ← 超重要
+    desc: 'ボールでブロックを壊せ！',
+    genre: 'アーケード',
+    players: '1人プレイ',
+    difficulty: '★★☆☆☆',
+    time: '約5分/ゲーム',
+    tags: ['アーケード'],
+  }
+};
 
 // ── Parse URL param ────────────────────────────────────────────────
 const params = new URLSearchParams(location.search);
