@@ -41,7 +41,6 @@
   .orb.b{width:120px;height:120px;background:linear-gradient(90deg,#ff7ab6,#ffd36a);right:-10px;bottom:-20px;animation: floatB 10s ease-in-out infinite}
   @keyframes floatA{0%{transform:translateY(0)}50%{transform:translateY(-12px)}100%{transform:translateY(0)}}
   @keyframes floatB{0%{transform:translateY(0)}50%{transform:translateY(10px)}100%{transform:translateY(0)}}
-
   .grid{width:100%;max-width:1100px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px}
   .card{
     background:var(--card);border-radius:12px;padding:16px;border:1px solid var(--glass-border);cursor:pointer;transition:transform .18s ease, box-shadow .18s ease;
@@ -50,11 +49,50 @@
   .card:hover{transform:translateY(-8px);box-shadow:0 18px 40px rgba(2,6,23,0.6)}
   .card .row{display:flex;align-items:center;gap:12px}
   .icon{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:inset 0 -6px 18px rgba(0,0,0,0.25)}
-  .app-title{font-weight:700;font-size:15px}
+
+  .app-title{font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px}
+  .status-dot{
+    display:inline-block;
+    width:9px;height:9px;
+    border-radius:50%;
+    flex-shrink:0;
+    position:relative;
+    top:0px;
+  }
+  .status-dot.done{
+    background:#22c55e;
+    box-shadow:0 0 6px rgba(34,197,94,0.7);
+  }
+  .status-dot.done::after{
+    content:'';position:absolute;inset:0;border-radius:50%;
+    background:#22c55e;opacity:0.4;
+    animation:ping 2s ease-in-out infinite;
+  }
+  .status-dot.wip{
+    background:#ef4444;
+    box-shadow:0 0 6px rgba(239,68,68,0.6);
+  }
+  @keyframes ping{
+    0%{transform:scale(1);opacity:0.6}
+    70%{transform:scale(2.2);opacity:0}
+    100%{transform:scale(2.2);opacity:0}
+  }
+  .app-title-wrap{position:relative;display:inline-flex;align-items:center;gap:6px}
+  .app-title-wrap .tooltip{
+    display:none;position:absolute;top:-26px;left:0;
+    font-size:11px;font-weight:400;color:#fff;
+    background:rgba(0,0,0,0.7);padding:3px 8px;border-radius:6px;white-space:nowrap;pointer-events:none;
+  }
+  .app-title-wrap:hover .tooltip{display:block}
   .app-desc{color:var(--muted);font-size:13px;line-height:1.35}
   .endpoint{font-family:monospace;font-size:12px;color:#bfefff;background:rgba(0,0,0,0.12);padding:6px 8px;border-radius:8px;display:inline-block}
   .badge{margin-left:auto;font-size:12px;color:var(--muted)}
   .footer{max-width:1100px;color:var(--muted);font-size:13px;text-align:center;padding:8px 12px;border-radius:10px}
+  .legend{display:flex;align-items:center;gap:16px;font-size:12px;color:var(--muted)}
+  .legend-item{display:flex;align-items:center;gap:5px}
+  .legend-dot{width:9px;height:9px;border-radius:50%}
+  .legend-dot.done{background:#22c55e}
+  .legend-dot.wip{background:#ef4444}
   @media (max-width:640px){
     .hero{flex-direction:column;align-items:flex-start}
     .hero-right{width:100%;height:60px}
@@ -86,11 +124,18 @@
     </header>
 
     <section class="grid" aria-label="アプリ一覧">
+
       <article class="card" role="button" tabindex="0" data-endpoint="/" aria-label="Youtube-Pro — 動画視聴">
         <div class="row">
           <div class="icon">▶️</div>
           <div>
-            <div class="app-title">Youtube‑Pro</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot done" title="実装済み"></span>
+                <span class="tooltip">実装済み</span>
+              </span>
+              Youtube‑Pro
+            </div>
             <div class="app-desc">Youtube‑ProはMIN‑Tube2の進化系。UIとサーバ処理が改善され、動画を快適に視聴できます。</div>
           </div>
         </div>
@@ -104,7 +149,13 @@
         <div class="row">
           <div class="icon">💬</div>
           <div>
-            <div class="app-title">Mino‑Chat</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot done"></span>
+                <span class="tooltip">実装済み</span>
+              </span>
+              Mino‑Chat
+            </div>
             <div class="app-desc">世界中の人とチャットやゲームを楽しめます。ぜひ参加してください！</div>
           </div>
         </div>
@@ -118,7 +169,13 @@
         <div class="row">
           <div class="icon">⬇️</div>
           <div>
-            <div class="app-title">DL‑PRO</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot wip"></span>
+                <span class="tooltip">未実装</span>
+              </span>
+              DL‑PRO
+            </div>
             <div class="app-desc">TikTok・YouTubeの動画を素早くダウンロード。invidiousは使用しません。Youtube‑Pro互換。</div>
           </div>
         </div>
@@ -132,7 +189,13 @@
         <div class="row">
           <div class="icon">🧭</div>
           <div>
-            <div class="app-title">NautilusOS</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot done"></span>
+                <span class="tooltip">実装済み</span>
+              </span>
+              NautilusOS
+            </div>
             <div class="app-desc">最高のHTML5プロキシ。アカウントを作成して使ってみましょう！</div>
           </div>
         </div>
@@ -146,7 +209,13 @@
         <div class="row">
           <div class="icon">☀️</div>
           <div>
-            <div class="app-title">Helios</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot done"></span>
+                <span class="tooltip">実装済み</span>
+              </span>
+              Helios
+            </div>
             <div class="app-desc">タブ付きのHTMLプロキシ。NautilusOSと互換性があります。</div>
           </div>
         </div>
@@ -160,7 +229,13 @@
         <div class="row">
           <div class="icon">🔧</div>
           <div>
-            <div class="app-title">MIN-tube-Pro v1.0.1</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot wip"></span>
+                <span class="tooltip">未実装</span>
+              </span>
+              MIN-tube-Pro v1.0.1
+            </div>
             <div class="app-desc">完全フリーオープンソース。MIN‑Tube‑Proのバージョン確認と最新版インストール。</div>
           </div>
         </div>
@@ -169,12 +244,18 @@
           <div class="badge">アップデート</div>
         </div>
       </article>
-      
+
       <article class="card" role="button" tabindex="0" data-endpoint="/ai" aria-label="AI — AI">
         <div class="row">
           <div class="icon">🤖</div>
           <div>
-            <div class="app-title">AI</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot done"></span>
+                <span class="tooltip">実装済み</span>
+              </span>
+              AI
+            </div>
             <div class="app-desc">優秀なチャットボットを利用しましょう！</div>
           </div>
         </div>
@@ -184,12 +265,17 @@
         </div>
       </article>
 
-
-      <article class="card" role="button" tabindex="0" data-endpoint="/blog" aria-label="Unblockers — ブロックされていないプロキシ">
+      <article class="card" role="button" tabindex="0" data-endpoint="/blog" aria-label="Blog — ブログ">
         <div class="row">
           <div class="icon">📚</div>
           <div>
-            <div class="app-title">ブログ</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot wip"></span>
+                <span class="tooltip">未実装</span>
+              </span>
+              ブログ
+            </div>
             <div class="app-desc">APIの使い方など有益な情報を提供します。ホストすることでGithubからだれでも書き込めます。</div>
           </div>
         </div>
@@ -203,7 +289,13 @@
         <div class="row">
           <div class="icon">🎮</div>
           <div>
-            <div class="app-title">Games</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot wip"></span>
+                <span class="tooltip">未実装</span>
+              </span>
+              Games
+            </div>
             <div class="app-desc">たくさんのゲームをプレイしましょう！気軽に遊べます。</div>
           </div>
         </div>
@@ -217,7 +309,13 @@
         <div class="row">
           <div class="icon">🔓</div>
           <div>
-            <div class="app-title">Unblockers</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot done"></span>
+                <span class="tooltip">実装済み</span>
+              </span>
+              Unblockers
+            </div>
             <div class="app-desc">ブロックされていないプロキシを瞬時に判断し、選択できるようにします。</div>
           </div>
         </div>
@@ -231,7 +329,13 @@
         <div class="row">
           <div class="icon">🎬</div>
           <div>
-            <div class="app-title">MOVIE</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot wip"></span>
+                <span class="tooltip">未実装</span>
+              </span>
+              MOVIE
+            </div>
             <div class="app-desc">MIN-Tube-Proストリームでたくさんの映画を視聴しましょう！</div>
           </div>
         </div>
@@ -245,7 +349,13 @@
         <div class="row">
           <div class="icon">🌐</div>
           <div>
-            <div class="app-title">Check</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot done"></span>
+                <span class="tooltip">実装済み</span>
+              </span>
+              Check
+            </div>
             <div class="app-desc">端末の監視状態を表示します。拡張機能の視覚化。</div>
           </div>
         </div>
@@ -259,7 +369,13 @@
         <div class="row">
           <div class="icon">💻</div>
           <div>
-            <div class="app-title">API</div>
+            <div class="app-title">
+              <span class="app-title-wrap">
+                <span class="status-dot wip"></span>
+                <span class="tooltip">未実装</span>
+              </span>
+              API
+            </div>
             <div class="app-desc">ここからMIN-Tube-ProのAPIを利用する鍵が入手できます。</div>
           </div>
         </div>
@@ -269,15 +385,12 @@
         </div>
       </article>
 
-
-      
     </section>
 
     <div class="footer" role="contentinfo">クリックまたはEnterでアプリを開きます。</div>
   </div>
 
 <script>
-  // Typewriter welcome text (slower)
   const welcomePhrases = [
     "Welcome to MIN‑Tube‑Pro ✨",
     "動画をもっと快適に。🎬",
@@ -285,7 +398,6 @@
   ];
   const el = document.getElementById('welcomeText');
   let pi = 0, ci = 0, forward = true;
-  // 調整ポイント: typingDelay = 90ms, deletingDelay = 60ms, pauseBetweenPhrases = 2200ms
   const typingDelay = 90;
   const deletingDelay = 60;
   const pauseBetweenPhrases = 2200;
@@ -318,7 +430,6 @@
     });
   });
 
-  // Accessibility: mark first card for focus
   const firstCard = document.querySelector('.card');
   if(firstCard) firstCard.setAttribute('aria-pressed','false');
 </script>
