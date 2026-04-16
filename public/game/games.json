@@ -110,5 +110,19 @@
   "tags": ["スポーツ", "ビリヤード"],
   "isNew": true,
   "status": "done"
+},
+  {
+  "key": "artillery",
+  "name": "Artillery",
+  "emoji": "💣",
+  "sub": "ストラテジー · 対戦",
+  "file": "fun/artillery.html",
+  "desc": "角度とパワーを調整して敵を撃破せよ！風や地形を読んで一発で決めろ。",
+  "genre": "strategy",
+  "genreLabel": "ストラテジー",
+  "players": "対戦",
+  "tags": ["ストラテジー", "砲撃", "物理"],
+  "isNew": true,
+  "status": "done"
 }
 ]
