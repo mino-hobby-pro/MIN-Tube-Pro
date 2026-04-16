@@ -1232,6 +1232,10 @@ app.get("/version", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "raw/version.json"));
 });
 
+app.get("/game.json", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "game/game.json"));
+});
+
 
 
 app.use((req, res) => res.status(404).sendFile(path.join(__dirname, "public", "error.html")));
