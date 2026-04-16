@@ -1252,7 +1252,7 @@ app.get("/ai", (req, res) => {
 });
 
 app.get("/dl-pro", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "app/sorry.html"));
+  res.sendFile(path.join(__dirname, "public", "app/study2525.html"));
 });
 
 app.get("/update", (req, res) => {
