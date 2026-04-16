@@ -595,13 +595,33 @@ const shortsHtml = `
         const storageKey = "reloaded_" + "${videoId}";
         if (!sessionStorage.getItem(storageKey)) {
             sessionStorage.setItem(storageKey, "true");
-            
+
             setTimeout(() => {
-                const defaultOption = document.querySelector('.server-option');
-                if (defaultOption) {
-                    changeServer('googlevideo', '', { currentTarget: defaultOption });
+                // 設定画面で保存した再生方法をlocalStorageから読み取る
+                const savedMode = localStorage.getItem('playbackMode') || 'googlevideo';
+                const serverEndpoints = {
+                    'googlevideo':        '',
+                    'youtube-nocookie':   '/nocookie/${videoId}',
+                    'DL-Pro':             '/360/${videoId}',
+                    'YoutubeEdu-Kahoot':  '/kahoot-edu/${videoId}',
+                    'YoutubeEdu-Scratch': '/scratch-edu/${videoId}',
+                    'Youtube-Pro':        '/pro-stream/${videoId}'
+                };
+                const serverName = serverEndpoints.hasOwnProperty(savedMode) ? savedMode : 'googlevideo';
+                const endpointPath = serverEndpoints[serverName];
+
+                // 対応する .server-option 要素を探してアクティブにする
+                const options = document.querySelectorAll('.server-option');
+                let targetOption = options[0];
+                options.forEach(opt => {
+                    const onclick = opt.getAttribute('onclick') || '';
+                    if (onclick.includes("'" + serverName + "'")) targetOption = opt;
+                });
+
+                if (targetOption) {
+                    changeServer(serverName, endpointPath, { currentTarget: targetOption });
                 }
-            }, 500); 
+            }, 500);
         }
     };
 </script>
