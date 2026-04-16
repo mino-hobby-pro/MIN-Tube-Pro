@@ -1,179 +1,227 @@
 <!DOCTYPE html>
 <html lang="ja">
-
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Games — MIN-Tube-Pro</title>
   <style>
-  :root{
-        --bg1:#0f1724;
-        --bg2:#071029;
-        --accent:#00d4ff;
-        --glass:rgba(255,255,255,0.06);
-        --card:rgba(255,255,255,0.03);
-        --glass-border:rgba(255,255,255,0.08);
-        --radius:14px;
-        --glass-blur:10px;
-        --text:#e6f7ff;
-        --muted:#9fb7c9;
-      }
-      *{box-sizing:border-box}
-      html,body{height:100%;margin:0;font-family:Inter,"Noto Sans JP",system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--text);-webkit-font-smoothing:antialiased}
+    :root{
+      --bg1:#0f1724;
+      --bg2:#071029;
+      --accent:#00d4ff;
+      --glass:rgba(255,255,255,0.06);
+      --card:rgba(255,255,255,0.03);
+      --glass-border:rgba(255,255,255,0.08);
+      --radius:14px;
+      --glass-blur:10px;
+      --text:#e6f7ff;
+      --muted:#9fb7c9;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",system-ui,sans-serif;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--text);-webkit-font-smoothing:antialiased}
 
-      .back-btn{
-        display:inline-flex;align-items:center;gap:8px;
-        color:var(--muted);font-size:13px;text-decoration:none;
-        padding:7px 14px;border-radius:8px;
-        border:1px solid var(--glass-border);
-        background:var(--card);
-        transition:color .18s,background .18s;
-        cursor:pointer;
-      }
-      .back-btn:hover{color:var(--accent);background:rgba(0,212,255,0.07)}
-      .back-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+    /* ── レイアウト ─────────────────── */
+    .wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 20px 60px;gap:24px}
+    .inner{width:100%;max-width:1100px}
 
-      .wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:48px 20px;gap:28px}
+    /* ── 戻るボタン ─────────────────── */
+    .back-btn{
+      display:inline-flex;align-items:center;gap:8px;
+      color:var(--muted);font-size:13px;text-decoration:none;
+      padding:7px 14px;border-radius:8px;
+      border:1px solid var(--glass-border);background:var(--card);
+      transition:color .18s,background .18s;cursor:pointer;
+    }
+    .back-btn:hover{color:var(--accent);background:rgba(0,212,255,0.07)}
+    .back-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 
-      .hero{
-        width:100%;max-width:1100px;display:flex;align-items:center;justify-content:space-between;gap:20px;
-        background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));
-        border-radius:var(--radius);padding:22px;border:1px solid var(--glass-border);
-        backdrop-filter:blur(var(--glass-blur));box-shadow:0 8px 30px rgba(2,6,23,0.6);
-      }
-      .hero-left{display:flex;flex-direction:column;gap:10px}
-      .brand{display:flex;align-items:center;gap:14px}
-      .logo-icon{
-        width:64px;height:64px;border-radius:12px;display:flex;align-items:center;justify-content:center;
-        font-size:32px;background:linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02));
-        border:1px solid var(--glass-border);box-shadow:0 6px 18px rgba(0,0,0,0.5);
-      }
-      .title{font-size:20px;font-weight:700;letter-spacing:0.2px}
-      .subtitle{color:var(--muted);font-size:13px}
-      .tagline{font-size:14px;color:var(--accent);font-weight:500;display:flex;align-items:center;gap:8px}
-      .tagline .spark{width:8px;height:8px;border-radius:50%;background:linear-gradient(90deg,#fff,#00d4ff);box-shadow:0 0 14px #00d4ff;animation:pulse 2s infinite;flex-shrink:0}
-      @keyframes pulse{0%{transform:scale(0.9);opacity:0.8}50%{transform:scale(1.2);opacity:1}100%{transform:scale(0.9);opacity:0.8}}
+    /* ── ヒーロー ────────────────────── */
+    .hero{
+      display:flex;align-items:center;justify-content:space-between;gap:20px;
+      background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));
+      border-radius:var(--radius);padding:22px;border:1px solid var(--glass-border);
+      backdrop-filter:blur(var(--glass-blur));box-shadow:0 8px 30px rgba(2,6,23,0.6);
+    }
+    .hero-left{display:flex;flex-direction:column;gap:10px}
+    .brand{display:flex;align-items:center;gap:14px}
+    .logo-icon{
+      width:64px;height:64px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+      font-size:32px;background:linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02));
+      border:1px solid var(--glass-border);box-shadow:0 6px 18px rgba(0,0,0,0.5);flex-shrink:0;
+    }
+    .title{font-size:20px;font-weight:700}
+    .subtitle{color:var(--muted);font-size:13px}
+    .tagline{font-size:14px;color:var(--accent);font-weight:500;display:flex;align-items:center;gap:8px}
+    .tagline .spark{width:8px;height:8px;border-radius:50%;background:linear-gradient(90deg,#fff,#00d4ff);box-shadow:0 0 14px #00d4ff;animation:pulse 2s infinite;flex-shrink:0}
+    @keyframes pulse{0%,100%{transform:scale(0.9);opacity:0.8}50%{transform:scale(1.2);opacity:1}}
 
-      .hero-right{position:relative;width:220px;height:80px;display:flex;align-items:center;justify-content:center}
-      .orb{position:absolute;border-radius:50%;filter:blur(28px);opacity:0.18}
-      .orb.a{width:160px;height:160px;background:linear-gradient(90deg,#00d4ff,#6a00ff);left:-20px;top:-40px;animation:floatA 8s ease-in-out infinite}
-      .orb.b{width:120px;height:120px;background:linear-gradient(90deg,#ffd36a,#ff7ab6);right:-10px;bottom:-20px;animation:floatB 10s ease-in-out infinite}
-      @keyframes floatA{0%{transform:translateY(0)}50%{transform:translateY(-12px)}100%{transform:translateY(0)}}
-      @keyframes floatB{0%{transform:translateY(0)}50%{transform:translateY(10px)}100%{transform:translateY(0)}}
+    .hero-right{position:relative;width:220px;height:80px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .orb{position:absolute;border-radius:50%;filter:blur(28px);opacity:0.18}
+    .orb.a{width:160px;height:160px;background:linear-gradient(90deg,#00d4ff,#6a00ff);left:-20px;top:-40px;animation:floatA 8s ease-in-out infinite}
+    .orb.b{width:120px;height:120px;background:linear-gradient(90deg,#ffd36a,#ff7ab6);right:-10px;bottom:-20px;animation:floatB 10s ease-in-out infinite}
+    @keyframes floatA{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+    @keyframes floatB{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
 
-      .filter-bar{
-        width:100%;max-width:1100px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-      }
-      .filter-tab{
-        padding:7px 16px;border-radius:20px;border:1px solid var(--glass-border);
-        background:var(--card);color:var(--muted);font-size:13px;cursor:pointer;
-        transition:all .18s ease;user-select:none;
-      }
-      .filter-tab:hover{color:var(--text);border-color:rgba(255,255,255,0.18)}
-      .filter-tab.active{
-        background:rgba(0,212,255,0.12);border-color:rgba(0,212,255,0.4);
-        color:var(--accent);font-weight:600;
-      }
+    /* ── ツールバー（検索＋フィルター） ── */
+    .toolbar{display:flex;flex-direction:column;gap:12px}
 
-      .grid{width:100%;max-width:1100px;display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
+    .search-wrap{position:relative}
+    .search-icon{
+      position:absolute;left:12px;top:50%;transform:translateY(-50%);
+      width:16px;height:16px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+      pointer-events:none;
+    }
+    #searchInput{
+      width:100%;padding:10px 16px 10px 38px;
+      background:var(--card);border:1px solid var(--glass-border);
+      border-radius:10px;color:var(--text);font-size:14px;font-family:inherit;
+      outline:none;transition:border-color .18s;
+    }
+    #searchInput::placeholder{color:var(--muted)}
+    #searchInput:focus{border-color:rgba(0,212,255,0.4)}
 
-      .game-card{
-        background:var(--card);border-radius:12px;border:1px solid var(--glass-border);
-        overflow:hidden;cursor:pointer;
-        transition:transform .2s ease,box-shadow .2s ease,border-color .2s;
-        display:flex;flex-direction:column;
-      }
-      .game-card:hover{
-        transform:translateY(-8px);
-        box-shadow:0 20px 48px rgba(2,6,23,0.7),0 0 0 1px rgba(0,212,255,0.18);
-        border-color:rgba(0,212,255,0.22);
-      }
-      .game-card:focus{outline:2px solid var(--accent);outline-offset:2px}
+    .filter-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 
-      .thumb{
-        position:relative;width:100%;height:150px;overflow:hidden;
-        background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(0,0,0,0.2));
-        display:flex;align-items:center;justify-content:center;
-      }
-      .thumb .big-icon{font-size:60px;filter:drop-shadow(0 4px 16px rgba(0,0,0,0.6));transition:transform .25s ease}
-      .game-card:hover .big-icon{transform:scale(1.12) rotate(-3deg)}
-      .thumb::after{
-        content:'';position:absolute;inset:0;
-        background:linear-gradient(to bottom,transparent 40%,rgba(7,16,41,0.8));
-        pointer-events:none;
-      }
+    .filter-tabs{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .filter-tab{
+      padding:7px 15px;border-radius:20px;border:1px solid var(--glass-border);
+      background:var(--card);color:var(--muted);font-size:13px;cursor:pointer;
+      transition:all .18s ease;user-select:none;font-family:inherit;
+    }
+    .filter-tab:hover{color:var(--text);border-color:rgba(255,255,255,0.18)}
+    .filter-tab.active{
+      background:rgba(0,212,255,0.12);border-color:rgba(0,212,255,0.4);
+      color:var(--accent);font-weight:600;
+    }
 
-      .play-overlay{
-        position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-        background:rgba(0,0,0,0.45);opacity:0;transition:opacity .2s;z-index:2;
-        backdrop-filter:blur(2px);
-      }
-      .game-card:hover .play-overlay{opacity:1}
-      .play-btn{
-        width:52px;height:52px;border-radius:50%;
-        background:linear-gradient(135deg,var(--accent),#6a00ff);
-        display:flex;align-items:center;justify-content:center;
-        box-shadow:0 0 24px rgba(0,212,255,0.5);
-        font-size:20px;
-      }
+    .sort-wrap{display:flex;align-items:center;gap:8px;flex-shrink:0}
+    .sort-label{font-size:13px;color:var(--muted);white-space:nowrap}
+    #sortSelect{
+      background:var(--card);border:1px solid var(--glass-border);
+      color:var(--text);font-size:13px;font-family:inherit;
+      padding:6px 10px;border-radius:8px;outline:none;cursor:pointer;
+    }
+    #sortSelect:focus{border-color:rgba(0,212,255,0.4)}
 
-      .genre-badge{
-        position:absolute;top:10px;right:10px;z-index:3;
-        font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;
-        background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.1);
-        color:var(--muted);backdrop-filter:blur(4px);
-      }
-      .new-badge{
-        position:absolute;top:10px;left:10px;z-index:3;
-        font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;
-        background:linear-gradient(90deg,var(--accent),#6a00ff);color:#fff;
-        box-shadow:0 0 12px rgba(0,212,255,0.4);
-      }
+    /* ── 件数バー ────────────────────── */
+    .count-bar{font-size:13px;color:var(--muted)}
+    .count-bar span{color:var(--text);font-weight:600}
 
-      .card-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1}
-      .card-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-      .card-title{font-weight:700;font-size:15px}
-      .status-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;position:relative;}
-      .status-dot.done{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,0.7)}
-      .status-dot.done::after{
-        content:'';position:absolute;inset:0;border-radius:50%;
-        background:#22c55e;opacity:0.4;animation:ping 2s ease-in-out infinite;
-      }
-      .status-dot.wip{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.6)}
-      @keyframes ping{0%{transform:scale(1);opacity:0.6}70%{transform:scale(2.2);opacity:0}100%{transform:scale(2.2);opacity:0}}
-      .card-desc{color:var(--muted);font-size:13px;line-height:1.45;flex:1}
+    /* ── グリッド ────────────────────── */
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:18px}
 
-      .card-footer{
-        display:flex;align-items:center;justify-content:space-between;
-        padding-top:8px;border-top:1px solid var(--glass-border);
-      }
-      .card-tag{font-family:monospace;font-size:12px;color:#bfefff;background:rgba(0,0,0,0.12);padding:4px 8px;border-radius:6px}
-      .card-players{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}
+    .game-card{
+      background:var(--card);border-radius:12px;border:1px solid var(--glass-border);
+      overflow:hidden;cursor:pointer;
+      transition:transform .2s ease,box-shadow .2s ease,border-color .2s;
+      display:flex;flex-direction:column;
+    }
+    .game-card:hover{
+      transform:translateY(-6px);
+      box-shadow:0 20px 48px rgba(2,6,23,0.7),0 0 0 1px rgba(0,212,255,0.18);
+      border-color:rgba(0,212,255,0.22);
+    }
+    .game-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
-      .empty{grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--muted);font-size:15px;}
+    .thumb{
+      position:relative;width:100%;height:150px;overflow:hidden;
+      background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(0,0,0,0.2));
+      display:flex;align-items:center;justify-content:center;
+    }
+    .thumb .big-icon{font-size:60px;filter:drop-shadow(0 4px 16px rgba(0,0,0,0.6));transition:transform .25s ease}
+    .game-card:hover .big-icon{transform:scale(1.12) rotate(-3deg)}
+    .thumb::after{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(to bottom,transparent 40%,rgba(7,16,41,0.8));
+      pointer-events:none;
+    }
 
-      /* coming-soon placeholder style */
-      .game-card.coming-soon{opacity:0.45;pointer-events:none}
+    .play-overlay{
+      position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+      background:rgba(0,0,0,0.45);opacity:0;transition:opacity .2s;z-index:2;
+      backdrop-filter:blur(2px);
+    }
+    .game-card:hover .play-overlay{opacity:1}
+    .play-btn{
+      width:52px;height:52px;border-radius:50%;
+      background:linear-gradient(135deg,var(--accent),#6a00ff);
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 0 24px rgba(0,212,255,0.5);
+      font-size:20px;
+    }
 
-      .footer{max-width:1100px;color:var(--muted);font-size:13px;text-align:center;padding:8px 12px;border-radius:10px}
+    .genre-badge{
+      position:absolute;top:10px;right:10px;z-index:3;
+      font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;
+      background:rgba(0,0,0,0.55);border:1px solid rgba(255,255,255,0.1);
+      color:var(--muted);backdrop-filter:blur(4px);
+    }
 
-      @media(max-width:640px){
-        .hero{flex-direction:column;align-items:flex-start}
-        .hero-right{display:none}
-      }
+    .card-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1}
+    .card-title-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .card-title{font-weight:700;font-size:15px}
+    .status-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;position:relative}
+    .status-dot.done{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,0.7)}
+    .status-dot.done::after{
+      content:'';position:absolute;inset:0;border-radius:50%;
+      background:#22c55e;opacity:0.4;animation:ping 2s ease-in-out infinite;
+    }
+    .status-dot.wip{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,0.6)}
+    @keyframes ping{0%{transform:scale(1);opacity:0.6}70%,100%{transform:scale(2.2);opacity:0}}
+
+    .card-desc{color:var(--muted);font-size:13px;line-height:1.5;flex:1}
+
+    .card-footer{
+      display:flex;align-items:center;justify-content:space-between;
+      padding-top:8px;border-top:1px solid var(--glass-border);
+    }
+    .card-tag{font-family:monospace;font-size:12px;color:#bfefff;background:rgba(0,0,0,0.12);padding:4px 8px;border-radius:6px}
+    .card-players{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}
+    .card-players svg{flex-shrink:0}
+
+    /* ── 空状態 ──────────────────────── */
+    .empty{
+      grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--muted);
+    }
+    .empty-icon{font-size:48px;margin-bottom:16px;opacity:0.4}
+    .empty-title{font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px}
+    .empty-sub{font-size:14px}
+    .clear-btn{
+      margin-top:20px;display:inline-flex;align-items:center;gap:6px;
+      padding:8px 18px;border-radius:8px;border:1px solid var(--glass-border);
+      background:var(--card);color:var(--text);font-size:13px;font-family:inherit;
+      cursor:pointer;transition:background .18s;
+    }
+    .clear-btn:hover{background:rgba(255,255,255,0.07)}
+
+    /* coming-soon */
+    .game-card.coming-soon{opacity:0.4;pointer-events:none;cursor:default}
+
+    .page-footer{color:var(--muted);font-size:13px;text-align:center;padding:8px 12px}
+
+    @media(max-width:640px){
+      .hero{flex-direction:column;align-items:flex-start}
+      .hero-right{display:none}
+      .filter-row{flex-direction:column;align-items:flex-start}
+      .sort-wrap{width:100%}
+      #sortSelect{flex:1}
+    }
   </style>
 </head>
 
 <body>
   <div class="wrap" role="main">
-    <div style="width:100%;max-width:1100px">
+
+    <!-- 戻るボタン -->
+    <div class="inner">
       <a href="/" class="back-btn" aria-label="ホームへ戻る">
         <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
         ホームへ戻る
       </a>
     </div>
 
-    <header class="hero" aria-labelledby="page-title">
+    <!-- ヒーロー -->
+    <header class="hero inner" aria-labelledby="page-title">
       <div class="hero-left">
         <div class="brand">
           <div class="logo-icon" aria-hidden="true">🎮</div>
@@ -193,33 +241,63 @@
       </div>
     </header>
 
-    <nav class="filter-bar" aria-label="ジャンルフィルター" id="filterBar">
-      <button class="filter-tab active" data-genre="all">🎲 すべて</button>
-      <button class="filter-tab" data-genre="strategy">♟️ ストラテジー</button>
-      <button class="filter-tab" data-genre="action">⚡ アクション</button>
-      <button class="filter-tab" data-genre="puzzle">🧩 パズル</button>
-      <button class="filter-tab" data-genre="arcade">👾 アーケード</button>
-    </nav>
+    <!-- ツールバー -->
+    <div class="toolbar inner">
+      <!-- 検索 -->
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="searchInput" placeholder="ゲームを検索…" aria-label="ゲームを検索" autocomplete="off">
+      </div>
 
-    <section class="grid" id="gameGrid" aria-label="ゲーム一覧"></section>
+      <!-- フィルター + ソート -->
+      <div class="filter-row">
+        <nav class="filter-tabs" aria-label="ジャンルフィルター" id="filterBar">
+          <button class="filter-tab active" data-genre="all">🎲 すべて</button>
+          <button class="filter-tab" data-genre="strategy">♟️ ストラテジー</button>
+          <button class="filter-tab" data-genre="action">⚡ アクション</button>
+          <button class="filter-tab" data-genre="puzzle">🧩 パズル</button>
+          <button class="filter-tab" data-genre="arcade">👾 アーケード</button>
+          <button class="filter-tab" data-genre="sports">🏆 スポーツ</button>
+          <button class="filter-tab" data-genre="card">🃏 カード</button>
+        </nav>
 
-    <p class="footer">クリックまたはEnterでゲームをプレイ</p>
+        <div class="sort-wrap">
+          <label class="sort-label" for="sortSelect">並び替え</label>
+          <select id="sortSelect" aria-label="並び替え">
+            <option value="default">デフォルト</option>
+            <option value="name-asc">名前 (A→Z)</option>
+            <option value="name-desc">名前 (Z→A)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 件数 -->
+    <div class="inner count-bar" id="countBar" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- グリッド -->
+    <section class="grid inner" id="gameGrid" aria-label="ゲーム一覧"></section>
+
+    <p class="page-footer">クリックまたは Enter でゲームをプレイ</p>
   </div>
 
   <script>
-  // ── カードHTML生成 ──────────────────────────────────────────────────
+  // ── ユーティリティ ────────────────────────────────
+  const $ = id => document.getElementById(id);
+
+  // ── カード生成 ────────────────────────────────────
   function createCard(g) {
     const card = document.createElement('article');
     card.className = 'game-card';
-    card.setAttribute('role', 'button');
-    card.setAttribute('tabindex', '0');
+    card.setAttribute('role','button');
+    card.setAttribute('tabindex','0');
     card.dataset.genre = g.genre;
-    card.dataset.href = `play.html?game=${g.key}`;
+    card.dataset.href  = `play.html?game=${g.key}`;
+    card.dataset.name  = g.name.toLowerCase();
     card.setAttribute('aria-label', `${g.name} — プレイする`);
 
     card.innerHTML = `
       <div class="thumb">
-        ${g.isNew ? '<span class="new-badge">NEW</span>' : ''}
         <span class="genre-badge">${g.genreLabel}</span>
         <div class="big-icon">${g.emoji}</div>
         <div class="play-overlay" aria-hidden="true"><div class="play-btn">▶</div></div>
@@ -227,33 +305,33 @@
       <div class="card-body">
         <div class="card-title-row">
           <span class="card-title">${g.name}</span>
-          <span class="status-dot ${g.status}" title="${g.status === 'done' ? '実装済み' : '開発中'}" aria-label="${g.status === 'done' ? '実装済み' : '開発中'}"></span>
+          <span class="status-dot ${g.status}"
+            title="${g.status === 'done' ? '実装済み' : '開発中'}"
+            aria-label="${g.status === 'done' ? '実装済み' : '開発中'}">
+          </span>
         </div>
         <div class="card-desc">${g.desc}</div>
         <div class="card-footer">
           <span class="card-tag">${g.key}</span>
           <span class="card-players">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
             </svg>
             ${g.players}
           </span>
         </div>
-      </div>
-    `;
+      </div>`;
 
-    function go() { window.location.href = card.dataset.href; }
+    const go = () => window.location.href = card.dataset.href;
     card.addEventListener('click', go);
-    card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
-
+    card.addEventListener('keydown', e => { if(e.key==='Enter'||e.key===' '){e.preventDefault();go()} });
     return card;
   }
 
-  // coming-soonプレースホルダー
   function createComingSoon(emoji) {
     const card = document.createElement('article');
     card.className = 'game-card coming-soon';
-    card.setAttribute('aria-hidden', 'true');
+    card.setAttribute('aria-hidden','true');
     card.innerHTML = `
       <div class="thumb" style="background:rgba(0,0,0,0.2)">
         <div class="big-icon" style="filter:grayscale(1) opacity(0.4)">${emoji}</div>
@@ -267,46 +345,121 @@
         <div class="card-footer">
           <span class="card-tag" style="color:var(--muted)">coming-soon</span>
         </div>
-      </div>
-    `;
+      </div>`;
     return card;
   }
 
-  // ── JSONを読み込んでグリッドを構築 ──────────────────────────────────
+  // ── メイン ────────────────────────────────────────
   async function init() {
-    const grid = document.getElementById('gameGrid');
+    const grid    = $('gameGrid');
+    const countBar = $('countBar');
 
-    let games;
+    let allGames = [];
     try {
       const res = await fetch('games.json');
       if (!res.ok) throw new Error(res.statusText);
-      games = await res.json();
-    } catch (err) {
-      grid.innerHTML = '<div class="empty">⚠️ ゲームデータの読み込みに失敗しました。</div>';
-      console.error('games.json の読み込みエラー:', err);
+      allGames = await res.json();
+    } catch(err) {
+      grid.innerHTML = '<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">読み込みエラー</div><div class="empty-sub">ゲームデータの読み込みに失敗しました。</div></div>';
+      console.error('games.json エラー:', err);
       return;
     }
 
-    games.forEach(g => grid.appendChild(createCard(g)));
+    // カード要素を生成してキャッシュ
+    const cardEls = allGames.map(g => {
+      const el = createCard(g);
+      grid.appendChild(el);
+      return { el, g };
+    });
 
-    // coming-soon プレースホルダー（固定2枚）
-    grid.appendChild(createComingSoon('🎯'));
-    grid.appendChild(createComingSoon('🚀'));
+    // coming-soon プレースホルダー
+    const placeholders = ['🎯','🚀'].map(e => { const el = createComingSoon(e); grid.appendChild(el); return el; });
 
-    // ── フィルタータブ ────────────────────────────────────────────────
-    const tabs = document.querySelectorAll('.filter-tab');
-    const cards = grid.querySelectorAll('.game-card[data-genre]');
+    // ── フィルタリング・ソート・検索 ─────────────────
+    let activeGenre  = 'all';
+    let activeSearch = '';
+    let activeSort   = 'default';
 
-    tabs.forEach(tab => {
+    function applyFilters() {
+      const q = activeSearch.trim().toLowerCase();
+      let visible = 0;
+
+      cardEls.forEach(({ el, g }) => {
+        const matchGenre  = activeGenre === 'all' || g.genre === activeGenre;
+        const matchSearch = !q || g.name.toLowerCase().includes(q) || g.desc.toLowerCase().includes(q) || (g.tags||[]).some(t=>t.toLowerCase().includes(q));
+        const show = matchGenre && matchSearch;
+        el.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+
+      // placeholders: 検索ゼロのときのみ表示
+      placeholders.forEach(el => el.style.display = (!q && activeGenre==='all') ? '' : 'none');
+
+      // 件数表示
+      countBar.innerHTML = `<span>${visible}</span> 件のゲーム`;
+
+      // 空状態
+      const existingEmpty = grid.querySelector('.empty');
+      if (existingEmpty) existingEmpty.remove();
+      if (visible === 0) {
+        const div = document.createElement('div');
+        div.className = 'empty';
+        div.innerHTML = `
+          <div class="empty-icon">🔍</div>
+          <div class="empty-title">見つかりませんでした</div>
+          <div class="empty-sub">「${q || activeGenre}」に一致するゲームはありません。</div>
+          <button class="clear-btn" id="clearFilters">× 検索をリセット</button>`;
+        grid.appendChild(div);
+        div.querySelector('#clearFilters').addEventListener('click', resetFilters);
+      }
+    }
+
+    function applySort() {
+      const els = [...cardEls].filter(({el}) => el.style.display !== 'none');
+      if (activeSort === 'default') return;
+      els.sort((a,b) => {
+        const na = a.g.name, nb = b.g.name;
+        return activeSort === 'name-asc' ? na.localeCompare(nb,'ja') : nb.localeCompare(na,'ja');
+      });
+      els.forEach(({el}) => grid.insertBefore(el, grid.querySelector('.coming-soon') || null));
+    }
+
+    function update() { applyFilters(); applySort(); }
+
+    function resetFilters() {
+      activeSearch = '';
+      activeGenre  = 'all';
+      activeSort   = 'default';
+      $('searchInput').value = '';
+      $('sortSelect').value  = 'default';
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t.dataset.genre==='all'));
+      update();
+    }
+
+    // ── イベント ─────────────────────────────────────
+
+    // 検索（デバウンス）
+    let debTimer;
+    $('searchInput').addEventListener('input', e => {
+      clearTimeout(debTimer);
+      debTimer = setTimeout(() => { activeSearch = e.target.value; update(); }, 200);
+    });
+
+    // ジャンルタブ
+    document.querySelectorAll('.filter-tab').forEach(tab => {
       tab.addEventListener('click', () => {
-        tabs.forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
-        const genre = tab.dataset.genre;
-        cards.forEach(card => {
-          card.style.display = (genre === 'all' || card.dataset.genre === genre) ? '' : 'none';
-        });
+        activeGenre = tab.dataset.genre;
+        update();
       });
     });
+
+    // ソート
+    $('sortSelect').addEventListener('change', e => { activeSort = e.target.value; update(); });
+
+    // 初回表示
+    update();
   }
 
   init();
