@@ -68,5 +68,47 @@
     "tags": ["アクション", "ラン系", "スノー"],
     "isNew": true,
     "status": "done"
-  }
+  },
+  {
+  "key": "2048",
+  "name": "2048 (PC)",
+  "emoji": "🔢",
+  "sub": "パズル · 1人プレイ",
+  "file": "fun/2048.html",
+  "desc": "数字をスライドして2048を目指せ！シンプルだけど奥深い定番パズル。",
+  "genre": "puzzle",
+  "genreLabel": "パズル",
+  "players": "1人プレイ",
+  "tags": ["パズル", "頭脳"],
+  "isNew": true,
+  "status": "done"
+},
+{
+  "key": "agario",
+  "name": "Agar.io",
+  "emoji": "🟢",
+  "sub": "アーケード · 対戦",
+  "file": "fun/agario.html",
+  "desc": "小さな細胞からスタートして他プレイヤーを吸収しろ！巨大化して生き残れ。",
+  "genre": "arcade",
+  "genreLabel": "アーケード",
+  "players": "オンライン対戦",
+  "tags": ["アーケード", "対戦", "成長"],
+  "isNew": true,
+  "status": "done"
+},
+{
+  "key": "8ball",
+  "name": "8 Ball Pool",
+  "emoji": "🎱",
+  "sub": "スポーツ · 対戦",
+  "file": "fun/8-ball.html",
+  "desc": "リアルなビリヤードを楽しもう！狙いを定めて8番ボールを沈めろ。",
+  "genre": "sports",
+  "genreLabel": "スポーツ",
+  "players": "対戦",
+  "tags": ["スポーツ", "ビリヤード"],
+  "isNew": true,
+  "status": "done"
+}
 ]
