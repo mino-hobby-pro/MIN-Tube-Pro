@@ -18,45 +18,72 @@
       --chip-hover: rgba(255,255,255,0.12);
       --radius: 12px;
       --glass: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      --header-bg: rgba(11,11,11,0.85);
+      --body-bg-start: #070707;
+      --body-bg-end: #0f0f0f;
+      --chips-bg-start: rgba(11,11,11,0.9);
+      --chips-bg-end: rgba(11,11,11,0.85);
+    }
+
+    /* ライトモード */
+    body.light-mode {
+      --bg: #f9f9f9;
+      --surface: #ffffff;
+      --card: #f0f0f0;
+      --muted-card: #e8e8e8;
+      --text: #0f0f0f;
+      --text-muted: #606060;
+      --accent: #cc0000;
+      --border: #d0d0d0;
+      --chip-bg: rgba(0,0,0,0.06);
+      --chip-hover: rgba(0,0,0,0.12);
+      --header-bg: rgba(255,255,255,0.92);
+      --body-bg-start: #f0f0f0;
+      --body-bg-end: #f9f9f9;
+      --chips-bg-start: rgba(255,255,255,0.95);
+      --chips-bg-end: rgba(248,248,248,0.9);
     }
     * { box-sizing: border-box; }
     html,body { height: 100%; }
     body {
       margin: 0;
-      background: linear-gradient(180deg, #070707 0%, #0f0f0f 100%);
+      background: linear-gradient(180deg, var(--body-bg-start) 0%, var(--body-bg-end) 100%);
       color: var(--text);
       font-family: "Roboto", "Noto Sans JP", Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       line-height: 1.4;
+      transition: background 0.3s ease, color 0.3s ease;
     }
 
     /* Header */
     header {
       position: fixed; top: 0; width: 100%; height: 64px;
-      background: rgba(11,11,11,0.85); display: flex; align-items: center;
+      background: var(--header-bg); display: flex; align-items: center;
       justify-content: space-between; padding: 0 20px; z-index: 1000;
-      border-bottom: 1px solid rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(128,128,128,0.1);
       backdrop-filter: blur(6px);
+      transition: background 0.3s ease;
     }
-    .logo { font-size: 20px; font-weight: 700; text-decoration: none; color: white; display: flex; align-items: center; gap: 8px; }
+    .logo { font-size: 20px; font-weight: 700; text-decoration: none; color: var(--text); display: flex; align-items: center; gap: 8px; }
     .logo span { color: var(--accent); font-size: 26px; line-height: 1; transform: translateY(-1px); }
 
     .search-area { flex: 0 1 720px; display: flex; position: relative; margin: 0 20px; }
     .search-form { display: flex; width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 40px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
-    .search-form input { flex: 1; background: transparent; border: none; color: white; height: 42px; padding: 0 16px; outline: none; font-size: 15px; }
-    .search-form button { background: rgba(255,255,255,0.03); border: none; border-left: 1px solid var(--border); color: white; padding: 0 18px; cursor: pointer; font-size: 16px; }
+    .search-form input { flex: 1; background: transparent; border: none; color: var(--text); height: 42px; padding: 0 16px; outline: none; font-size: 15px; }
+    .search-form button { background: rgba(255,255,255,0.03); border: none; border-left: 1px solid var(--border); color: var(--text); padding: 0 18px; cursor: pointer; font-size: 16px; }
 
     /* Chips Navigation */
     .chips-bar {
-      position: fixed; top: 64px; width: 100%; background: linear-gradient(180deg, rgba(11,11,11,0.9), rgba(11,11,11,0.85));
+      position: fixed; top: 64px; width: 100%; background: linear-gradient(180deg, var(--chips-bg-start), var(--chips-bg-end));
       padding: 12px 20px; display: flex; gap: 12px; overflow-x: auto; z-index: 999;
-      scrollbar-width: none; border-bottom: 1px solid rgba(255,255,255,0.03);
+      scrollbar-width: none; border-bottom: 1px solid rgba(128,128,128,0.08);
+      transition: background 0.3s ease;
     }
     .chips-bar::-webkit-scrollbar { display: none; }
     .chip { background: var(--chip-bg); padding: 8px 16px; border-radius: 999px; font-size: 14px; white-space: nowrap; cursor: pointer; transition: 0.18s ease; color: var(--text); border: 1px solid transparent; }
     .chip:hover { background: var(--chip-hover); transform: translateY(-2px); }
-    .chip.active { background: white; color: black; box-shadow: 0 4px 14px rgba(0,0,0,0.6); }
+    .chip.active { background: var(--text); color: var(--bg); box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
 
     /* Container */
     .container { margin-top: 140px; padding: 0 28px 80px; max-width: 1400px; margin-left: auto; margin-right: auto; }
@@ -127,7 +154,7 @@
       width: 48px;
       height: 48px;
       border-radius: 12px; 
-      color: #fff;
+      color: var(--text);
       text-decoration: none;
       font-size: 20px;
       font-weight: 600;
@@ -173,14 +200,35 @@
       transform: translateY(-4px) scale(1.03);
     }
 
+    /* Header right group */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    /* Settings btn wrapper - align center vertically */
+    .settings-btn-wrapper {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Home button group: button + version below */
+    .home-btn-group {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
     .version-badge {
       position: absolute;
-      right: 80px; 
-      top: 50%;
-      transform: translateY(-50%);
-      padding: 4px 10px;
-      border-radius: 8px;
-      font-size: 13px;
+      top: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 6px;
+      font-size: 11px;
       font-weight: 800;
       color: #fff;
       background: rgba(15, 15, 15, 0.6);
@@ -191,14 +239,14 @@
         0 0 15px rgba(0, 255, 255, 0.15),
         inset 0 1px 2px rgba(255, 255, 255, 0.05);
       opacity: 0; 
-      transition: opacity 0.8s ease, transform 0.3s ease, box-shadow 0.3s ease;
+      transition: opacity 0.8s ease, box-shadow 0.3s ease;
       letter-spacing: 0.5px;
-      z-index: 10;
       pointer-events: none;
       display: flex;
       align-items: center;
       gap: 4px;
       font-family: 'Courier New', Courier, monospace;
+      white-space: nowrap;
     }
     
     .version-badge.show {
@@ -207,7 +255,7 @@
 
     .version-badge::before {
       content: '🌐'; 
-      font-size: 11px;
+      font-size: 9px;
       filter: drop-shadow(0 0 4px rgba(0, 255, 255, 0.6));
     }
 
@@ -215,18 +263,100 @@
       background: linear-gradient(135deg, #ff7eb3, #7eb3ff, #00f2fe);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      text-shadow: 0 0 8px rgba(126, 179, 255, 0.3);
+    }
+
+    /* Settings button */
+    .settings-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+      border: 3px solid rgba(255,255,255,0.12);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+      backdrop-filter: blur(4px);
+      cursor: pointer;
+      position: relative;
+    }
+    .settings-btn:hover {
+      transform: translateY(-3px);
+      border-color: var(--chip-hover);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.45);
+    }
+
+    /* Settings panel */
+    .settings-panel {
+      position: absolute;
+      top: calc(100% + 10px);
+      right: 0;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      min-width: 200px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+      z-index: 2000;
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .settings-panel.open { display: flex; }
+
+    .settings-panel-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* Theme radio buttons */
+    .theme-radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .theme-radio-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      padding: 8px 10px;
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+    .theme-radio-label:hover {
+      background: var(--chip-hover);
+    }
+    .theme-radio-label input[type="radio"] {
+      accent-color: var(--accent);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .theme-radio-label.selected {
+      background: var(--chip-bg);
+    }
+    .theme-mode-icon {
+      font-size: 16px;
+      min-width: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     @media (max-width: 520px) {
-      .version-badge {
-        right: 65px;
-        padding: 3px 8px;
-        font-size: 11px;
-      }
-      .version-badge::before {
-        font-size: 9px;
-      }
+      .settings-btn { width: 40px; height: 40px; font-size: 17px; }
+      .version-badge { font-size: 10px; padding: 2px 6px; }
     }
   </style>
 </head>
@@ -239,8 +369,58 @@
         <button type="submit">🔍</button>
       </form>
     </div>
-    <a href="/youtube-pro" class="home-btn" title="ホーム">🏠</a>
-    <div id="appVersion" class="version-badge"><span class="version-badge-text"></span></div>
+    <div class="header-right">
+      <!-- 設定ボタン -->
+      <div class="settings-btn-wrapper">
+        <div class="settings-btn" id="settingsBtn" title="設定" role="button" aria-label="設定">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <div class="settings-panel" id="settingsPanel">
+            <div class="settings-panel-title">設定</div>
+            <div class="theme-radio-group">
+              <label class="theme-radio-label" id="darkLabel">
+                <input type="radio" name="themeMode" id="themeDark" value="dark" checked>
+                <span class="theme-mode-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                  </svg>
+                </span>
+                ダークモード
+              </label>
+              <label class="theme-radio-label" id="lightLabel">
+                <input type="radio" name="themeMode" id="themeLight" value="light">
+                <span class="theme-mode-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                  </svg>
+                </span>
+                ライトモード
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ホームボタン + バージョン表示 -->
+      <div class="home-btn-group">
+        <a href="/youtube-pro" class="home-btn" title="ホーム">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5z"/>
+            <polyline points="9 21 9 12 15 12 15 21"/>
+          </svg>
+        </a>
+        <div id="appVersion" class="version-badge"><span class="version-badge-text"></span></div>
+      </div>
+    </div>
   </header>
 
   <div class="chips-bar">
@@ -585,6 +765,52 @@
         loadContent('trending', 0);
       }
     };
+
+    // Settings panel toggle
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const themeDark = document.getElementById('themeDark');
+    const themeLight = document.getElementById('themeLight');
+    const darkLabel = document.getElementById('darkLabel');
+    const lightLabel = document.getElementById('lightLabel');
+
+    settingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      settingsPanel.classList.toggle('open');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!settingsBtn.contains(e.target)) {
+        settingsPanel.classList.remove('open');
+      }
+    });
+
+    // Theme logic
+    function applyTheme(isLight) {
+      if (isLight) {
+        document.body.classList.add('light-mode');
+        lightLabel.classList.add('selected');
+        darkLabel.classList.remove('selected');
+        themeLight.checked = true;
+      } else {
+        document.body.classList.remove('light-mode');
+        darkLabel.classList.add('selected');
+        lightLabel.classList.remove('selected');
+        themeDark.checked = true;
+      }
+      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    }
+
+    themeDark.addEventListener('change', () => { if (themeDark.checked) applyTheme(false); });
+    themeLight.addEventListener('change', () => { if (themeLight.checked) applyTheme(true); });
+
+    // Restore saved theme
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      applyTheme(true);
+    } else {
+      applyTheme(false);
+    }
 
     async function fetchAndShowVersion() {
       try {
