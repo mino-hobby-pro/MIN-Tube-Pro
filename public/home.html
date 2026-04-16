@@ -354,6 +354,55 @@
       justify-content: center;
     }
 
+    /* Divider in settings panel */
+    .settings-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2px 0;
+    }
+
+    /* Playback method select */
+    .settings-select-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .settings-select-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+    .settings-select {
+      width: 100%;
+      background: var(--muted-card);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23bdbdbd' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 28px;
+      transition: border-color 0.15s;
+    }
+    .settings-select:hover, .settings-select:focus {
+      border-color: var(--accent);
+    }
+    .playback-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      padding: 0 2px;
+    }
+
     @media (max-width: 520px) {
       .settings-btn { width: 40px; height: 40px; font-size: 17px; }
       .version-badge { font-size: 10px; padding: 2px 6px; }
@@ -406,6 +455,19 @@
                 </span>
                 ライトモード
               </label>
+            </div>
+            <hr class="settings-divider">
+            <div class="settings-select-group">
+              <div class="settings-select-label">🎬 再生方法</div>
+              <select id="playbackMode" class="settings-select">
+                <option value="googlevideo">Googlevideo（デフォルト）</option>
+                <option value="youtube-nocookie">Youtube-nocookie</option>
+                <option value="DL-Pro">DL-Pro</option>
+                <option value="YoutubeEdu-Kahoot">YoutubeEdu-Kahoot</option>
+                <option value="YoutubeEdu-Scratch">YoutubeEdu-Scratch</option>
+                <option value="Youtube-Pro">Youtube-Pro</option>
+              </select>
+              <div class="playback-hint" id="playbackHint">Googlevideoのストリームで再生します。</div>
             </div>
           </div>
         </div>
@@ -775,8 +837,15 @@
     const lightLabel = document.getElementById('lightLabel');
 
     settingsBtn.addEventListener('click', (e) => {
+      // パネル内のクリックはトグルしない（ラジオ・セレクト操作用）
+      if (settingsPanel.contains(e.target)) return;
       e.stopPropagation();
       settingsPanel.classList.toggle('open');
+    });
+
+    // パネル内クリックはバブリングを止めて閉じないようにする
+    settingsPanel.addEventListener('click', (e) => {
+      e.stopPropagation();
     });
 
     document.addEventListener('click', (e) => {
@@ -811,6 +880,33 @@
     } else {
       applyTheme(false);
     }
+
+    // --- Playback mode ---
+    const playbackMode = document.getElementById('playbackMode');
+    const playbackHint = document.getElementById('playbackHint');
+
+    const PLAYBACK_HINTS = {
+      'googlevideo':       'Googlevideoのストリームで再生します（デフォルト）。',
+      'youtube-nocookie':  'YouTube埋め込みプレイヤーで再生します（確実に動作します）。',
+      'DL-Pro':            'DL-Proサーバー経由で360p相当のストリームを取得します。',
+      'YoutubeEdu-Kahoot': 'Kahoot経由のYouTube教育プレイヤーで再生します。',
+      'YoutubeEdu-Scratch': 'Scratch経由のYouTube教育プレイヤーで再生します。',
+      'Youtube-Pro':       'Youtube-Proサーバー経由で再生します。'
+    };
+
+    function applyPlaybackMode(mode) {
+      playbackMode.value = mode;
+      playbackHint.textContent = PLAYBACK_HINTS[mode] || PLAYBACK_HINTS.standard;
+      localStorage.setItem('playbackMode', mode);
+    }
+
+    playbackMode.addEventListener('change', () => {
+      applyPlaybackMode(playbackMode.value);
+    });
+
+    // Restore saved playback mode
+    const savedPlayback = localStorage.getItem('playbackMode') || 'googlevideo';
+    applyPlaybackMode(savedPlayback);
 
     async function fetchAndShowVersion() {
       try {
