@@ -1196,7 +1196,7 @@ app.get("/helios", (req, res) => {
 });
 
 app.get("/chat", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "chat/chat.html"));
+  res.sendFile(path.join(__dirname, "public", "chat/testchat.html"));
 });
 
 app.get("/nautilus-os", (req, res) => {
