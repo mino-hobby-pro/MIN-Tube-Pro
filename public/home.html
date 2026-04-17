@@ -1460,5 +1460,24 @@
     window.openDrawer = openDrawer;
     window.closeDrawer = closeDrawer;
   </script>
+  
+  <nav class="mobile-bottom-nav">
+  <a href="/" class="mobile-nav-item active">
+    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+    ホーム
+  </a>
+  <a href="#" class="mobile-nav-item" data-q="shorts">
+    <svg viewBox="0 0 24 24"><path d="M17.77 10.32l-1.2-.5L18 9.06c1.84-.96 2.53-3.23 1.56-5.06s-3.23-2.53-5.06-1.56L6 6.94c-1.29.68-2.07 2.04-2 3.49.07 1.4.93 2.67 2.22 3.25L7.42 14 6 14.75c-1.84.96-2.53 3.23-1.56 5.06.65 1.27 1.94 2 3.31 2 .58 0 1.18-.14 1.75-.44L17 17.06c1.29-.68 2.07-2.04 2-3.49-.07-1.4-.93-2.67-2.23-3.25zM10 14.65V9.35L15 12l-5 2.65z"/></svg>
+    ショート
+  </a>
+  <button class="mobile-nav-item" onclick="openDrawer('history')">
+    <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 1 0 0 18A9 9 0 0 0 13 3zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7zm.5-11H12v6l5.25 3.15.75-1.23-4.5-2.67V8z"/></svg>
+    履歴
+  </button>
+  <button class="mobile-nav-item" onclick="openDrawer('playlists')">
+    <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+    ライブラリ
+  </button>
+</nav>
 </body>
 </html>
