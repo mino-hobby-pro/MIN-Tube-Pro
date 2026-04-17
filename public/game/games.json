@@ -170,14 +170,14 @@
    {
   "key": "Board game",
   "name": "Board Games",
-  "emoji": "♟️",
+  "emoji": "🎲",
   "sub": "アーケード · 1人でも2人でも",
   "file": "fun/BG.html",
   "desc": "オセロに将棋にその他諸々‼︎",
   "genre": "board",
   "genreLabel": "アーケード",
-  "players": "1人プレイ 対戦",
-  "tags": ["アーケード", "マルチプレイ"],
+  "players": "対戦",
+  "tags": ["アーケード"],
   "isNew": true,
   "status": "done"
 }
