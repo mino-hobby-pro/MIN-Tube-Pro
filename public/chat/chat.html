@@ -1,1 +1,1164 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" /><title>オープンチャット</title><script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script><style>@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap'); :root { --bg: #f3f4f6; --line: #e5e7eb; --text: #1f2937; --muted: #6b7280; --accent: #3b82f6; --accent-hover: #2563eb; --black: #111111; --white: #ffffff; --radius: 12px; --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.025); --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03); --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.025); font-family: "Inter", "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Helvetica Neue", Arial, sans-serif; } html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; } /* 投稿欄の固定を解除し、美しく配置 */ .composer-fixed { background: var(--white); border-bottom: 1px solid var(--line); padding: 24px 0; box-shadow: var(--shadow-md); position: relative; z-index: 10; } .composer-inner { max-width: 1200px; margin: 0 auto; padding: 0 20px; display: flex; gap: 16px; align-items: flex-start; } .composer-avatar { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #8b5cf6); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; flex-shrink: 0; box-shadow: var(--shadow-sm); } .composer-right { flex: 1; display: flex; flex-direction: column; gap: 12px; } .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; } input[type="text"], textarea, select { width: 100%; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: #f9fafb; color: var(--text); font-size: 15px; transition: all 0.2s ease; box-sizing: border-box; font-family: inherit; } textarea { min-height: 80px; resize: vertical; line-height: 1.5; } input[type="text"]:focus, textarea:focus, select:focus { outline: none; border-color: var(--accent); background: #fff; box-shadow: 0 0 0 4px rgba(59,130,246,0.15); } .controls { display: flex; gap: 12px; align-items: center; } .btn { background: var(--accent); color: #fff; border: none; padding: 10px 18px; border-radius: var(--radius); font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow-sm); } .btn:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); } .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; } .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); box-shadow: none; } .btn.ghost:hover { background: #f3f4f6; color: var(--text); transform: none; } .page-wrap { max-width: 1200px; margin: 0 auto; padding: 32px 20px 120px !important; box-sizing: border-box; } .split { display: grid; grid-template-columns: 1fr 560px; gap: 24px; align-items: start; max-width: 1200px; margin: 0 auto; } @media(max-width:1100px) { .split { grid-template-columns: 1fr; } } .chat-column { display: flex; flex-direction: column; gap: 16px; min-height: 320px; } .message { display: flex; gap: 16px; padding: 20px; border: 1px solid transparent; border-radius: 16px; align-items: flex-start; background: var(--white); box-shadow: var(--shadow-sm); transition: transform 0.2s ease, box-shadow 0.2s ease; } .message:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); } .avatar { width: 48px; height: 48px; border-radius: 50%; background: #e5e7eb; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; color: #4b5563; flex-shrink: 0; transition: 0.2s; } .avatar:hover { filter: brightness(0.95); } .body { flex: 1; min-width: 0; } .meta { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; } .name { font-weight: 700; font-size: 15px; color: var(--text); transition: 0.2s; } .name:hover { color: var(--accent); } .time { color: var(--muted); font-size: 13px; } .text { white-space: pre-wrap; color: #374151; line-height: 1.6; font-size: 15px; word-wrap: break-word; } .reactions { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; } .reaction { border: 1px solid var(--line); background: #f9fafb; padding: 6px 12px; border-radius: 999px; color: var(--muted); font-size: 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease; } .reaction:hover { background: #fff; border-color: var(--accent); color: var(--accent); box-shadow: var(--shadow-sm); } .reaction strong { color: var(--text); font-weight: 700; } .admin-badge { display: inline-block; margin-left: 8px; padding: 4px 10px; border-radius: 999px; background: linear-gradient(135deg, #f59e0b, #ea580c); color: #fff; font-weight: 700; font-size: 11px; letter-spacing: 0.5px; box-shadow: var(--shadow-sm); } .system-note { background: linear-gradient(to right, #eff6ff, #ffffff); border-left: 4px solid var(--accent); border-radius: 0 16px 16px 0; box-shadow: none; } /* オセロパネル */ .othello-panel { background: var(--white); border: none; border-radius: 20px; padding: 24px; box-sizing: border-box; box-shadow: var(--shadow-lg); position: sticky; top: 24px; } .rooms { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; max-height: 400px; /* 多すぎる部屋によるレイアウト崩れ防止 */ overflow-y: auto; } .room-item { padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #f9fafb; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; } .room-item:hover { border-color: #d1d5db; background: #fff; box-shadow: var(--shadow-sm); } .board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); gap: 4px; margin-top: 16px; background: #166534; padding: 8px; border-radius: 12px; box-shadow: inset 0 4px 8px rgba(0,0,0,0.2), 0 8px 16px rgba(0,0,0,0.1); aspect-ratio: 1 / 1; } .cell { width: 100%; height: 100%; background: #22c55e; border-radius: 4px; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.15); transition: background 0.2s; } .cell:hover { background: #4ade80; } .cell.disabled { cursor: default; opacity: 0.95; } .cell.disabled:hover { background: #22c55e; } .disc { width: 80%; height: 80%; border-radius: 50%; box-shadow: 0 4px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.2); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); } .black { background: linear-gradient(145deg, #2b2b2b, #000000); } .white { background: linear-gradient(145deg, #ffffff, #e6e6e6); border: none; } .last-move { outline: 3px solid #fde047; outline-offset: -3px; border-radius: 4px; } .legal-dot { width: 12%; height: 12%; border-radius: 50%; background: rgba(255,255,255,0.6); position: absolute; box-shadow: 0 0 4px rgba(0,0,0,0.2); } .turn-indicator { display: flex; gap: 12px; align-items: center; margin-top: 16px; padding: 12px; background: #f3f4f6; border-radius: 12px; } .badge { padding: 6px 12px; border-radius: 999px; font-weight: 700; color: #fff; font-size: 13px; box-shadow: var(--shadow-sm); } .badge.black { background: #111; } .badge.white { background: #fff; color: #111; border: 1px solid #d1d5db; } /* 結果アニメーション */ .overlay { position: fixed; left: 0; top: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 2000; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); } .result-card { pointer-events: auto; min-width: 320px; padding: 40px; border-radius: 24px; text-align: center; box-shadow: 0 24px 48px rgba(0,0,0,0.2); transform: translateY(-20px) scale(0.95); opacity: 0; animation: pop 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; } .result-card.win { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #fff; } .result-card.lose { background: linear-gradient(135deg, #4b5563, #1f2937); color: #fff; } .result-title { font-size: 32px; font-weight: 900; margin-bottom: 12px; letter-spacing: 1px; } .result-sub { font-size: 16px; opacity: 0.9; font-weight: 500; } @keyframes pop { to { transform: translateY(0) scale(1); opacity: 1; } } @media (max-width:768px) { .composer-inner { padding: 0 16px; flex-direction: column; } .composer-avatar { display: none; } .row { flex-direction: column; align-items: stretch; } input[type="text"], select { max-width: none !important; width: 100%; } .controls { width: 100%; justify-content: space-between; } .page-wrap { padding-top: 24px !important; } .split { grid-template-columns: 1fr; gap: 16px; } .othello-panel { position: static; padding: 16px; } .board { gap: 2px; padding: 4px; } }</style></head><body><div class="composer-fixed" id="composerFixed" role="region" aria-label="投稿欄"><div class="composer-inner"><div class="composer-avatar" id="composerAvatar">U</div><div class="composer-right"><div class="row"><input id="username" type="text" placeholder="ユーザー名（任意）" style="max-width:260px" maxlength="20" /><input id="seed" type="text" placeholder="seed（任意）" /><button id="toggleOthello" class="btn" style="flex:0 0 auto">オセロ</button><div style="margin-left:auto;display:flex;gap:8px;align-items:center"><select id="serverSelect" class="btn ghost" style="padding:4px 8px; font-size:13px; height:auto;"><option value="auto">自動切替</option><option value="https://singing.linco.cl">サーバー1</option><option value="https://manabis.onrender.com">サーバー2</option><option value="https://tfr.linco.cl">サーバー3</option></select><button id="adminLoginBtn" class="btn ghost">管理者ログイン</button><button id="adminModalBtn" class="btn" style="display:none">管理モーダルを表示</button><label id="banToggleLabel" style="display:none;font-size:13px;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="banToggle">BANボタンを表示</label></div></div><textarea id="messageInput" placeholder="コメントを入力（Shift+Enterで改行、Enterで送信）" maxlength="200"></textarea><div style="display:flex;justify-content:space-between;align-items:center"><div style="color:var(--muted);font-size:13px">公開チャットです。節度ある投稿をお願いします。</div><div class="controls"><button class="btn ghost" id="clearBtn">全削除（管理）</button><button class="btn" id="sendBtn">送信</button></div></div></div></div></div><div id="mainWrap" class="page-wrap" role="main"><div id="errorAlert" style="display:none; background:#fee2e2; color:#b91c1c; padding:12px; border-radius:8px; margin-bottom:16px; border:1px solid #fca5a5;"></div><div id="splitContainer"><div id="chatColumn" class="chat-column" aria-live="polite" aria-atomic="false"></div><aside id="othelloPanel" class="othello-panel" style="display:none" aria-hidden="true"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700">オセロ</div><div style="color:var(--muted)">部屋を作成して待機、他のユーザーが参加すると対戦が始まります。観戦も可能です。</div></div><div id="roomsControls" style="margin-top:8px"><div style="display:flex;gap:8px;margin-bottom:8px"><input id="roomInput" placeholder="部屋ID（任意）" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:8px" maxlength="30" /><button id="createRoomBtn" class="btn">新しく作る</button><button id="refreshRoomsBtn" class="btn ghost">更新</button></div><div class="rooms" id="roomsList" aria-live="polite"></div></div><div id="gameArea" style="display:none;margin-top:8px"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700" id="currentRoomLabel">部屋: -</div><div class="info" id="playersLabel">参加者: -</div></div><div class="turn-indicator" id="turnIndicator"><div class="label">現在の手番</div><div id="turnBadge" class="badge" style="margin-left:8px"></div><div style="margin-left:auto"><span class="badge black">黒</span><span style="width:8px;display:inline-block"></span><span class="badge white" style="color:#111;border:1px solid #ccc">白</span></div></div><div id="board" class="board" role="grid" aria-label="オセロ盤"></div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px"><div class="info" id="statusLabel">状態: -</div><div><button id="joinGameBtn" class="btn">対戦参加</button><button id="leaveRoomBtn" class="btn ghost">退出</button></div></div><div class="info" id="countsLabel" style="margin-top:8px">黒: 0 / 白: 0</div></div></aside></div></div><div id="overlay" class="overlay" style="display:none"></div><script>const SERVERS = [ 'https://singing.linco.cl', 'https://manabis.onrender.com', 'https://tfr.linco.cl' ]; let BASE = localStorage.getItem('selectedServer'); let isAutoServer = false; if (!BASE || BASE === 'auto') { BASE = SERVERS[0]; isAutoServer = true; } const socket = io(BASE, { transports: ['websocket','polling'] }); if (isAutoServer) { (async () =>{ for (const s of SERVERS) { try { const controller = new AbortController(); const id = setTimeout(() =>controller.abort(), 2000); const res = await fetch(s + '/api/messages', { signal: controller.signal }); clearTimeout(id); if (res.ok) { if (BASE !== s) { BASE = s; socket.io.uri = s; socket.disconnect().connect(); loadMessages(); fetchRooms(); fetch(BASE + '/api/admins').then(r=>r.json()).then(d=>adminList=d).catch(()=>{}); } break; } } catch(e) {} } })(); } /* Elements */ const composerFixed = document.getElementById('composerFixed'); const pageWrap = document.getElementById('mainWrap'); const chatColumn = document.getElementById('chatColumn'); const sendBtn = document.getElementById('sendBtn'); const usernameInput = document.getElementById('username'); const messageInput = document.getElementById('messageInput'); const seedInput = document.getElementById('seed'); const composerAvatar = document.getElementById('composerAvatar'); const clearBtn = document.getElementById('clearBtn'); const toggleOthelloBtn = document.getElementById('toggleOthello'); const adminLoginBtn = document.getElementById('adminLoginBtn'); const adminModalBtn = document.getElementById('adminModalBtn'); const banToggleLabel = document.getElementById('banToggleLabel'); const banToggle = document.getElementById('banToggle'); const serverSelect = document.getElementById('serverSelect'); const othelloPanel = document.getElementById('othelloPanel'); const roomsList = document.getElementById('roomsList'); const createRoomBtn = document.getElementById('createRoomBtn'); const refreshRoomsBtn = document.getElementById('refreshRoomsBtn'); const roomInput = document.getElementById('roomInput'); const gameArea = document.getElementById('gameArea'); const currentRoomLabel = document.getElementById('currentRoomLabel'); const playersLabel = document.getElementById('playersLabel'); const boardEl = document.getElementById('board'); const statusLabel = document.getElementById('statusLabel'); const countsLabel = document.getElementById('countsLabel'); const joinGameBtn = document.getElementById('joinGameBtn'); const leaveRoomBtn = document.getElementById('leaveRoomBtn'); const roomsControls = document.getElementById('roomsControls'); const turnBadge = document.getElementById('turnBadge'); const overlay = document.getElementById('overlay'); const errorAlert = document.getElementById('errorAlert'); let messages = []; let currentRoom = null; let gameState = null; let myColor = null; let adminList = []; let adminRedirectUrl = null; /* エラー通知表示関数 */ function showError(msg) { errorAlert.textContent = msg; errorAlert.style.display = 'block'; setTimeout(() =>{ errorAlert.style.display = 'none'; }, 5000); } /* Server Select Logic */ if (localStorage.getItem('selectedServer')) { serverSelect.value = localStorage.getItem('selectedServer'); } else { serverSelect.value = 'auto'; } serverSelect.addEventListener('change', (e) =>{ if (e.target.value === 'auto') { localStorage.removeItem('selectedServer'); } else { localStorage.setItem('selectedServer', e.target.value); } location.reload(); }); /* Utilities */ function avatarText(name){ if(!name) return 'U'; return name.trim().slice(0,2).toUpperCase(); } function formatTime(ts){ try{ return new Date(ts).toLocaleString(); }catch(e){ return ts; } } function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); } /* Impersonation Prevention: Seed Encryption Logic */ async function getEncryptedSeed(seed) { if (!seed) return "（Seed未設定：匿名ユーザー）"; const msgUint8 = new TextEncoder().encode(seed); const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8); const hashArray = Array.from(new Uint8Array(hashBuffer)); return hashArray.map(b =>b.toString(16).padStart(2, '0')).join('').substring(0, 16); } async function showUserIdentity(seed, username) { const encrypted = await getEncryptedSeed(seed); alert(`ユーザー認証情報\n------------------------\n名前: ${username || '匿名'}\n識別子: ${encrypted}\n\n※この「識別子」はSeedから生成されます。同じ名前でも識別子が異なれば別人です。`); } /* Ensure composer doesn't overlap content */ function adjustPagePadding(){ const h = composerFixed.getBoundingClientRect().height; pageWrap.style.paddingTop = (h + 20) + 'px'; } window.addEventListener('resize', adjustPagePadding); window.addEventListener('load', adjustPagePadding); new ResizeObserver(adjustPagePadding).observe(composerFixed); /* Reaction button factory */ function createReactionButton(emoji, count, messageId){ const btn = document.createElement('button'); btn.className = 'reaction'; btn.innerHTML = `${emoji}<strong>${count}</strong>`; btn.addEventListener('click', () =>{ socket.emit('updateReaction', { messageId, reaction: emoji }); }); return btn; } /* Render a single message and prepend to top */ function appendMessageElement(m){ const item = document.createElement('article'); item.className = 'message'; item.setAttribute('data-id', m.id); const av = document.createElement('div'); av.className = 'avatar'; av.textContent = avatarText(m.username); av.style.cursor = 'pointer'; av.title = '識別子を表示'; av.onclick = () =>showUserIdentity(m.seed, m.username); const body = document.createElement('div'); body.className = 'body'; const meta = document.createElement('div'); meta.className = 'meta'; const name = document.createElement('div'); name.className = 'name'; name.textContent = m.username || '匿名'; name.style.cursor = 'pointer'; name.title = '識別子を表示'; name.onclick = () =>showUserIdentity(m.seed, m.username); if(m.isAdmin === true){ const badge = document.createElement('span'); badge.className = 'admin-badge'; badge.textContent = '管理者'; name.appendChild(badge); } if(banToggle && banToggle.checked && m.username !== 'システム' && !m.isAdmin){ const banBtn = document.createElement('button'); banBtn.textContent = 'BAN'; banBtn.style.cssText = 'margin-left:8px; padding:2px 6px; background:#dc3545; color:#fff; border:none; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;'; banBtn.onclick = (e) =>{ e.stopPropagation(); if(confirm(`ユーザー「${m.username || '匿名'}」をBANしますか？`)){ socket.emit('banUser', { username: m.username, seed: m.seed }); } }; name.appendChild(banBtn); } const time = document.createElement('div'); time.className = 'time'; time.textContent = formatTime(m.time); meta.appendChild(name); meta.appendChild(time); const text = document.createElement('div'); text.className = 'text'; text.textContent = m.message; const reactions = document.createElement('div'); reactions.className = 'reactions'; const defaultEmojis = ['👍','❤️','😂','😮','😢','😡']; const currentReactions = m.reactions || {}; defaultEmojis.forEach(emoji =>{ const count = currentReactions[emoji] || 0; reactions.appendChild(createReactionButton(emoji, count, m.id)); }); Object.keys(currentReactions).forEach(k =>{ if(defaultEmojis.includes(k)) return; const count = currentReactions[k] || 0; reactions.appendChild(createReactionButton(k, count, m.id)); }); body.appendChild(meta); body.appendChild(text); body.appendChild(reactions); item.appendChild(av); item.appendChild(body); if(m.username === 'システム'){ item.classList.add('system-note'); } chatColumn.prepend(item); } /* Load messages from REST */ async function loadMessages(){ try{ const res = await fetch(BASE + '/api/messages'); if(!res.ok) throw new Error('failed'); messages = await res.json(); chatColumn.querySelectorAll('.message, .system-note').forEach(n =>n.remove()); for(let i = 0; i< messages.length; i++) appendMessageElement(messages[i]); adjustPagePadding(); }catch(e){ console.error(e); } } /* Post message via REST */ async function postMessage(){ const username = usernameInput.value.trim() || '匿名'; const message = messageInput.value.trim(); const seed = seedInput.value.trim() || ''; if(!message) return; const payload = { username, message, time: new Date().toISOString(), seed }; try{ const res = await fetch(BASE + '/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if(!res.ok){ const err = await res.json(); showError(err.error || '送信に失敗しました'); return; } messageInput.value = ''; }catch(e){ console.error(e); showError('通信エラーが発生しました'); } } /* Clear messages (admin) */ async function clearAll(){ const pwd = prompt('管理パスワードを入力してください'); if(!pwd) return; try{ const res = await fetch(BASE + '/api/pass', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-requested-with': 'fetch' }, body: JSON.stringify({ password: pwd }) }); const data = await res.json(); if(res.ok){ alert(data.message || '削除しました'); chatColumn.querySelectorAll('.message, .system-note').forEach(n =>n.remove()); } else alert(data.error || 'パスワードが違います'); }catch(e){ console.error(e); } } /* Admin login flow */ async function adminLoginFlow(){ const password = prompt('管理者パスワードを入力してください'); if(!password) return; try{ const res = await fetch(BASE + '/api/admin-login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) }); const data = await res.json(); if(res.ok && data.ok){ adminRedirectUrl = data.url || null; alert('管理者ログインに成功しました。管理ボタンが表示されます。'); adminModalBtn.style.display = adminRedirectUrl ? 'inline-block' : 'inline-block'; banToggleLabel.style.display = 'flex'; const r = await fetch(BASE + '/api/admins'); if(r.ok) adminList = await r.json(); chatColumn.querySelectorAll('.message, .system-note').forEach(n =>n.remove()); messages.forEach(m =>appendMessageElement(m)); } else { alert(data.error || 'パスワードが違います'); } }catch(e){ console.error(e); alert('ログインに失敗しました'); } } adminLoginBtn.addEventListener('click', adminLoginFlow); adminModalBtn.addEventListener('click', () =>{ if(adminRedirectUrl) window.open(adminRedirectUrl, '_blank'); }); banToggle.addEventListener('change', () =>{ chatColumn.querySelectorAll('.message, .system-note').forEach(n =>n.remove()); messages.forEach(m =>appendMessageElement(m)); }); /* Socket handlers */ socket.on('connect', () =>{}); // 追加: サーバーからのエラー通知ハンドラ socket.on('serverError', (msg) =>{ showError(msg); }); socket.on('serverMessage', (msg) =>{ alert(msg); }); socket.on('banned', (data) =>{ const myUsername = usernameInput.value.trim() || '匿名'; const mySeed = seedInput.value.trim() || ''; if (data.username === myUsername && data.seed === mySeed) { document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;font-size:24px;font-weight:bold;background:var(--bg);color:var(--text);">あなたはチャットから退出させられました。</div>'; socket.disconnect(); } }); socket.on('newMessage', (msg) =>{ messages.push(msg); appendMessageElement(msg); }); socket.on('updateReaction', ({ messageId, reactions }) =>{ const el = chatColumn.querySelector(`[data-id="${messageId}"]`); if(!el) return; const reactionsEl = el.querySelector('.reactions'); if(!reactionsEl) return; reactionsEl.innerHTML = ''; Object.keys(reactions).forEach(k =>{ const count = reactions[k] || 0; reactionsEl.appendChild(createReactionButton(k, count, messageId)); }); }); socket.on('clearMessages', () =>{ messages = []; chatColumn.querySelectorAll('.message, .system-note').forEach(n =>n.remove()); }); socket.on('adminUpdate', (list) =>{ adminList = Array.isArray(list) ? list : []; chatColumn.querySelectorAll('.message, .system-note').forEach(n =>n.remove()); messages.forEach(m =>appendMessageElement(m)); }); /* Othello Logic */ async function fetchRooms(){ try{ const res = await fetch(BASE + '/api/rooms'); if(!res.ok) throw new Error('failed'); const list = await res.json(); renderRooms(list); }catch(e){ console.error(e); roomsList.innerHTML = '<div class="info">ルーム一覧の取得に失敗しました</div>'; } } function renderRooms(list){ roomsList.innerHTML = ''; if(list.length === 0){ roomsList.innerHTML = '<div class="info">現在作成された部屋はありません。</div>'; return; } list.forEach(r =>{ const item = document.createElement('div'); item.className = 'room-item'; const left = document.createElement('div'); left.innerHTML = `<div style="font-weight:700">${escapeHtml(r.id)}</div><div class="info">${r.players.length ? escapeHtml(r.players.join(', ')) + ' が待機中です。' : '待機中のプレイヤーはいません。'}</div>`; const right = document.createElement('div'); const joinBtn = document.createElement('button'); joinBtn.className = 'btn'; joinBtn.textContent = '参加'; joinBtn.addEventListener('click', () =>{ const username = usernameInput.value.trim() || '匿名'; socket.emit('joinGame', { roomId: r.id, username }); openRoom(r.id); }); const watchBtn = document.createElement('button'); watchBtn.className = 'btn ghost'; watchBtn.textContent = '観戦'; watchBtn.addEventListener('click', () =>openRoom(r.id, true)); right.appendChild(joinBtn); right.appendChild(watchBtn); item.appendChild(left); item.appendChild(right); roomsList.appendChild(item); }); } createRoomBtn.addEventListener('click', () =>{ const id = roomInput.value.trim() || ('room-' + Math.random().toString(36).slice(2,8)); const username = usernameInput.value.trim() || '匿名'; socket.emit('createGame', { roomId: id, username }); openRoom(id); }); refreshRoomsBtn.addEventListener('click', fetchRooms); function openRoom(roomId){ currentRoom = roomId; socket.emit('joinRoom', { roomId, username: usernameInput.value.trim() || '匿名' }); socket.emit('requestGameState', { roomId }); othelloPanel.style.display = 'block'; othelloPanel.setAttribute('aria-hidden','false'); document.getElementById('splitContainer').classList.add('split'); currentRoomLabel.textContent = '部屋: ' + roomId; roomsControls.style.display = 'block'; fetchRooms(); } // 追加: 部屋が強制削除された際のハンドリング socket.on('roomClosed', () =>{ if(leaveRoomBtn) leaveRoomBtn.click(); fetchRooms(); }); leaveRoomBtn.addEventListener('click', () =>{ if(!currentRoom) return; socket.emit('leaveRoom', { roomId: currentRoom }); currentRoom = null; gameArea.style.display = 'none'; othelloPanel.style.display = 'none'; othelloPanel.setAttribute('aria-hidden','true'); document.getElementById('splitContainer').classList.remove('split'); roomsControls.style.display = 'block'; hideResult(); }); function buildBoard(){ boardEl.innerHTML = ''; for(let r=0;r<8;r++){ for(let c=0;c<8;c++){ const cell = document.createElement('div'); cell.className = 'cell'; cell.dataset.r = r; cell.dataset.c = c; cell.addEventListener('click', () =>onCellClick(r,c)); boardEl.appendChild(cell); } } } function clearLegalDots(){ for(let i=0;i<64;i++){ const cell = boardEl.children[i]; const dot = cell.querySelector('.legal-dot'); if(dot) dot.remove(); } } function renderBoard(board, lastMove, legalMoves){ for(let r=0;r<8;r++){ for(let c=0;c<8;c++){ const idx = r*8 + c; const cell = boardEl.children[idx]; cell.innerHTML = ''; cell.classList.remove('last-move'); if(lastMove && lastMove.r === r && lastMove.c === c) cell.classList.add('last-move'); if(board[r][c] === 1){ const d = document.createElement('div'); d.className = 'disc black'; cell.appendChild(d); } else if(board[r][c] === 2){ const d = document.createElement('div'); d.className = 'disc white'; cell.appendChild(d); } } } clearLegalDots(); if(Array.isArray(legalMoves)){ legalMoves.forEach(([r,c]) =>{ const idx = r*8 + c; const cell = boardEl.children[idx]; const dot = document.createElement('div'); dot.className = 'legal-dot'; cell.appendChild(dot); }); } } function updateGameState(g){ gameState = g; statusLabel.textContent = '状態: ' + g.status; countsLabel.textContent = `黒: ${g.counts ? g.counts.black : 0} / 白: ${g.counts ? g.counts.white : 0}`; const p1 = g.players && g.players[1] ? g.players[1] : '-'; const p2 = g.players && g.players[2] ? g.players[2] : '-'; playersLabel.textContent = `黒: ${p1} / 白: ${p2}`; const me = usernameInput.value.trim() || '匿名'; if(g.players){ if(g.players[1] === me) myColor = 1; else if(g.players[2] === me) myColor = 2; else myColor = null; } else myColor = null; if(g.status === 'playing'){ roomsControls.style.display = 'none'; gameArea.style.display = 'block'; if(g.turn === 1){ turnBadge.textContent = '黒'; turnBadge.className = 'badge black'; } else if(g.turn === 2){ turnBadge.textContent = '白'; turnBadge.className = 'badge white'; } else { turnBadge.textContent = '-'; turnBadge.className = 'badge'; } if(myColor){ joinGameBtn.disabled = true; joinGameBtn.textContent = (myColor===1 ? 'あなた: 黒' : 'あなた: 白'); } else { joinGameBtn.disabled = true; joinGameBtn.textContent = '観戦中'; } } else if(g.status === 'waiting'){ roomsControls.style.display = 'block'; gameArea.style.display = 'block'; joinGameBtn.disabled = false; joinGameBtn.textContent = '対戦参加'; turnBadge.textContent = '-'; turnBadge.className = 'badge'; hideResult(); } else if(g.status === 'finished'){ roomsControls.style.display = 'none'; gameArea.style.display = 'block'; showResult(g); } renderBoard(g.board, g.lastMove, g.legalMoves || []); updateCellInteractivity(); } function updateCellInteractivity(){ const isPlayerTurn = gameState && gameState.status === 'playing' && myColor && gameState.turn === myColor; for(let i=0;i<64;i++){ const cell = boardEl.children[i]; if(!cell) continue; if(!myColor || !isPlayerTurn) cell.classList.add('disabled'); else cell.classList.remove('disabled'); } } function onCellClick(r,c){ if(!gameState || gameState.status !== 'playing'){ showError('対戦中ではありません'); return; } if(!myColor){ showError('観戦中です。'); return; } if(gameState.turn !== myColor){ showError('あなたの手番ではありません'); return; } const legal = (gameState.legalMoves || []).some(([rr,cc]) =>rr===r && cc===c); if(!legal) return; socket.emit('makeMove', { roomId: currentRoom, r, c, color: myColor }); } joinGameBtn.addEventListener('click', () =>{ if(!currentRoom) { showError('先に部屋を開いてください'); return; } socket.emit('joinGame', { roomId: currentRoom, username: usernameInput.value.trim() || '匿名' }); joinGameBtn.disabled = true; joinGameBtn.textContent = '参加リクエスト中'; }); socket.on('roomUpdate', ({ players, roomId }) =>{ if(roomId === currentRoom) playersLabel.textContent = '参加者: ' + (players.join(', ') || '-'); fetchRooms(); }); socket.on('gameState', (g) =>{ updateGameState(g); }); function showResult(g){ overlay.style.display = 'flex'; overlay.innerHTML = ''; const card = document.createElement('div'); const me = usernameInput.value.trim() || '匿名'; let resultClass = 'lose', title = 'Lose...', sub = '残念でした'; if(g.winner === 0){ resultClass = 'win'; title = 'Draw'; sub = `引き分けです。黒 ${g.counts.black} - 白 ${g.counts.white}`; } else { const winnerName = (g.players && g.players[g.winner]) ? g.players[g.winner] : (g.winner===1 ? '黒' : '白'); if((g.winner === 1 && myColor === 1) || (g.winner === 2 && myColor === 2)){ resultClass = 'win'; title = 'Congratulation!'; sub = `勝利しました。${winnerName} が勝者です。`; } else { resultClass = 'lose'; title = 'Lose...'; sub = `敗北しました。勝者: ${winnerName}`; } } card.className = `result-card ${resultClass}`; card.innerHTML = `<div class="result-title">${title}</div><div class="result-sub">${sub}</div>`; overlay.appendChild(card); setTimeout(hideResult, 8000); } function hideResult(){ overlay.style.display = 'none'; overlay.innerHTML = ''; } /* Initial load */ buildBoard(); loadMessages(); fetchRooms(); /* UI bindings */ sendBtn.addEventListener('click', postMessage); messageInput.addEventListener('keydown', (e) =>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); postMessage(); } }); clearBtn.addEventListener('click', clearAll); toggleOthelloBtn.addEventListener('click', () =>{ if(othelloPanel.style.display === 'none' || othelloPanel.style.display === ''){ othelloPanel.style.display = 'block'; document.getElementById('splitContainer').classList.add('split'); } else { othelloPanel.style.display = 'none'; document.getElementById('splitContainer').classList.remove('split'); } }); (async () =>{ try{ const res = await fetch(BASE + '/api/admins'); if(res.ok) adminList = await res.json(); }catch(e){} })();</script></body></html>
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>オープンチャット + Othello（完全版）</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+
+    :root {
+      --bg: #f3f4f6;
+      --line: #e5e7eb;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --black: #111111;
+      --white: #ffffff;
+      --radius: 12px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.025);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.025);
+      font-family: "Inter", "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* 投稿欄の固定を解除し、美しく配置 */
+    .composer-fixed {
+      background: var(--white);
+      border-bottom: 1px solid var(--line);
+      padding: 24px 0;
+      box-shadow: var(--shadow-md);
+      position: relative;
+      z-index: 10;
+    }
+    
+    .composer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .composer-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 18px;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .composer-right {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #f9fafb;
+      color: var(--text);
+      font-size: 15px;
+      transition: all 0.2s ease;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+
+    textarea {
+      min-height: 80px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    input[type="text"]:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: #fff;
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.15);
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn.ghost {
+      background: transparent;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      box-shadow: none;
+    }
+
+    .btn.ghost:hover {
+      background: #f3f4f6;
+      color: var(--text);
+      transform: none;
+    }
+
+    .page-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 20px 120px !important; 
+      box-sizing: border-box;
+    }
+
+    .split { 
+      display: grid; 
+      grid-template-columns: 1fr 560px; 
+      gap: 24px; 
+      align-items: start; 
+      max-width: 1200px; 
+      margin: 0 auto; 
+    }
+
+    @media(max-width:1100px) { 
+      .split { grid-template-columns: 1fr; } 
+    }
+
+    .chat-column {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-height: 320px;
+    }
+
+    .message {
+      display: flex;
+      gap: 16px;
+      padding: 20px;
+      border: 1px solid transparent;
+      border-radius: 16px;
+      align-items: flex-start;
+      background: var(--white);
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .message:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      color: #4b5563;
+      flex-shrink: 0;
+      transition: 0.2s;
+    }
+
+    .avatar:hover {
+      filter: brightness(0.95);
+    }
+
+    .body {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .meta {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .name {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--text);
+      transition: 0.2s;
+    }
+
+    .name:hover {
+      color: var(--accent);
+    }
+
+    .time {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .text {
+      white-space: pre-wrap;
+      color: #374151;
+      line-height: 1.6;
+      font-size: 15px;
+      word-wrap: break-word;
+    }
+
+    .reactions {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .reaction {
+      border: 1px solid var(--line);
+      background: #f9fafb;
+      padding: 6px 12px;
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .reaction:hover {
+      background: #fff;
+      border-color: var(--accent);
+      color: var(--accent);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .reaction strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .admin-badge {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #f59e0b, #ea580c);
+      color: #fff;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .system-note {
+      background: linear-gradient(to right, #eff6ff, #ffffff);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 16px 16px 0;
+      box-shadow: none;
+    }
+
+    /* オセロパネル */
+    .othello-panel {
+      background: var(--white);
+      border: none;
+      border-radius: 20px;
+      padding: 24px;
+      box-sizing: border-box;
+      box-shadow: var(--shadow-lg);
+      position: sticky;
+      top: 24px;
+    }
+
+    .rooms {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 16px;
+      max-height: 400px; /* 多すぎる部屋によるレイアウト崩れ防止 */
+      overflow-y: auto;
+    }
+
+    .room-item {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #f9fafb;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    .room-item:hover {
+      border-color: #d1d5db;
+      background: #fff;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      gap: 4px;
+      margin-top: 16px;
+      background: #166534;
+      padding: 8px;
+      border-radius: 12px;
+      box-shadow: inset 0 4px 8px rgba(0,0,0,0.2), 0 8px 16px rgba(0,0,0,0.1);
+      aspect-ratio: 1 / 1;
+    }
+
+    .cell {
+      width: 100%;
+      height: 100%;
+      background: #22c55e;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      cursor: pointer;
+      box-shadow: inset 0 -3px 0 rgba(0,0,0,0.15);
+      transition: background 0.2s;
+    }
+
+    .cell:hover {
+      background: #4ade80;
+    }
+
+    .cell.disabled {
+      cursor: default;
+      opacity: 0.95;
+    }
+
+    .cell.disabled:hover {
+      background: #22c55e;
+    }
+
+    .disc {
+      width: 80%;
+      height: 80%;
+      border-radius: 50%;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.2);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .black {
+      background: linear-gradient(145deg, #2b2b2b, #000000);
+    }
+
+    .white {
+      background: linear-gradient(145deg, #ffffff, #e6e6e6);
+      border: none;
+    }
+
+    .last-move {
+      outline: 3px solid #fde047;
+      outline-offset: -3px;
+      border-radius: 4px;
+    }
+
+    .legal-dot {
+      width: 12%;
+      height: 12%;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.6);
+      position: absolute;
+      box-shadow: 0 0 4px rgba(0,0,0,0.2);
+    }
+
+    .turn-indicator {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 16px;
+      padding: 12px;
+      background: #f3f4f6;
+      border-radius: 12px;
+    }
+
+    .badge {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+      color: #fff;
+      font-size: 13px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .badge.black {
+      background: #111;
+    }
+
+    .badge.white {
+      background: #fff;
+      color: #111;
+      border: 1px solid #d1d5db;
+    }
+
+    /* 結果アニメーション */
+    .overlay {
+      position: fixed;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 2000;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(4px);
+    }
+
+    .result-card {
+      pointer-events: auto;
+      min-width: 320px;
+      padding: 40px;
+      border-radius: 24px;
+      text-align: center;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+      transform: translateY(-20px) scale(0.95);
+      opacity: 0;
+      animation: pop 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .result-card.win {
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      color: #fff;
+    }
+
+    .result-card.lose {
+      background: linear-gradient(135deg, #4b5563, #1f2937);
+      color: #fff;
+    }
+
+    .result-title {
+      font-size: 32px;
+      font-weight: 900;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+
+    .result-sub {
+      font-size: 16px;
+      opacity: 0.9;
+      font-weight: 500;
+    }
+
+    @keyframes pop { 
+      to { transform: translateY(0) scale(1); opacity: 1; } 
+    }
+
+    @media (max-width:768px) {
+      .composer-inner { padding: 0 16px; flex-direction: column; }
+      .composer-avatar { display: none; }
+      .row { flex-direction: column; align-items: stretch; }
+      input[type="text"], select { max-width: none !important; width: 100%; }
+      .controls { width: 100%; justify-content: space-between; }
+      .page-wrap { padding-top: 24px !important; }
+      .split { grid-template-columns: 1fr; gap: 16px; }
+      .othello-panel { position: static; padding: 16px; }
+      .board { gap: 2px; padding: 4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="composer-fixed" id="composerFixed" role="region" aria-label="投稿欄">
+    <div class="composer-inner">
+      <div class="composer-avatar" id="composerAvatar">U</div>
+      <div class="composer-right">
+        <div class="row">
+          <input id="username" type="text" placeholder="ユーザー名（任意）" style="max-width:260px" maxlength="20" />
+          <input id="seed" type="text" placeholder="seed（任意）" />
+          <button id="toggleOthello" class="btn" style="flex:0 0 auto">オセロ</button>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <select id="serverSelect" class="btn ghost" style="padding:4px 8px; font-size:13px; height:auto;">
+              <option value="auto">自動切替</option>
+              <option value="https://singing.linco.cl">サーバー1</option>
+              <option value="https://manabis.onrender.com">サーバー2</option>
+              <option value="https://tfr.linco.cl">サーバー3</option>
+            </select>
+            <button id="adminLoginBtn" class="btn ghost">管理者ログイン</button>
+            <button id="adminModalBtn" class="btn" style="display:none">管理モーダルを表示</button>
+            <label id="banToggleLabel" style="display:none;font-size:13px;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" id="banToggle"> BANボタンを表示</label>
+          </div>
+        </div>
+        <textarea id="messageInput" placeholder="コメントを入力（Shift+Enterで改行、Enterで送信）" maxlength="200"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="color:var(--muted);font-size:13px">公開チャットです。節度ある投稿をお願いします。</div>
+          <div class="controls">
+            <button class="btn ghost" id="clearBtn">全削除（管理）</button>
+            <button class="btn" id="sendBtn">送信</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="mainWrap" class="page-wrap" role="main">
+    <div id="errorAlert" style="display:none; background:#fee2e2; color:#b91c1c; padding:12px; border-radius:8px; margin-bottom:16px; border:1px solid #fca5a5;"></div>
+
+    <div id="splitContainer">
+      <div id="chatColumn" class="chat-column" aria-live="polite" aria-atomic="false"></div>
+
+      <aside id="othelloPanel" class="othello-panel" style="display:none" aria-hidden="true">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="font-weight:700">オセロ</div>
+          <div style="color:var(--muted)">部屋を作成して待機、他のユーザーが参加すると対戦が始まります。観戦も可能です。</div>
+        </div>
+
+        <div id="roomsControls" style="margin-top:8px">
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <input id="roomInput" placeholder="部屋ID（任意）" style="flex:1;padding:8px;border:1px solid var(--line);border-radius:8px" maxlength="30" />
+            <button id="createRoomBtn" class="btn">新しく作る</button>
+            <button id="refreshRoomsBtn" class="btn ghost">更新</button>
+          </div>
+          <div class="rooms" id="roomsList" aria-live="polite"></div>
+        </div>
+
+        <div id="gameArea" style="display:none;margin-top:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="font-weight:700" id="currentRoomLabel">部屋: -</div>
+            <div class="info" id="playersLabel">参加者: -</div>
+          </div>
+
+          <div class="turn-indicator" id="turnIndicator">
+            <div class="label">現在の手番</div>
+            <div id="turnBadge" class="badge" style="margin-left:8px"></div>
+            <div style="margin-left:auto">
+              <span class="badge black">黒</span>
+              <span style="width:8px;display:inline-block"></span>
+              <span class="badge white" style="color:#111;border:1px solid #ccc">白</span>
+            </div>
+          </div>
+
+          <div id="board" class="board" role="grid" aria-label="オセロ盤"></div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+            <div class="info" id="statusLabel">状態: -</div>
+            <div>
+              <button id="joinGameBtn" class="btn">対戦参加</button>
+              <button id="leaveRoomBtn" class="btn ghost">退出</button>
+            </div>
+          </div>
+          <div class="info" id="countsLabel" style="margin-top:8px">黒: 0 / 白: 0</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div id="overlay" class="overlay" style="display:none"></div>
+
+  <script>
+    const SERVERS = [
+      'https://singing.linco.cl',
+      'https://manabis.onrender.com',
+      'https://tfr.linco.cl'
+    ];
+    let BASE = localStorage.getItem('selectedServer');
+    let isAutoServer = false;
+    if (!BASE || BASE === 'auto') {
+      BASE = SERVERS[0];
+      isAutoServer = true;
+    }
+
+    const socket = io(BASE, { transports: ['websocket','polling'] });
+
+    if (isAutoServer) {
+      (async () => {
+        for (const s of SERVERS) {
+          try {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), 2000);
+            const res = await fetch(s + '/api/messages', { signal: controller.signal });
+            clearTimeout(id);
+            if (res.ok) {
+              if (BASE !== s) {
+                BASE = s;
+                socket.io.uri = s;
+                socket.disconnect().connect();
+                loadMessages();
+                fetchRooms();
+                fetch(BASE + '/api/admins').then(r=>r.json()).then(d=>adminList=d).catch(()=>{});
+              }
+              break;
+            }
+          } catch(e) {}
+        }
+      })();
+    }
+
+    /* Elements */
+    const composerFixed = document.getElementById('composerFixed');
+    const pageWrap = document.getElementById('mainWrap');
+    const chatColumn = document.getElementById('chatColumn');
+    const sendBtn = document.getElementById('sendBtn');
+    const usernameInput = document.getElementById('username');
+    const messageInput = document.getElementById('messageInput');
+    const seedInput = document.getElementById('seed');
+    const composerAvatar = document.getElementById('composerAvatar');
+    const clearBtn = document.getElementById('clearBtn');
+    const toggleOthelloBtn = document.getElementById('toggleOthello');
+    const adminLoginBtn = document.getElementById('adminLoginBtn');
+    const adminModalBtn = document.getElementById('adminModalBtn');
+    const banToggleLabel = document.getElementById('banToggleLabel');
+    const banToggle = document.getElementById('banToggle');
+    const serverSelect = document.getElementById('serverSelect');
+
+    const othelloPanel = document.getElementById('othelloPanel');
+    const roomsList = document.getElementById('roomsList');
+    const createRoomBtn = document.getElementById('createRoomBtn');
+    const refreshRoomsBtn = document.getElementById('refreshRoomsBtn');
+    const roomInput = document.getElementById('roomInput');
+    const gameArea = document.getElementById('gameArea');
+    const currentRoomLabel = document.getElementById('currentRoomLabel');
+    const playersLabel = document.getElementById('playersLabel');
+    const boardEl = document.getElementById('board');
+    const statusLabel = document.getElementById('statusLabel');
+    const countsLabel = document.getElementById('countsLabel');
+    const joinGameBtn = document.getElementById('joinGameBtn');
+    const leaveRoomBtn = document.getElementById('leaveRoomBtn');
+    const roomsControls = document.getElementById('roomsControls');
+    const turnBadge = document.getElementById('turnBadge');
+    const overlay = document.getElementById('overlay');
+    const errorAlert = document.getElementById('errorAlert');
+
+    let messages = [];
+    let currentRoom = null;
+    let gameState = null;
+    let myColor = null;
+    let adminList = [];
+    let adminRedirectUrl = null;
+
+    /* エラー通知表示関数 */
+    function showError(msg) {
+      errorAlert.textContent = msg;
+      errorAlert.style.display = 'block';
+      setTimeout(() => { errorAlert.style.display = 'none'; }, 5000);
+    }
+
+    /* Server Select Logic */
+    if (localStorage.getItem('selectedServer')) {
+      serverSelect.value = localStorage.getItem('selectedServer');
+    } else {
+      serverSelect.value = 'auto';
+    }
+    serverSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'auto') {
+        localStorage.removeItem('selectedServer');
+      } else {
+        localStorage.setItem('selectedServer', e.target.value);
+      }
+      location.reload();
+    });
+
+    /* Utilities */
+    function avatarText(name){ if(!name) return 'U'; return name.trim().slice(0,2).toUpperCase(); }
+    function formatTime(ts){ try{ return new Date(ts).toLocaleString(); }catch(e){ return ts; } }
+    function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+
+    /* Impersonation Prevention: Seed Encryption Logic */
+    async function getEncryptedSeed(seed) {
+      if (!seed) return "（Seed未設定：匿名ユーザー）";
+      const msgUint8 = new TextEncoder().encode(seed);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+    }
+
+    async function showUserIdentity(seed, username) {
+      const encrypted = await getEncryptedSeed(seed);
+      alert(`ユーザー認証情報\n------------------------\n名前: ${username || '匿名'}\n識別子: ${encrypted}\n\n※この「識別子」はSeedから生成されます。同じ名前でも識別子が異なれば別人です。`);
+    }
+
+    /* Ensure composer doesn't overlap content */
+    function adjustPagePadding(){
+      const h = composerFixed.getBoundingClientRect().height;
+      pageWrap.style.paddingTop = (h + 20) + 'px';
+    }
+    window.addEventListener('resize', adjustPagePadding);
+    window.addEventListener('load', adjustPagePadding);
+    new ResizeObserver(adjustPagePadding).observe(composerFixed);
+
+    /* Reaction button factory */
+    function createReactionButton(emoji, count, messageId){
+      const btn = document.createElement('button');
+      btn.className = 'reaction';
+      btn.innerHTML = `${emoji} <strong>${count}</strong>`;
+      btn.addEventListener('click', () => {
+        socket.emit('updateReaction', { messageId, reaction: emoji });
+      });
+      return btn;
+    }
+
+    /* Render a single message and prepend to top */
+    function appendMessageElement(m){
+      const item = document.createElement('article');
+      item.className = 'message';
+      item.setAttribute('data-id', m.id);
+
+      const av = document.createElement('div'); 
+      av.className = 'avatar'; 
+      av.textContent = avatarText(m.username);
+      av.style.cursor = 'pointer';
+      av.title = '識別子を表示';
+      av.onclick = () => showUserIdentity(m.seed, m.username);
+
+      const body = document.createElement('div'); body.className = 'body';
+      const meta = document.createElement('div'); meta.className = 'meta';
+      
+      const name = document.createElement('div'); 
+      name.className = 'name'; 
+      name.textContent = m.username || '匿名';
+      name.style.cursor = 'pointer';
+      name.title = '識別子を表示';
+      name.onclick = () => showUserIdentity(m.seed, m.username);
+
+      if(m.isAdmin === true){
+        const badge = document.createElement('span'); badge.className = 'admin-badge'; badge.textContent = '管理者';
+        name.appendChild(badge);
+      }
+
+      if(banToggle && banToggle.checked && m.username !== 'システム' && !m.isAdmin){
+        const banBtn = document.createElement('button');
+        banBtn.textContent = 'BAN';
+        banBtn.style.cssText = 'margin-left:8px; padding:2px 6px; background:#dc3545; color:#fff; border:none; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;';
+        banBtn.onclick = (e) => {
+          e.stopPropagation();
+          if(confirm(`ユーザー「${m.username || '匿名'}」をBANしますか？`)){
+            socket.emit('banUser', { username: m.username, seed: m.seed });
+          }
+        };
+        name.appendChild(banBtn);
+      }
+
+      const time = document.createElement('div'); time.className = 'time'; time.textContent = formatTime(m.time);
+      meta.appendChild(name); meta.appendChild(time);
+
+      const text = document.createElement('div'); text.className = 'text'; text.textContent = m.message;
+
+      const reactions = document.createElement('div'); reactions.className = 'reactions';
+      const defaultEmojis = ['👍','❤️','😂','😮','😢','😡'];
+      const currentReactions = m.reactions || {};
+      defaultEmojis.forEach(emoji => {
+        const count = currentReactions[emoji] || 0;
+        reactions.appendChild(createReactionButton(emoji, count, m.id));
+      });
+      Object.keys(currentReactions).forEach(k => {
+        if(defaultEmojis.includes(k)) return;
+        const count = currentReactions[k] || 0;
+        reactions.appendChild(createReactionButton(k, count, m.id));
+      });
+
+      body.appendChild(meta); body.appendChild(text); body.appendChild(reactions);
+      item.appendChild(av); item.appendChild(body);
+
+      if(m.username === 'システム'){
+        item.classList.add('system-note');
+      }
+
+      chatColumn.prepend(item);
+    }
+
+    /* Load messages from REST */
+    async function loadMessages(){
+      try{
+        const res = await fetch(BASE + '/api/messages');
+        if(!res.ok) throw new Error('failed');
+        messages = await res.json();
+        chatColumn.querySelectorAll('.message, .system-note').forEach(n => n.remove());
+        for(let i = 0; i < messages.length; i++) appendMessageElement(messages[i]);
+        adjustPagePadding();
+      }catch(e){ console.error(e); }
+    }
+
+    /* Post message via REST */
+    async function postMessage(){
+      const username = usernameInput.value.trim() || '匿名';
+      const message = messageInput.value.trim();
+      const seed = seedInput.value.trim() || '';
+      if(!message) return;
+      const payload = { username, message, time: new Date().toISOString(), seed };
+      try{
+        const res = await fetch(BASE + '/api/messages', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+        });
+        if(!res.ok){ const err = await res.json(); showError(err.error || '送信に失敗しました'); return; }
+        messageInput.value = '';
+      }catch(e){ console.error(e); showError('通信エラーが発生しました'); }
+    }
+
+    /* Clear messages (admin) */
+    async function clearAll(){
+      const pwd = prompt('管理パスワードを入力してください'); if(!pwd) return;
+      try{
+        const res = await fetch(BASE + '/api/pass', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-requested-with': 'fetch' },
+          body: JSON.stringify({ password: pwd })
+        });
+        const data = await res.json();
+        if(res.ok){ alert(data.message || '削除しました'); chatColumn.querySelectorAll('.message, .system-note').forEach(n => n.remove()); }
+        else alert(data.error || 'パスワードが違います');
+      }catch(e){ console.error(e); }
+    }
+
+    /* Admin login flow */
+    async function adminLoginFlow(){
+      const password = prompt('管理者パスワードを入力してください');
+      if(!password) return;
+      try{
+        const res = await fetch(BASE + '/api/admin-login', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password })
+        });
+        const data = await res.json();
+        if(res.ok && data.ok){
+          adminRedirectUrl = data.url || null;
+          alert('管理者ログインに成功しました。管理ボタンが表示されます。');
+          adminModalBtn.style.display = adminRedirectUrl ? 'inline-block' : 'inline-block';
+          banToggleLabel.style.display = 'flex';
+          const r = await fetch(BASE + '/api/admins');
+          if(r.ok) adminList = await r.json();
+          chatColumn.querySelectorAll('.message, .system-note').forEach(n => n.remove());
+          messages.forEach(m => appendMessageElement(m));
+        } else {
+          alert(data.error || 'パスワードが違います');
+        }
+      }catch(e){ console.error(e); alert('ログインに失敗しました'); }
+    }
+
+    adminLoginBtn.addEventListener('click', adminLoginFlow);
+    adminModalBtn.addEventListener('click', () => { if(adminRedirectUrl) window.open(adminRedirectUrl, '_blank'); });
+
+    banToggle.addEventListener('change', () => {
+      chatColumn.querySelectorAll('.message, .system-note').forEach(n => n.remove());
+      messages.forEach(m => appendMessageElement(m));
+    });
+
+    /* Socket handlers */
+    socket.on('connect', () => {});
+    
+    // 追加: サーバーからのエラー通知ハンドラ
+    socket.on('serverError', (msg) => {
+      showError(msg);
+    });
+    
+    socket.on('serverMessage', (msg) => {
+      alert(msg);
+    });
+
+    socket.on('banned', (data) => {
+      const myUsername = usernameInput.value.trim() || '匿名';
+      const mySeed = seedInput.value.trim() || '';
+      if (data.username === myUsername && data.seed === mySeed) {
+        document.body.innerHTML = '<div style="display:flex;justify-content:center;align-items:center;height:100vh;font-size:24px;font-weight:bold;background:var(--bg);color:var(--text);">あなたはチャットから退出させられました。</div>';
+        socket.disconnect();
+      }
+    });
+
+    socket.on('newMessage', (msg) => {
+      messages.push(msg);
+      appendMessageElement(msg);
+    });
+
+    socket.on('updateReaction', ({ messageId, reactions }) => {
+      const el = chatColumn.querySelector(`[data-id="${messageId}"]`);
+      if(!el) return;
+      const reactionsEl = el.querySelector('.reactions');
+      if(!reactionsEl) return;
+      reactionsEl.innerHTML = '';
+      Object.keys(reactions).forEach(k => {
+        const count = reactions[k] || 0;
+        reactionsEl.appendChild(createReactionButton(k, count, messageId));
+      });
+    });
+
+    socket.on('clearMessages', () => {
+      messages = [];
+      chatColumn.querySelectorAll('.message, .system-note').forEach(n => n.remove());
+    });
+
+    socket.on('adminUpdate', (list) => {
+      adminList = Array.isArray(list) ? list : [];
+      chatColumn.querySelectorAll('.message, .system-note').forEach(n => n.remove());
+      messages.forEach(m => appendMessageElement(m));
+    });
+
+    /* Othello Logic */
+    async function fetchRooms(){
+      try{
+        const res = await fetch(BASE + '/api/rooms');
+        if(!res.ok) throw new Error('failed');
+        const list = await res.json();
+        renderRooms(list);
+      }catch(e){ console.error(e); roomsList.innerHTML = '<div class="info">ルーム一覧の取得に失敗しました</div>'; }
+    }
+
+    function renderRooms(list){
+      roomsList.innerHTML = '';
+      if(list.length === 0){ roomsList.innerHTML = '<div class="info">現在作成された部屋はありません。</div>'; return; }
+      list.forEach(r => {
+        const item = document.createElement('div'); item.className = 'room-item';
+        const left = document.createElement('div');
+        left.innerHTML = `<div style="font-weight:700">${escapeHtml(r.id)}</div><div class="info">${r.players.length ? escapeHtml(r.players.join(', ')) + ' が待機中です。' : '待機中のプレイヤーはいません。'}</div>`;
+        const right = document.createElement('div');
+        const joinBtn = document.createElement('button'); joinBtn.className = 'btn'; joinBtn.textContent = '参加';
+        joinBtn.addEventListener('click', () => { const username = usernameInput.value.trim() || '匿名'; socket.emit('joinGame', { roomId: r.id, username }); openRoom(r.id); });
+        const watchBtn = document.createElement('button'); watchBtn.className = 'btn ghost'; watchBtn.textContent = '観戦';
+        watchBtn.addEventListener('click', () => openRoom(r.id, true));
+        right.appendChild(joinBtn); right.appendChild(watchBtn);
+        item.appendChild(left); item.appendChild(right);
+        roomsList.appendChild(item);
+      });
+    }
+
+    createRoomBtn.addEventListener('click', () => {
+      const id = roomInput.value.trim() || ('room-' + Math.random().toString(36).slice(2,8));
+      const username = usernameInput.value.trim() || '匿名';
+      socket.emit('createGame', { roomId: id, username });
+      openRoom(id);
+    });
+
+    refreshRoomsBtn.addEventListener('click', fetchRooms);
+
+    function openRoom(roomId){
+      currentRoom = roomId;
+      socket.emit('joinRoom', { roomId, username: usernameInput.value.trim() || '匿名' });
+      socket.emit('requestGameState', { roomId });
+      othelloPanel.style.display = 'block';
+      othelloPanel.setAttribute('aria-hidden','false');
+      document.getElementById('splitContainer').classList.add('split');
+      currentRoomLabel.textContent = '部屋: ' + roomId;
+      roomsControls.style.display = 'block';
+      fetchRooms();
+    }
+
+    // 追加: 部屋が強制削除された際のハンドリング
+    socket.on('roomClosed', () => {
+      if(leaveRoomBtn) leaveRoomBtn.click();
+      fetchRooms();
+    });
+
+    leaveRoomBtn.addEventListener('click', () => {
+      if(!currentRoom) return;
+      socket.emit('leaveRoom', { roomId: currentRoom });
+      currentRoom = null;
+      gameArea.style.display = 'none';
+      othelloPanel.style.display = 'none';
+      othelloPanel.setAttribute('aria-hidden','true');
+      document.getElementById('splitContainer').classList.remove('split');
+      roomsControls.style.display = 'block';
+      hideResult();
+    });
+
+    function buildBoard(){
+      boardEl.innerHTML = '';
+      for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+          const cell = document.createElement('div'); cell.className = 'cell'; cell.dataset.r = r; cell.dataset.c = c;
+          cell.addEventListener('click', () => onCellClick(r,c));
+          boardEl.appendChild(cell);
+        }
+      }
+    }
+
+    function clearLegalDots(){
+      for(let i=0;i<64;i++){
+        const cell = boardEl.children[i];
+        const dot = cell.querySelector('.legal-dot');
+        if(dot) dot.remove();
+      }
+    }
+
+    function renderBoard(board, lastMove, legalMoves){
+      for(let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+          const idx = r*8 + c;
+          const cell = boardEl.children[idx];
+          cell.innerHTML = '';
+          cell.classList.remove('last-move');
+          if(lastMove && lastMove.r === r && lastMove.c === c) cell.classList.add('last-move');
+          if(board[r][c] === 1){ const d = document.createElement('div'); d.className = 'disc black'; cell.appendChild(d); }
+          else if(board[r][c] === 2){ const d = document.createElement('div'); d.className = 'disc white'; cell.appendChild(d); }
+        }
+      }
+      clearLegalDots();
+      if(Array.isArray(legalMoves)){
+        legalMoves.forEach(([r,c]) => {
+          const idx = r*8 + c;
+          const cell = boardEl.children[idx];
+          const dot = document.createElement('div'); dot.className = 'legal-dot';
+          cell.appendChild(dot);
+        });
+      }
+    }
+
+    function updateGameState(g){
+      gameState = g;
+      statusLabel.textContent = '状態: ' + g.status;
+      countsLabel.textContent = `黒: ${g.counts ? g.counts.black : 0} / 白: ${g.counts ? g.counts.white : 0}`;
+      const p1 = g.players && g.players[1] ? g.players[1] : '-';
+      const p2 = g.players && g.players[2] ? g.players[2] : '-';
+      playersLabel.textContent = `黒: ${p1} / 白: ${p2}`;
+
+      const me = usernameInput.value.trim() || '匿名';
+      if(g.players){
+        if(g.players[1] === me) myColor = 1;
+        else if(g.players[2] === me) myColor = 2;
+        else myColor = null;
+      } else myColor = null;
+
+      if(g.status === 'playing'){
+        roomsControls.style.display = 'none';
+        gameArea.style.display = 'block';
+        if(g.turn === 1){ turnBadge.textContent = '黒'; turnBadge.className = 'badge black'; }
+        else if(g.turn === 2){ turnBadge.textContent = '白'; turnBadge.className = 'badge white'; }
+        else { turnBadge.textContent = '-'; turnBadge.className = 'badge'; }
+        if(myColor){ joinGameBtn.disabled = true; joinGameBtn.textContent = (myColor===1 ? 'あなた: 黒' : 'あなた: 白'); }
+        else { joinGameBtn.disabled = true; joinGameBtn.textContent = '観戦中'; }
+      } else if(g.status === 'waiting'){
+        roomsControls.style.display = 'block';
+        gameArea.style.display = 'block';
+        joinGameBtn.disabled = false;
+        joinGameBtn.textContent = '対戦参加';
+        turnBadge.textContent = '-';
+        turnBadge.className = 'badge';
+        hideResult();
+      } else if(g.status === 'finished'){
+        roomsControls.style.display = 'none';
+        gameArea.style.display = 'block';
+        showResult(g);
+      }
+      renderBoard(g.board, g.lastMove, g.legalMoves || []);
+      updateCellInteractivity();
+    }
+
+    function updateCellInteractivity(){
+      const isPlayerTurn = gameState && gameState.status === 'playing' && myColor && gameState.turn === myColor;
+      for(let i=0;i<64;i++){
+        const cell = boardEl.children[i];
+        if(!cell) continue;
+        if(!myColor || !isPlayerTurn) cell.classList.add('disabled'); else cell.classList.remove('disabled');
+      }
+    }
+
+    function onCellClick(r,c){
+      if(!gameState || gameState.status !== 'playing'){ showError('対戦中ではありません'); return; }
+      if(!myColor){ showError('観戦中です。'); return; }
+      if(gameState.turn !== myColor){ showError('あなたの手番ではありません'); return; }
+      const legal = (gameState.legalMoves || []).some(([rr,cc]) => rr===r && cc===c);
+      if(!legal) return;
+      socket.emit('makeMove', { roomId: currentRoom, r, c, color: myColor });
+    }
+
+    joinGameBtn.addEventListener('click', () => {
+      if(!currentRoom) { showError('先に部屋を開いてください'); return; }
+      socket.emit('joinGame', { roomId: currentRoom, username: usernameInput.value.trim() || '匿名' });
+      joinGameBtn.disabled = true;
+      joinGameBtn.textContent = '参加リクエスト中';
+    });
+
+    socket.on('roomUpdate', ({ players, roomId }) => {
+      if(roomId === currentRoom) playersLabel.textContent = '参加者: ' + (players.join(', ') || '-');
+      fetchRooms();
+    });
+
+    socket.on('gameState', (g) => {
+      updateGameState(g);
+    });
+
+    function showResult(g){
+      overlay.style.display = 'flex';
+      overlay.innerHTML = '';
+      const card = document.createElement('div');
+      const me = usernameInput.value.trim() || '匿名';
+      let resultClass = 'lose', title = 'Lose...', sub = '残念でした';
+      if(g.winner === 0){
+        resultClass = 'win'; title = 'Draw'; sub = `引き分けです。黒 ${g.counts.black} - 白 ${g.counts.white}`;
+      } else {
+        const winnerName = (g.players && g.players[g.winner]) ? g.players[g.winner] : (g.winner===1 ? '黒' : '白');
+        if((g.winner === 1 && myColor === 1) || (g.winner === 2 && myColor === 2)){
+          resultClass = 'win'; title = 'Congratulation!'; sub = `勝利しました。${winnerName} が勝者です。`;
+        } else {
+          resultClass = 'lose'; title = 'Lose...'; sub = `敗北しました。勝者: ${winnerName}`;
+        }
+      }
+      card.className = `result-card ${resultClass}`;
+      card.innerHTML = `<div class="result-title">${title}</div><div class="result-sub">${sub}</div>`;
+      overlay.appendChild(card);
+      setTimeout(hideResult, 8000);
+    }
+    function hideResult(){ overlay.style.display = 'none'; overlay.innerHTML = ''; }
+
+    /* Initial load */
+    buildBoard();
+    loadMessages();
+    fetchRooms();
+
+    /* UI bindings */
+    sendBtn.addEventListener('click', postMessage);
+    messageInput.addEventListener('keydown', (e) => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); postMessage(); } });
+    clearBtn.addEventListener('click', clearAll);
+    toggleOthelloBtn.addEventListener('click', () => {
+      if(othelloPanel.style.display === 'none' || othelloPanel.style.display === ''){ othelloPanel.style.display = 'block'; document.getElementById('splitContainer').classList.add('split'); }
+      else { othelloPanel.style.display = 'none'; document.getElementById('splitContainer').classList.remove('split'); }
+    });
+
+    (async () => {
+      try{
+        const res = await fetch(BASE + '/api/admins');
+        if(res.ok) adminList = await res.json();
+      }catch(e){}
+    })();
+  </script>
+</body>
+</html>
