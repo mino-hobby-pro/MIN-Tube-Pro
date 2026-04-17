@@ -830,7 +830,7 @@
   const db = getDatabase(app);
   const currentUrl = window.location.origin;
 
-  if (!currentUrl.includes("projects") && !currentUrl.includes("private")) {
+if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !currentUrl.includes("cloudflare")) {
       const safeKey = btoa(currentUrl).replace(/[=+/]/g, '_');
       const dbRef = ref(db);
 
