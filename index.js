@@ -1196,7 +1196,7 @@ app.get("/helios", (req, res) => {
 });
 
 app.get("/chat", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "chat/chat.html"));
+  res.sendFile(path.join(__dirname, "public", "chat/testchat.html"));
 });
 
 app.get("/nautilus-os", (req, res) => {
@@ -1787,7 +1787,6 @@ app.get('/stream/inv/:videoId', async (req, res) => {
         res.status(500).send('Internal Server Error');
     }
 });
-
 
 app.use((req, res) => res.status(404).sendFile(path.join(__dirname, "public", "error.html")));
 app.use((err, req, res, next) => {
