@@ -1330,6 +1330,7 @@ app.get('/api/inv/channel/:name', async (req, res) => {
   }
 });
 
+// --- チャンネルページ ---
 app.get("/channel/:channelName", (req, res) => {
   const channelName = decodeURIComponent(req.params.channelName);
   const initial = channelName.charAt(0).toUpperCase();
@@ -1605,8 +1606,8 @@ app.get("/channel/:channelName", (req, res) => {
   let isLoading = false;
   let totalLoaded = 0;
   let isSubscribed = false;
-  let hasRealMetadata = false;
 
+  // ローカルストレージでチャンネル登録状態を管理
   const SUB_KEY = 'subscribed_' + CHANNEL_NAME;
   if (localStorage.getItem(SUB_KEY) === 'true') {
     isSubscribed = true;
@@ -1643,6 +1644,7 @@ app.get("/channel/:channelName", (req, res) => {
     return n.toLocaleString() + '回視聴';
   }
 
+  // 視聴数からチャンネル登録者数を推定
   function estimateSubscribers(videos) {
     if (!videos || videos.length === 0) return null;
     let totalViews = 0;
@@ -1654,7 +1656,7 @@ app.get("/channel/:channelName", (req, res) => {
     }
     if (count === 0) return null;
     const avgViews = totalViews / count;
-    // 平均再生数の約1〜5%が登録者数と仮定
+    // 平均再生数の約1〜5%が登録者数と仮定（チャンネルの規模に応じて調整）
     const est = Math.round(avgViews * (0.01 + Math.random() * 0.04));
     return est;
   }
@@ -1668,10 +1670,12 @@ app.get("/channel/:channelName", (req, res) => {
     return n.toLocaleString() + '人';
   }
 
+  // チャンネルアイコン画像をYouTube APIから試みる（利用不可の場合はイニシャル）
   function tryLoadChannelAvatar(channelId) {
-    if (!channelId || hasRealMetadata) return; 
+    if (!channelId) return;
+    // YTのチャンネルアバターURLパターンを試みる
     const tryUrls = [
-      \`https://googleusercontent.com/profile/picture/0\${channelId}=s88-c-k-c0x00ffffff-no-rj\`,
+      \`https://yt3.ggpht.com/ytc/\${channelId}=s88-c-k-c0x00ffffff-no-rj\`,
     ];
     const img = document.getElementById('channelAvatarImg');
     img.onload = function() { img.classList.add('loaded'); document.getElementById('avatarInitial').style.display='none'; };
@@ -1689,7 +1693,7 @@ app.get("/channel/:channelName", (req, res) => {
     const html = videos.map(v => \`
       <a href="/video/\${v.id}" class="video-card">
         <div class="thumb">
-          <img src="https://i.ytimg.com/vi/\${v.id}/mqdefault.jpg" loading="lazy" alt="\${(v.title||'').replace(/"/g,'"')}">
+          <img src="https://i.ytimg.com/vi/\${v.id}/mqdefault.jpg" loading="lazy" alt="\${(v.title||'').replace(/"/g,'&quot;')}">
         </div>
         <div class="video-card-meta">
           <div class="card-avatar">\${AVATAR_INITIAL}</div>
@@ -1704,12 +1708,14 @@ app.get("/channel/:channelName", (req, res) => {
     grid.insertAdjacentHTML('beforeend', html);
     totalLoaded += videos.length;
 
-    if (!hasRealMetadata && totalLoaded <= videos.length && videos[0]) {
+    // 初回ロード時にチャンネル情報を更新
+    if (totalLoaded <= videos.length && videos[0]) {
       const first = videos[0];
       const realName = first.channelTitle || CHANNEL_NAME;
       document.getElementById('channelTitle').textContent = realName;
-      document.getElementById('channelHandle').textContent = '@' + realName.toLowerCase().replace(/\\s+/g, '').replace(/[^a-z0-9\\u3000-\\u9fff]/g, '');
+      document.getElementById('channelHandle').textContent = '@' + realName.toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9\u3000-\u9fff]/g, '');
 
+      // 登録者数の推定表示
       const estSubs = estimateSubscribers(videos);
       const subFmt = estSubs ? formatSubscribers(estSubs) + ' 人のチャンネル登録者' : 'チャンネル';
       document.getElementById('subCount').textContent = subFmt;
@@ -1717,51 +1723,10 @@ app.get("/channel/:channelName", (req, res) => {
       document.getElementById('videoCount').style.display = '';
       document.getElementById('videoCount').textContent = \`動画 \${totalLoaded}件以上\`;
 
+      // チャンネルIDを推定して試みる（first.channelIdがあれば）
       if (first.channelId) tryLoadChannelAvatar(first.channelId);
     } else {
       document.getElementById('videoCount').textContent = \`動画 \${totalLoaded}件以上\`;
-    }
-  }
-
-  function applyInvMetadata(data) {
-    const channel = Array.isArray(data) ? data[0] : data;
-    if (!channel) return;
-
-    hasRealMetadata = true;
-    
-
-    document.getElementById('channelTitle').textContent = channel.author || CHANNEL_NAME;
-    if (channel.channelHandle) {
-      document.getElementById('channelHandle').textContent = channel.channelHandle;
-    }
-
-
-    if (channel.subCount) {
-      const subFmt = formatSubscribers(channel.subCount) + ' 人の登録者';
-      document.getElementById('subCount').textContent = subFmt;
-    }
-
-    if (channel.videoCount !== undefined) {
-      document.getElementById('statsDot').style.display = '';
-      document.getElementById('videoCount').style.display = '';
-      document.getElementById('videoCount').textContent = \`動画 \${channel.videoCount}本\`;
-    }
-
-    if (channel.authorThumbnails && channel.authorThumbnails.length > 0) {
-      const thumbs = [...channel.authorThumbnails].sort((a, b) => (b.width || 0) - (a.width || 0));
-      const img = document.getElementById('channelAvatarImg');
-      img.onload = function() { 
-        img.classList.add('loaded'); 
-        document.getElementById('avatarInitial').style.display='none'; 
-      };
-      let url = thumbs[0].url;
-      if (url.startsWith('//')) url = 'https:' + url;
-      img.src = url;
-
-
-      const style = document.createElement('style');
-      style.textContent = \`.card-avatar { background-image: url('\${url}'); background-size: cover; color: transparent; }\`;
-      document.head.appendChild(style);
     }
   }
 
@@ -1770,28 +1735,6 @@ app.get("/channel/:channelName", (req, res) => {
     isLoading = true;
     document.getElementById('loading').style.display = 'flex';
     document.getElementById('loadMoreBtn').style.display = 'none';
-
-
-    if (page === 0) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); 
-        
-        const invRes = await fetch(\`/api/inv/channel/\${encodeURIComponent(CHANNEL_NAME)}\`, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (invRes.ok) {
-          const invData = await invRes.json();
-          applyInvMetadata(invData);
-
-        } else {
-          throw new Error('API Response Error');
-        }
-      } catch (e) {
-        console.warn('Metadata API failed or timed out. Falling back to original API.', e);
-      }
-    }
-
     try {
       const res = await fetch(\`/api/channel?name=\${encodeURIComponent(CHANNEL_NAME)}&page=\${page}\`);
       const data = await res.json();
@@ -1801,9 +1744,7 @@ app.get("/channel/:channelName", (req, res) => {
         document.getElementById('loadMoreBtn').style.display = 'block';
       }
     } catch (e) {
-      if (totalLoaded === 0) {
-        document.getElementById('videoGrid').innerHTML = '<div class="empty">読み込みに失敗しました</div>';
-      }
+      document.getElementById('videoGrid').innerHTML = '<div class="empty">読み込みに失敗しました</div>';
     } finally {
       document.getElementById('loading').style.display = 'none';
       isLoading = false;
@@ -1815,7 +1756,7 @@ app.get("/channel/:channelName", (req, res) => {
   loadVideos(0);
 </script>
 </body>
-</html>\`;
+</html>`;
   res.send(html);
 });
 
