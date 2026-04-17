@@ -38,7 +38,6 @@
         }
 
         try {
-            // CORSプロキシサービスを利用してHTMLを取得
             const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(urlInput)}`;
             
             document.getElementById('status').innerText = '読み込み中...';
@@ -48,11 +47,11 @@
             
             const data = await response.json();
             
-            // iframeの中に取得したHTMLを流し込む
+            // iframeの中に取得したHTMLひょーじー
             const doc = viewer.contentWindow.document;
             doc.open();
             
-            // 相対パスを解決するための <base> タグを挿入
+     
             const baseTag = `<base href="${urlInput}">`;
             const content = data.contents.replace('<head>', `<head>${baseTag}`);
             
@@ -67,7 +66,7 @@
         }
     }
 
-    // Enterキーで実行可能にする
+    // Enterキーいれるー
     document.getElementById('url-input').addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             loadPage();
