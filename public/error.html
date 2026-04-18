@@ -3,13 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>MIN-Tube-Pro</title>
+  <title>YouTube</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
     :root {
       --bg: #0f0f0f;
       --surface: #212121;
+      --surface-hover: #3f3f3f;
       --card: #272727;
       --text: #f1f1f1;
       --text-muted: #aaaaaa;
@@ -17,26 +18,34 @@
       --accent: #ff0000;
       --border: #3f3f3f;
       --chip-bg: #272727;
+      --chip-hover: #3f3f3f;
       --chip-active-bg: #f1f1f1;
       --chip-active-text: #0f0f0f;
       --header-height: 56px;
-      --chips-height: 52px;
       --sidebar-width: 240px;
       --sidebar-collapsed: 72px;
+      --ripple-color: rgba(255, 255, 255, 0.3);
+      --skeleton-bg: #272727;
+      --skeleton-shine: rgba(255, 255, 255, 0.05);
     }
     body.light-mode {
       --bg: #ffffff;
       --surface: #f2f2f2;
-      --card: #e5e5e5;
+      --surface-hover: #e5e5e5;
+      --card: #f8f8f8;
       --text: #0f0f0f;
       --text-muted: #606060;
       --text-secondary: #909090;
       --border: #e0e0e0;
       --chip-bg: #f2f2f2;
+      --chip-hover: #e5e5e5;
       --chip-active-bg: #0f0f0f;
       --chip-active-text: #ffffff;
+      --ripple-color: rgba(0, 0, 0, 0.15);
+      --skeleton-bg: #e5e5e5;
+      --skeleton-shine: rgba(255, 255, 255, 0.5);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body { height: 100%; }
     body {
       background: var(--bg);
@@ -44,145 +53,253 @@
       font-family: 'Roboto', Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
+      overflow-y: scroll;
     }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+    /* Material Ripple */
+    .ripple-wrapper {
+      position: relative;
+      overflow: hidden;
+    }
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      transform: scale(0);
+      animation: ripple-anim 600ms linear;
+      background-color: var(--ripple-color);
+      pointer-events: none;
+    }
+    @keyframes ripple-anim {
+      to { transform: scale(4); opacity: 0; }
+    }
+
+    /* Tooltip */
+    [data-tooltip] {
+      position: relative;
+    }
+    [data-tooltip]::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(97, 97, 97, 0.9);
+      color: white;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 10000;
+      font-family: 'Roboto', sans-serif;
+    }
+    [data-tooltip]:hover::after { opacity: 1; transition-delay: 0.4s; }
 
     /* ===== HEADER ===== */
     header {
       position: fixed; top: 0; left: 0; right: 0;
       height: var(--header-height);
       background: var(--bg);
-      display: flex; align-items: center;
+      display: flex; align-items: center; justify-content: space-between;
       padding: 0 16px;
       z-index: 1000;
-      gap: 8px;
     }
 
-    .header-left { display: flex; align-items: center; gap: 16px; min-width: 200px; }
-
+    .header-left { display: flex; align-items: center; gap: 16px; }
     .menu-btn {
       background: none; border: none; color: var(--text);
       width: 40px; height: 40px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 20px; flex-shrink: 0;
-      transition: background 0.1s;
+      cursor: pointer; flex-shrink: 0;
+      transition: background 0.2s;
     }
-    .menu-btn:hover { background: rgba(255,255,255,0.1); }
-    body.light-mode .menu-btn:hover { background: rgba(0,0,0,0.06); }
+    .menu-btn:hover { background: var(--surface-hover); }
 
     .logo {
-      display: flex; align-items: center; gap: 2px;
+      display: flex; align-items: center; gap: 4px;
       text-decoration: none; color: var(--text);
+      position: relative;
     }
     .logo-icon {
-      background: var(--accent);
-      border-radius: 6px;
-      width: 34px; height: 24px;
+      width: 30px; height: 20px;
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
     }
-    .logo-icon svg { width: 16px; height: 16px; fill: white; }
+    .logo-icon svg { width: 100%; height: 100%; }
     .logo-text {
-      font-size: 18px; font-weight: 700; letter-spacing: -0.5px;
-      margin-left: 4px; white-space: nowrap;
+      font-size: 20px; font-weight: 700; letter-spacing: -1px;
+      font-family: 'YouTube Sans', 'Roboto', sans-serif;
     }
-    .logo-sub { font-size: 10px; color: var(--text-muted); font-weight: 500; margin-left: 1px; align-self: flex-end; margin-bottom: 4px; }
+    .logo-sub { 
+      font-size: 10px; color: var(--text-muted); font-weight: 400; 
+      position: absolute; top: -2px; right: -24px;
+    }
 
     /* Search */
     .header-center {
       flex: 1; display: flex; align-items: center;
-      justify-content: center; gap: 8px; max-width: 728px; margin: 0 auto;
+      justify-content: center; gap: 8px; max-width: 728px; margin: 0 40px;
+    }
+    .search-container {
+      display: flex; flex: 1; align-items: center;
     }
     .search-form {
       display: flex; flex: 1; align-items: center;
       border: 1px solid var(--border);
-      border-radius: 0;
+      border-radius: 40px 0 0 40px;
       overflow: hidden;
       height: 40px;
+      background: var(--bg);
+      margin-left: 32px;
+      position: relative;
     }
-    .search-form:focus-within { border-color: #1c62b9; }
-    body.light-mode .search-form:focus-within { border-color: #1a73e8; }
+    .search-form::before {
+      content: ''; display: none; width: 20px; height: 20px; margin-left: 16px;
+      background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" fill="%23f1f1f1"><path d="M20.87 20.17l-5.59-5.59C16.35 13.35 17 11.75 17 10c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7c1.75 0 3.35-.65 4.58-1.71l5.59 5.59.7-.71zM10 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>') no-repeat center;
+    }
+    body.light-mode .search-form::before {
+      background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" fill="%230f0f0f"><path d="M20.87 20.17l-5.59-5.59C16.35 13.35 17 11.75 17 10c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7c1.75 0 3.35-.65 4.58-1.71l5.59 5.59.7-.71zM10 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>') no-repeat center;
+    }
+    .search-form.focused { border-color: #1c62b9; padding-left: 0; margin-left: 32px;}
+    .search-form.focused::before { display: block; }
+    
     .search-form input {
-      flex: 1; background: var(--bg); border: none;
+      flex: 1; background: transparent; border: none;
       color: var(--text); height: 100%; padding: 0 16px;
-      outline: none; font-size: 16px; font-family: 'Roboto', Arial, sans-serif;
+      outline: none; font-size: 16px; font-weight: 400;
     }
-    body.light-mode .search-form { background: #fff; }
-    body.light-mode .search-form input { background: #fff; }
     .search-btn {
-      background: var(--surface); border: none; border-left: 1px solid var(--border);
-      color: var(--text-muted); width: 64px; height: 100%;
+      background: var(--surface); border: 1px solid var(--border);
+      border-left: none; border-radius: 0 40px 40px 0;
+      color: var(--text); width: 64px; height: 40px;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 18px; flex-shrink: 0;
-      transition: background 0.1s;
+      cursor: pointer; flex-shrink: 0;
     }
-    .search-btn:hover { background: #3f3f3f; }
-    body.light-mode .search-btn { background: #f8f8f8; }
-    body.light-mode .search-btn:hover { background: #e0e0e0; }
+    .search-btn:hover { background: var(--surface-hover); }
+    .search-btn svg { width: 24px; height: 24px; opacity: 0.8; }
+    
     .mic-btn {
       background: var(--surface); border: none; border-radius: 50%;
       color: var(--text); width: 40px; height: 40px;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 18px; flex-shrink: 0;
-      transition: background 0.1s;
+      cursor: pointer; flex-shrink: 0; margin-left: 12px;
+      transition: background 0.2s;
     }
-    .mic-btn:hover { background: #3f3f3f; }
+    .mic-btn:hover { background: var(--surface-hover); }
+    .mic-btn.listening { background: #cc0000; color: white; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(204, 0, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(204, 0, 0, 0); } }
 
     /* Header right */
     .header-right {
-      display: flex; align-items: center; gap: 4px;
-      margin-left: auto; flex-shrink: 0;
+      display: flex; align-items: center; gap: 8px; flex-shrink: 0;
     }
     .icon-btn {
       background: none; border: none; color: var(--text);
       width: 40px; height: 40px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 20px; position: relative;
-      transition: background 0.1s;
+      cursor: pointer; position: relative;
     }
-    .icon-btn:hover { background: rgba(255,255,255,0.1); }
-    body.light-mode .icon-btn:hover { background: rgba(0,0,0,0.06); }
+    .icon-btn:hover { background: var(--surface-hover); }
+    .icon-btn svg { width: 24px; height: 24px; }
+    
+    .profile-avatar-btn {
+      background: none; border: none; padding: 0; margin: 0 8px;
+      cursor: pointer; border-radius: 50%;
+      width: 32px; height: 32px;
+    }
+    .profile-avatar-btn img {
+      width: 100%; height: 100%; border-radius: 50%; object-fit: cover;
+    }
 
-    /* Settings panel */
-    .settings-wrapper { position: relative; }
-    .settings-panel {
-      position: absolute; top: calc(100% + 8px); right: 0;
+    /* Dropdown Panels (Profile, Notifications, Create) */
+    .dropdown-panel {
+      position: absolute; top: 48px; right: 16px;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 8px 0;
-      min-width: 220px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      box-shadow: 0 4px 32px rgba(0,0,0,0.5);
       z-index: 2000;
       display: none;
       flex-direction: column;
+      overflow: hidden;
     }
-    .settings-panel.open { display: flex; }
-    .settings-panel-title {
-      font-size: 11px; font-weight: 700; color: var(--text-muted);
-      letter-spacing: 0.8px; text-transform: uppercase;
-      padding: 8px 16px 4px;
+    .dropdown-panel.open { display: flex; animation: slideDown 0.2s cubic-bezier(0.1, 0.9, 0.2, 1); }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* Profile Menu Specifics */
+    .profile-menu { width: 300px; padding: 8px 0; }
+    .profile-header {
+      display: flex; gap: 16px; padding: 16px;
     }
+    .profile-header img { width: 40px; height: 40px; border-radius: 50%; }
+    .profile-info { display: flex; flex-direction: column; }
+    .profile-name { font-size: 16px; font-weight: 500; color: var(--text); }
+    .profile-handle { font-size: 14px; color: var(--text); margin-bottom: 8px; }
+    .profile-link { font-size: 14px; color: #3ea6ff; text-decoration: none; font-weight: 500; }
+    .menu-divider { height: 1px; background: var(--border); margin: 8px 0; }
+    .menu-item {
+      display: flex; align-items: center; gap: 16px;
+      padding: 10px 16px; cursor: pointer; color: var(--text);
+      font-size: 14px; transition: background 0.1s;
+    }
+    .menu-item:hover { background: var(--surface-hover); }
+    .menu-item svg { width: 24px; height: 24px; fill: currentColor; }
+    .menu-item .arrow { margin-left: auto; width: 16px; height: 16px; fill: var(--text-muted); }
+
+    /* Theme Toggle Submenu inline */
+    .theme-options { display: none; flex-direction: column; background: var(--surface); padding: 8px 0; }
+    .theme-options.open { display: flex; }
     .theme-radio-label {
       display: flex; align-items: center; gap: 12px;
       cursor: pointer; font-size: 14px; color: var(--text);
-      padding: 10px 16px; transition: background 0.1s;
+      padding: 10px 16px; padding-left: 56px;
     }
-    .theme-radio-label:hover { background: rgba(255,255,255,0.08); }
-    body.light-mode .theme-radio-label:hover { background: rgba(0,0,0,0.05); }
+    .theme-radio-label:hover { background: var(--surface-hover); }
     .theme-radio-label input { accent-color: var(--accent); width: 16px; height: 16px; }
-    .theme-radio-label.selected { background: rgba(255,255,255,0.06); }
-    body.light-mode .theme-radio-label.selected { background: rgba(0,0,0,0.04); }
-    .settings-divider { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
-    .settings-select-group { padding: 8px 16px; display: flex; flex-direction: column; gap: 6px; }
-    .settings-select-label { font-size: 11px; font-weight: 700; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase; }
-    .settings-select {
-      background: var(--bg); color: var(--text); border: 1px solid var(--border);
-      border-radius: 4px; padding: 6px 8px; font-size: 13px; cursor: pointer; outline: none;
-      appearance: none; width: 100%;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px;
+
+    /* Notifications Panel */
+    .notif-menu { width: 360px; max-height: 500px; }
+    .notif-header { padding: 16px; font-size: 16px; font-weight: 500; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;}
+    .notif-body { overflow-y: auto; padding: 8px 0; min-height: 100px; max-height: 400px;}
+    .notif-empty { text-align: center; padding: 32px; color: var(--text-muted); font-size: 14px; display: flex; flex-direction: column; align-items: center; gap: 16px;}
+    .notif-empty svg { width: 120px; height: 120px; opacity: 0.2; }
+
+    /* Create Panel */
+    .create-menu { width: 220px; padding: 8px 0; }
+
+    /* Voice Search Modal */
+    .voice-modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6); z-index: 3000;
+      align-items: flex-start; justify-content: center;
     }
-    .playback-hint { font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
+    .voice-modal-overlay.open { display: flex; }
+    .voice-modal {
+      background: var(--surface); width: 600px; max-width: 90vw;
+      margin-top: 80px; padding: 32px; border-radius: 4px;
+      box-shadow: 0 16px 24px rgba(0,0,0,0.3);
+      position: relative; animation: slideDown 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+    }
+    .voice-close {
+      position: absolute; top: 8px; right: 8px; background: none; border: none;
+      color: var(--text); cursor: pointer; padding: 8px; border-radius: 50%;
+    }
+    .voice-close:hover { background: var(--surface-hover); }
+    .voice-title { font-size: 24px; font-weight: 400; color: var(--text); margin-bottom: 40px; }
+    .voice-btn-huge {
+      width: 68px; height: 68px; border-radius: 50%; background: var(--surface-hover);
+      border: none; color: var(--text); margin: 0 auto; display: flex; align-items: center; justify-content: center; cursor: pointer;
+    }
+    .voice-btn-huge.active { background: #cc0000; color: white; animation: pulse 1.5s infinite; }
+    .voice-btn-huge svg { width: 32px; height: 32px; }
 
     /* ===== SIDEBAR ===== */
     .layout { display: flex; padding-top: var(--header-height); }
@@ -195,55 +312,68 @@
       display: flex; flex-direction: column;
       padding: 12px 0;
       z-index: 100;
-      scrollbar-width: none;
+      background: var(--bg);
       transition: width 0.2s ease;
     }
-    .sidebar::-webkit-scrollbar { display: none; }
+    .sidebar:hover::-webkit-scrollbar { width: 8px; }
     .sidebar.expanded { width: var(--sidebar-width); }
 
     .sidebar-item {
-      display: flex; align-items: center; gap: 16px;
-      padding: 0 12px; height: 40px; min-height: 40px;
+      display: flex; align-items: center; gap: 24px;
+      padding: 0 12px; height: 40px;
       border-radius: 10px; cursor: pointer;
       color: var(--text); text-decoration: none;
       font-size: 14px; font-weight: 400;
-      transition: background 0.1s;
       white-space: nowrap; overflow: hidden;
-      margin: 0 4px;
+      margin: 0 12px 4px 12px;
     }
-    .sidebar-item:hover { background: rgba(255,255,255,0.1); }
-    body.light-mode .sidebar-item:hover { background: rgba(0,0,0,0.06); }
-    .sidebar-item.active { background: rgba(255,255,255,0.12); font-weight: 500; }
-    body.light-mode .sidebar-item.active { background: rgba(0,0,0,0.08); }
-    .sidebar-item svg { flex-shrink: 0; width: 24px; height: 24px; }
+    .sidebar-item:hover { background: var(--surface-hover); }
+    .sidebar-item.active { background: var(--surface-hover); font-weight: 500; }
+    .sidebar-item svg { flex-shrink: 0; width: 24px; height: 24px; fill: currentColor; }
     .sidebar-label { opacity: 0; transition: opacity 0.15s; }
     .sidebar.expanded .sidebar-label { opacity: 1; }
 
     .sidebar-section-title {
-      font-size: 14px; font-weight: 700; color: var(--text);
-      padding: 16px 12px 4px; white-space: nowrap; overflow: hidden;
+      font-size: 16px; font-weight: 500; color: var(--text);
+      padding: 12px 24px 4px; white-space: nowrap; overflow: hidden;
       opacity: 0; height: 0; margin: 0;
-      transition: opacity 0.15s;
     }
     .sidebar.expanded .sidebar-section-title { opacity: 1; height: auto; }
-    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
+    .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+    /* Adjust sidebar collapsed state to look like real YouTube mini sidebar */
+    @media (min-width: 769px) {
+      .sidebar:not(.expanded) .sidebar-item {
+        flex-direction: column; gap: 4px; height: 74px; padding: 16px 0 14px 0; justify-content: center; border-radius: 10px; margin: 0 4px 4px 4px;
+      }
+      .sidebar:not(.expanded) .sidebar-label {
+        opacity: 1; font-size: 10px; line-height: 14px; text-overflow: ellipsis; overflow: hidden; display: block; max-width: 100%; padding: 0 4px;
+      }
+      .sidebar:not(.expanded) .sidebar-divider, 
+      .sidebar:not(.expanded) .sidebar-section-title { display: none; }
+    }
 
     /* ===== MAIN CONTENT ===== */
     .main {
       margin-left: var(--sidebar-collapsed);
       flex: 1; min-width: 0;
       transition: margin-left 0.2s ease;
+      background: var(--bg);
     }
     .sidebar.expanded ~ .main { margin-left: var(--sidebar-width); }
 
     /* Chips bar */
-    .chips-bar {
+    .chips-bar-wrapper {
       position: sticky; top: var(--header-height);
       background: var(--bg);
-      padding: 12px 24px;
-      display: flex; gap: 8px; overflow-x: auto;
-      scrollbar-width: none; z-index: 99;
-      border-bottom: 1px solid transparent;
+      z-index: 99;
+      display: flex; align-items: center;
+      padding: 0 24px;
+    }
+    .chips-bar {
+      display: flex; gap: 12px; overflow-x: auto;
+      padding: 12px 0;
+      scrollbar-width: none;
     }
     .chips-bar::-webkit-scrollbar { display: none; }
     .chip {
@@ -252,349 +382,323 @@
       height: 32px; border-radius: 8px;
       font-size: 14px; font-weight: 500;
       white-space: nowrap; cursor: pointer;
-      transition: background 0.1s;
       font-family: 'Roboto', Arial, sans-serif;
+      transition: background 0.2s, color 0.2s;
     }
-    .chip:hover { background: #3f3f3f; }
-    body.light-mode .chip:hover { background: #d0d0d0; }
+    .chip:hover { background: var(--chip-hover); }
     .chip.active {
       background: var(--chip-active-bg);
       color: var(--chip-active-text);
     }
 
     /* ===== CONTENT AREA ===== */
-    .content-area { padding: 16px 24px 80px; }
+    .content-area { padding: 24px; }
 
     /* Shorts section */
-    .shorts-section { margin-bottom: 28px; }
+    .shorts-section { margin-bottom: 32px; padding-top: 16px; border-top: 4px solid var(--surface); }
     .section-header {
       display: flex; align-items: center; justify-content: space-between;
-      margin-bottom: 12px;
+      margin-bottom: 24px;
     }
     .section-title {
-      font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;
+      font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 8px;
     }
-    .shorts-badge {
-      background: var(--accent); color: white;
-      font-size: 12px; font-weight: 700;
-      padding: 2px 6px; border-radius: 4px;
-    }
+    .section-title svg { fill: #ff0000; width: 24px; height: 24px; }
     .shorts-row {
-      display: flex; gap: 8px; overflow-x: auto;
-      scrollbar-width: thin; scrollbar-color: var(--border) transparent;
-      padding-bottom: 4px;
+      display: flex; gap: 16px; overflow-x: auto;
+      scrollbar-width: none; padding-bottom: 16px;
     }
-    .shorts-row::-webkit-scrollbar { height: 4px; }
-    .shorts-row::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .shorts-row::-webkit-scrollbar { display: none; }
     .short-card {
-      min-width: 160px; max-width: 168px;
-      border-radius: 12px; overflow: hidden;
+      width: calc(100% / 6 - 14px); min-width: 150px; max-width: 220px;
       cursor: pointer; text-decoration: none; color: inherit;
-      display: flex; flex-direction: column;
-      flex-shrink: 0;
-      transition: transform 0.2s;
-      position: relative;
+      display: flex; flex-direction: column; flex-shrink: 0;
     }
-    .short-card:hover { transform: scale(1.02); }
     .short-thumb {
       width: 100%; aspect-ratio: 9/16;
-      background: #1a1a1a; overflow: hidden; position: relative;
-      border-radius: 12px;
+      background: var(--surface); overflow: hidden; position: relative;
+      border-radius: 12px; margin-bottom: 8px;
     }
-    .short-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .short-overlay {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      padding: 24px 10px 10px;
-      background: linear-gradient(transparent, rgba(0,0,0,0.75));
-    }
-    .short-title { font-size: 13px; font-weight: 600; line-height: 1.3; color: #fff; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .short-views { font-size: 12px; color: rgba(255,255,255,0.7); margin-top: 2px; }
+    .short-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.2s; }
+    .short-card:hover .short-thumb img { transform: scale(1.05); }
+    .short-title { font-size: 16px; font-weight: 500; line-height: 1.4; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .short-views { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+    
     .shorts-toggle-btn {
-      background: none; border: 1px solid var(--border);
-      color: var(--text); padding: 6px 16px; border-radius: 18px;
-      font-size: 14px; font-weight: 500; cursor: pointer;
-      font-family: 'Roboto', Arial, sans-serif;
-      display: flex; align-items: center; gap: 6px;
-      transition: background 0.1s;
+      background: none; border: none; color: var(--text);
+      width: 40px; height: 40px; border-radius: 50%;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
     }
-    .shorts-toggle-btn:hover { background: rgba(255,255,255,0.08); }
-    body.light-mode .shorts-toggle-btn:hover { background: rgba(0,0,0,0.06); }
+    .shorts-toggle-btn:hover { background: var(--surface-hover); }
 
     /* Video grid - YouTube-style */
     .video-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 16px 16px;
-      row-gap: 40px;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      column-gap: 16px; row-gap: 40px;
     }
     .video-card {
       cursor: pointer; text-decoration: none; color: inherit;
-      display: flex; flex-direction: column;
+      display: flex; flex-direction: column; width: 100%;
     }
     .thumb {
       width: 100%; aspect-ratio: 16/9;
-      background: #1a1a1a; border-radius: 12px;
+      background: var(--surface); border-radius: 12px;
       overflow: hidden; position: relative;
-      margin-bottom: 12px;
+      margin-bottom: 12px; transition: border-radius 0.2s;
     }
     .thumb img {
       width: 100%; height: 100%; object-fit: cover; display: block;
-      transition: border-radius 0.2s;
     }
-    .video-card:hover .thumb img { border-radius: 0; }
+    .video-card:hover .thumb { border-radius: 0; }
 
     /* Duration badge */
     .duration-badge {
-      position: absolute; bottom: 6px; right: 6px;
-      background: rgba(0,0,0,0.85); color: #fff;
-      font-size: 12px; font-weight: 700; padding: 2px 5px;
-      border-radius: 4px; letter-spacing: 0.3px;
+      position: absolute; bottom: 8px; right: 8px;
+      background: rgba(0,0,0,0.8); color: #fff;
+      font-size: 12px; font-weight: 500; padding: 3px 4px;
+      border-radius: 4px; letter-spacing: 0.5px;
     }
 
     .meta { display: flex; gap: 12px; align-items: flex-start; }
     .channel-avatar {
       width: 36px; height: 36px; border-radius: 50%;
-      background: linear-gradient(135deg, #444 0%, #222 100%);
-      flex-shrink: 0;
+      background: var(--surface); flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      color: var(--text-muted); font-weight: 700; font-size: 14px;
+      color: #fff; font-weight: 500; font-size: 16px; overflow: hidden;
+      margin-top: 2px;
     }
-    .details { flex: 1; min-width: 0; }
+    .channel-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .details { flex: 1; min-width: 0; padding-right: 24px; position: relative; }
     .details h3 {
-      font-size: 14px; line-height: 1.4; font-weight: 500;
+      font-size: 16px; line-height: 1.4; font-weight: 500;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
       overflow: hidden; color: var(--text); margin-bottom: 4px;
     }
-    .details .channel-name { font-size: 13px; color: var(--text-muted); margin-bottom: 2px; }
-    .details .video-stats { font-size: 13px; color: var(--text-muted); }
+    .details .channel-name { 
+      font-size: 14px; color: var(--text-muted); margin-bottom: 2px;
+      display: flex; align-items: center; gap: 4px; transition: color 0.2s;
+    }
+    .details .channel-name:hover { color: var(--text); }
+    .details .video-stats { font-size: 14px; color: var(--text-muted); }
 
     /* Three-dot menu on card */
     .card-menu-btn {
-      background: none; border: none; color: var(--text-muted);
-      width: 32px; height: 32px; border-radius: 50%;
+      position: absolute; top: 0; right: -8px;
+      background: none; border: none; color: var(--text);
+      width: 36px; height: 36px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; font-size: 18px; flex-shrink: 0;
-      opacity: 0; transition: opacity 0.15s, background 0.1s;
-      margin-top: -2px;
+      cursor: pointer; opacity: 0; transition: opacity 0.2s, background 0.2s;
     }
-    .meta:hover .card-menu-btn { opacity: 1; }
-    .card-menu-btn:hover { background: rgba(255,255,255,0.1); }
+    .video-card:hover .card-menu-btn { opacity: 1; }
+    .card-menu-btn:hover { background: var(--surface-hover); }
+
+    /* Skeleton Loading UI */
+    .skeleton-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      column-gap: 16px; row-gap: 40px;
+    }
+    .skeleton {
+      background: var(--skeleton-bg);
+      position: relative; overflow: hidden;
+    }
+    .skeleton::after {
+      content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+      transform: translateX(-100%);
+      background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, var(--skeleton-shine) 20%, var(--skeleton-shine) 60%, rgba(255, 255, 255, 0));
+      animation: shimmer 1.5s infinite;
+    }
+    @keyframes shimmer { 100% { transform: translateX(100%); } }
+    .skeleton-thumb { width: 100%; aspect-ratio: 16/9; border-radius: 12px; margin-bottom: 12px; }
+    .skeleton-meta { display: flex; gap: 12px; }
+    .skeleton-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+    .skeleton-details { flex: 1; display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+    .skeleton-text { height: 16px; border-radius: 4px; width: 90%; }
+    .skeleton-text.short { width: 60%; }
 
     /* Loading / Empty */
-    #loading { text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px; }
-    .empty { text-align: center; color: var(--text-muted); padding: 40px; font-size: 14px; }
-
-    /* Version badge */
-    .version-badge {
-      font-size: 10px; font-weight: 700; color: var(--text-muted);
-      opacity: 0; transition: opacity 0.8s;
-      white-space: nowrap; pointer-events: none;
-    }
-    .version-badge.show { opacity: 1; }
-    .version-badge-text { color: var(--text-muted); }
+    .empty { text-align: center; color: var(--text-muted); padding: 80px; font-size: 16px; display: flex; flex-direction: column; align-items: center; gap: 16px;}
+    .empty svg { width: 120px; height: 120px; opacity: 0.2; }
 
     /* Responsive */
     @media (max-width: 1100px) {
-      .video-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+      .video-grid, .skeleton-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+      .search-form { margin-left: 0; }
+    }
+    @media (max-width: 870px) {
+      .header-center { margin: 0 8px; }
+      .search-form::before { display: none; }
+      .search-form.focused { margin-left: 0; }
     }
     @media (max-width: 768px) {
       .sidebar { display: none; }
       .main { margin-left: 0 !important; }
       .header-center { max-width: none; }
-      .video-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; row-gap: 28px; }
-      .content-area { padding: 12px 16px 80px; }
-      .chips-bar { padding: 10px 16px; }
+      .video-grid, .skeleton-grid { grid-template-columns: repeat(auto-fill, minmax(100%, 1fr)); column-gap: 0; row-gap: 24px; }
+      .content-area { padding: 0 0 80px 0; }
+      .chips-bar-wrapper { padding: 0 16px; }
+      .thumb { border-radius: 0; }
+      .meta { padding: 0 16px; }
+      .short-card { width: 140px; }
     }
     @media (max-width: 500px) {
+      .header-center { display: none; /* In real YT, shows a search icon that expands */ }
       .logo-text { display: none; }
-      .video-grid { grid-template-columns: 1fr 1fr; gap: 8px; row-gap: 20px; }
-      .short-card { min-width: 130px; }
     }
 
     /* ===== LIBRARY DRAWER ===== */
     .drawer-overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5); z-index: 1500;
+      background: rgba(0,0,0,0.5); z-index: 2500;
     }
     .drawer-overlay.open { display: block; }
     .drawer {
-      position: fixed; top: 0; right: -420px; width: 400px; max-width: 95vw;
-      height: 100vh; background: var(--surface); z-index: 1600;
+      position: fixed; top: 0; right: -420px; width: 400px; max-width: 100vw;
+      height: 100vh; background: var(--bg); z-index: 2600;
       display: flex; flex-direction: column;
-      transition: right 0.28s cubic-bezier(0.4,0,0.2,1);
+      transition: right 0.3s cubic-bezier(0.05, 0, 0, 1);
       box-shadow: -4px 0 24px rgba(0,0,0,0.4);
     }
     .drawer.open { right: 0; }
     .drawer-header {
-      display: flex; align-items: center; gap: 12px;
-      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 16px;
+      padding: 16px 24px; border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
-    .drawer-title { font-size: 17px; font-weight: 700; flex: 1; color: var(--text); }
+    .drawer-title { font-size: 18px; font-weight: 500; flex: 1; color: var(--text); }
     .drawer-close {
-      background: none; border: none; color: var(--text-muted);
-      width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+      background: none; border: none; color: var(--text);
+      width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      font-size: 20px; transition: background 0.1s;
+      font-size: 20px; transition: background 0.2s; margin-right: -8px;
     }
-    .drawer-close:hover { background: rgba(255,255,255,0.1); }
-    body.light-mode .drawer-close:hover { background: rgba(0,0,0,0.06); }
-    .drawer-body { flex: 1; overflow-y: auto; padding: 12px 16px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
-    .drawer-body::-webkit-scrollbar { width: 4px; }
-    .drawer-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .drawer-close:hover { background: var(--surface-hover); }
+    .drawer-body { flex: 1; overflow-y: auto; padding: 16px 24px; scrollbar-width: thin; }
 
     /* Library list items */
     .lib-item {
-      display: flex; gap: 12px; align-items: center;
-      padding: 8px; border-radius: 10px; cursor: pointer;
+      display: flex; gap: 16px; align-items: flex-start;
+      padding: 8px; border-radius: 8px; cursor: pointer;
       text-decoration: none; color: var(--text);
-      transition: background 0.1s; margin-bottom: 4px;
+      transition: background 0.2s; margin-bottom: 8px;
     }
-    .lib-item:hover { background: rgba(255,255,255,0.07); }
-    body.light-mode .lib-item:hover { background: rgba(0,0,0,0.05); }
+    .lib-item:hover { background: var(--surface-hover); }
     .lib-thumb {
-      width: 100px; min-width: 100px; aspect-ratio: 16/9;
-      border-radius: 8px; overflow: hidden; background: #1a1a1a;
+      width: 160px; min-width: 160px; aspect-ratio: 16/9;
+      border-radius: 8px; overflow: hidden; background: var(--surface); position: relative;
     }
     .lib-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .lib-info { flex: 1; min-width: 0; }
+    .lib-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
     .lib-title {
-      font-size: 13px; font-weight: 500; line-height: 1.4;
+      font-size: 14px; font-weight: 500; line-height: 1.4;
       display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
       overflow: hidden; margin-bottom: 4px;
     }
     .lib-meta { font-size: 12px; color: var(--text-muted); }
     .lib-remove {
-      background: none; border: none; color: var(--text-muted);
-      width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+      background: none; border: none; color: var(--text);
+      width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      font-size: 16px; flex-shrink: 0; transition: background 0.1s, color 0.1s;
+      opacity: 0; transition: opacity 0.2s, background 0.2s; margin-left: 8px;
     }
-    .lib-remove:hover { background: rgba(255,80,80,0.15); color: #f44; }
-    .lib-empty { text-align: center; padding: 48px 16px; color: var(--text-muted); font-size: 14px; }
-    .lib-empty svg { display: block; margin: 0 auto 12px; opacity: 0.3; }
+    .lib-item:hover .lib-remove { opacity: 1; }
+    .lib-remove:hover { background: var(--surface-hover); }
+    .lib-empty { text-align: center; padding: 80px 16px; color: var(--text-muted); font-size: 15px; display: flex; flex-direction: column; align-items: center; gap: 16px;}
+    .lib-empty svg { width: 120px; height: 120px; opacity: 0.2; }
 
     /* Playlist section */
-    .drawer-action-row { display: flex; gap: 8px; margin-bottom: 16px; }
+    .drawer-action-row { display: flex; gap: 8px; margin-bottom: 24px; }
     .btn-create-playlist {
-      flex: 1; background: var(--accent); color: #fff; border: none;
-      padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      flex: 1; background: var(--text); color: var(--bg); border: none;
+      padding: 0 16px; height: 36px; border-radius: 18px; font-size: 14px; font-weight: 500;
       cursor: pointer; display: flex; align-items: center; gap: 6px;
-      justify-content: center; transition: opacity 0.1s;
+      justify-content: center; transition: background 0.2s;
     }
-    .btn-create-playlist:hover { opacity: 0.88; }
+    .btn-create-playlist:hover { background: #d9d9d9; }
+    body.light-mode .btn-create-playlist:hover { background: #272727; }
     .btn-export-all {
-      background: var(--card); color: var(--text); border: 1px solid var(--border);
-      padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+      background: var(--surface); color: var(--text); border: none;
+      padding: 0 16px; height: 36px; border-radius: 18px; font-size: 14px; font-weight: 500;
       cursor: pointer; display: flex; align-items: center; gap: 6px;
-      transition: background 0.1s;
+      transition: background 0.2s;
     }
-    .btn-export-all:hover { background: var(--border); }
+    .btn-export-all:hover { background: var(--surface-hover); }
+    
     .playlist-card {
-      background: var(--card); border-radius: 12px; padding: 14px;
-      margin-bottom: 10px; cursor: pointer; transition: background 0.1s;
+      display: flex; align-items: center; gap: 16px; padding: 8px; border-radius: 8px;
+      cursor: pointer; transition: background 0.2s; margin-bottom: 8px; text-decoration: none; color: inherit;
     }
-    .playlist-card:hover { background: rgba(255,255,255,0.06); }
-    body.light-mode .playlist-card:hover { background: rgba(0,0,0,0.04); }
-    .playlist-card-header {
-      display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+    .playlist-card:hover { background: var(--surface-hover); }
+    .playlist-icon-wrap {
+      width: 160px; height: 90px; border-radius: 8px; background: var(--surface);
+      display: flex; align-items: center; justify-content: center; position: relative;
     }
-    .playlist-icon {
-      width: 40px; height: 40px; border-radius: 8px; background: var(--accent);
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    .playlist-icon-wrap svg { width: 32px; height: 32px; fill: var(--text-muted); }
+    .playlist-overlay {
+      position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,0.8);
+      color: white; font-size: 12px; font-weight: 500; padding: 2px 6px; border-radius: 4px;
+      display: flex; align-items: center; gap: 4px;
     }
-    .playlist-name { font-size: 15px; font-weight: 600; flex: 1; }
+    .playlist-overlay svg { width: 14px; height: 14px; fill: white; }
+    .playlist-info { flex: 1; }
+    .playlist-name { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
     .playlist-count { font-size: 12px; color: var(--text-muted); }
-    .playlist-card-actions { display: flex; gap: 8px; margin-top: 10px; }
-    .btn-playlist-open {
-      flex: 1; background: var(--surface); border: 1px solid var(--border);
-      color: var(--text); padding: 6px; border-radius: 6px; font-size: 13px;
-      cursor: pointer; transition: background 0.1s;
-    }
-    .btn-playlist-open:hover { background: var(--border); }
-    .btn-playlist-export {
-      background: var(--surface); border: 1px solid var(--border);
-      color: var(--text-muted); padding: 6px 10px; border-radius: 6px;
-      font-size: 13px; cursor: pointer; transition: background 0.1s;
-    }
-    .btn-playlist-export:hover { background: var(--border); color: var(--text); }
-    .btn-playlist-delete {
-      background: none; border: 1px solid rgba(255,60,60,0.3);
-      color: #f66; padding: 6px 10px; border-radius: 6px;
-      font-size: 13px; cursor: pointer; transition: background 0.1s;
-    }
-    .btn-playlist-delete:hover { background: rgba(255,60,60,0.1); }
-    .drawer-back-btn {
-      background: none; border: none; color: var(--text-muted); cursor: pointer;
-      display: flex; align-items: center; gap: 6px; font-size: 14px;
-      padding: 4px 0; margin-bottom: 12px; transition: color 0.1s;
-    }
-    .drawer-back-btn:hover { color: var(--text); }
-
+    
     /* Card context menu */
     .card-dropdown {
       position: fixed; background: var(--card); border: 1px solid var(--border);
-      border-radius: 10px; padding: 6px 0; z-index: 2100;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.5); min-width: 200px;
-      display: none;
+      border-radius: 12px; padding: 8px 0; z-index: 2100;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.5); min-width: 250px;
+      display: none; flex-direction: column;
     }
-    .card-dropdown.open { display: block; }
+    .card-dropdown.open { display: flex; }
     .card-dropdown-item {
-      display: flex; align-items: center; gap: 12px;
+      display: flex; align-items: center; gap: 16px;
       padding: 10px 16px; font-size: 14px; color: var(--text);
-      cursor: pointer; transition: background 0.1s;
+      cursor: pointer; transition: background 0.2s;
     }
-    .card-dropdown-item:hover { background: rgba(255,255,255,0.08); }
-    body.light-mode .card-dropdown-item:hover { background: rgba(0,0,0,0.05); }
-    .card-dropdown-item svg { width: 20px; height: 20px; fill: var(--text-muted); flex-shrink: 0; }
+    .card-dropdown-item:hover { background: var(--surface-hover); }
+    .card-dropdown-item svg { width: 24px; height: 24px; fill: currentColor; }
 
     /* Playlist picker modal */
     .modal-overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.6); z-index: 2200;
+      background: rgba(0,0,0,0.6); z-index: 3000;
       align-items: center; justify-content: center;
     }
     .modal-overlay.open { display: flex; }
     .modal {
-      background: var(--card); border-radius: 14px; padding: 24px;
-      width: 340px; max-width: 90vw; max-height: 80vh;
+      background: var(--surface); border-radius: 12px; padding: 24px;
+      width: 360px; max-width: 90vw; max-height: 80vh;
       overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.6);
     }
-    .modal-title { font-size: 17px; font-weight: 700; margin-bottom: 16px; }
+    .modal-title { font-size: 18px; font-weight: 500; margin-bottom: 24px; color: var(--text); }
     .modal-input {
-      width: 100%; background: var(--bg); color: var(--text);
-      border: 1px solid var(--border); border-radius: 8px;
-      padding: 10px 14px; font-size: 14px; outline: none;
+      width: 100%; background: transparent; color: var(--text);
+      border: none; border-bottom: 1px solid var(--text); border-radius: 0;
+      padding: 8px 0; font-size: 15px; outline: none;
       font-family: 'Roboto', Arial, sans-serif; box-sizing: border-box;
-      margin-bottom: 12px;
+      margin-bottom: 24px; transition: border-color 0.2s;
     }
-    .modal-input:focus { border-color: #1c62b9; }
-    .modal-btn-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+    .modal-input:focus { border-bottom-color: #3ea6ff; }
+    .modal-btn-row { display: flex; gap: 8px; justify-content: flex-end; }
     .modal-btn {
-      padding: 8px 20px; border-radius: 8px; font-size: 14px;
-      font-weight: 600; cursor: pointer; border: none;
+      padding: 10px 16px; border-radius: 18px; font-size: 14px;
+      font-weight: 500; cursor: pointer; border: none; background: transparent;
     }
-    .modal-btn.cancel { background: var(--surface); color: var(--text-muted); }
-    .modal-btn.confirm { background: var(--accent); color: #fff; }
+    .modal-btn.cancel { color: var(--text); }
+    .modal-btn.cancel:hover { background: var(--surface-hover); }
+    .modal-btn.confirm { color: #3ea6ff; }
+    .modal-btn.confirm:hover { background: rgba(62, 166, 255, 0.2); }
     .modal-playlist-list { margin-bottom: 16px; }
     .modal-pl-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px; border-radius: 8px; cursor: pointer;
-      transition: background 0.1s; font-size: 14px;
+      display: flex; align-items: center; gap: 16px;
+      padding: 8px 0; cursor: pointer; font-size: 14px; color: var(--text);
     }
-    .modal-pl-item:hover { background: rgba(255,255,255,0.07); }
-    body.light-mode .modal-pl-item:hover { background: rgba(0,0,0,0.05); }
-    .modal-pl-icon { width: 32px; height: 32px; border-radius: 6px; background: var(--accent); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .modal-divider { border: none; border-top: 1px solid var(--border); margin: 8px 0; }
-
-    /* Sidebar library items */
-    .sidebar-item.lib-nav { cursor: pointer; }
-    .lib-badge {
-      background: var(--accent); color: #fff; font-size: 10px;
-      font-weight: 700; padding: 1px 5px; border-radius: 8px; margin-left: auto;
+    .modal-pl-item input[type="checkbox"] {
+      width: 20px; height: 20px; accent-color: #3ea6ff; cursor: pointer;
     }
-    .sidebar.expanded .lib-badge { display: inline-block; }
-    .lib-badge { display: none; }
+    .modal-divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
 
     /* ===== MOBILE BOTTOM NAV ===== */
     .mobile-bottom-nav {
@@ -602,55 +706,31 @@
     }
     @media (max-width: 768px) {
       .mobile-bottom-nav {
-        display: flex;
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        background: var(--bg);
-        border-top: 1px solid var(--border);
-        z-index: 1000;
-        height: 56px;
-        padding-bottom: env(safe-area-inset-bottom);
-        justify-content: space-around;
-        align-items: center;
+        display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+        background: var(--bg); border-top: 1px solid var(--border);
+        z-index: 1000; height: 48px; padding-bottom: env(safe-area-inset-bottom);
+        justify-content: space-around; align-items: center;
       }
       .mobile-nav-item {
-        background: none;
-        border: none;
-        color: var(--text);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-        font-size: 10px;
-        flex: 1;
-        height: 100%;
-        cursor: pointer;
+        background: none; border: none; color: var(--text);
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-decoration: none; font-size: 10px; flex: 1; height: 100%; cursor: pointer;
         font-family: 'Roboto', Arial, sans-serif;
       }
-      .mobile-nav-item svg {
-        width: 24px;
-        height: 24px;
-        fill: currentColor;
-        margin-bottom: 4px;
-      }
-      .mobile-nav-item.active {
-        font-weight: 700;
-      }
+      .mobile-nav-item svg { width: 24px; height: 24px; fill: currentColor; margin-bottom: 2px; }
+      .mobile-nav-item.active { font-weight: 500; }
     }
   </style>
 </head>
 <body>
   <header>
     <div class="header-left">
-      <button class="menu-btn" id="menuBtn" aria-label="メニュー">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-          <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+      <button class="menu-btn ripple-wrapper" id="menuBtn" data-tooltip="メインメニュー">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+          <path d="M21 6H3V5h18v1zm0 5H3v1h18v-1zm0 6H3v1h18v-1z"/>
         </svg>
       </button>
-      <a href="/" class="logo">
+      <a href="/" class="logo ripple-wrapper" data-tooltip="YouTube ホーム">
         <div class="logo-icon">
           <svg viewBox="0 0 68 48"><path d="M66.52 7.74c-.78-2.93-2.49-5.41-5.42-6.19C55.79.13 34 0 34 0S12.21.13 6.9 1.55c-2.93.78-4.63 3.26-5.42 6.19C.06 13.05 0 24 0 24s.06 10.95 1.48 16.26c.78 2.93 2.49 5.41 5.42 6.19C12.21 47.87 34 48 34 48s21.79-.13 27.1-1.55c2.93-.78 4.64-3.26 5.42-6.19C67.94 34.95 68 24 68 24s-.06-10.95-1.48-16.26z" fill="#FF0000"/><path d="M45 24 27 14v20" fill="white"/></svg>
         </div>
@@ -660,188 +740,243 @@
     </div>
 
     <div class="header-center">
-      <form id="searchForm" class="search-form">
-        <input id="searchInput" type="text" placeholder="検索" autocomplete="off" />
-        <button type="submit" class="search-btn">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M20.87 20.17l-5.59-5.59C16.35 13.35 17 11.75 17 10c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7c1.75 0 3.35-.65 4.58-1.71l5.59 5.59.7-.71zM10 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+      <div class="search-container">
+        <form id="searchForm" class="search-form">
+          <input id="searchInput" type="text" placeholder="検索" autocomplete="off" />
+          <button type="submit" class="search-btn ripple-wrapper" data-tooltip="検索">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.87 20.17l-5.59-5.59C16.35 13.35 17 11.75 17 10c0-3.87-3.13-7-7-7s-7 3.13-7 7 3.13 7 7 7c1.75 0 3.35-.65 4.58-1.71l5.59 5.59.7-.71zM10 16c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+          </button>
+        </form>
+        <button class="mic-btn ripple-wrapper" id="micBtn" data-tooltip="音声で検索">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 3c-1.66 0-3 1.34-3 3v7c0 1.66 1.34 3 3 3s3-1.34 3-3V6c0-1.66-1.34-3-3-3zm5 10c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-4.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
         </button>
-      </form>
+      </div>
     </div>
 
     <div class="header-right">
-      <div class="settings-wrapper">
-        <button class="icon-btn" id="settingsBtn" title="設定" aria-label="設定">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-        </button>
-        <div class="settings-panel" id="settingsPanel">
-          <div class="settings-panel-title">外観</div>
-          <label class="theme-radio-label" id="darkLabel">
-            <input type="radio" name="themeMode" id="themeDark" value="dark" checked>
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
-            ダークモード
-          </label>
-          <label class="theme-radio-label" id="lightLabel">
-            <input type="radio" name="themeMode" id="themeLight" value="light">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>
-            ライトモード
-          </label>
-          <hr class="settings-divider">
-          <div class="settings-select-group">
-            <div class="settings-select-label">🎬 再生方法</div>
-            <select id="playbackMode" class="settings-select">
-              <option value="googlevideo">Googlevideo（デフォルト）</option>
-              <option value="youtube-nocookie">Youtube-nocookie</option>
-              <option value="DL-Pro">DL-Pro</option>
-              <option value="YoutubeEdu-Kahoot">YoutubeEdu-Kahoot</option>
-              <option value="YoutubeEdu-Scratch">YoutubeEdu-Scratch</option>
-              <option value="Youtube-Pro">Youtube-Pro</option>
-            </select>
-            <div class="playback-hint" id="playbackHint">Googlevideoのストリームで再生します。</div>
+      <button class="icon-btn ripple-wrapper" id="createBtn" data-tooltip="作成">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 13h-3v3H9v-3H6v-2h3V8h2v3h3v2zm3-7H3v12h14v-6.39l4 1.83V8.56l-4 1.83V6m2-4v3.88L22 4v16l-3-1.88V22H1V4h18z" stroke="currentColor" stroke-width="0.5"/></svg>
+      </button>
+      <button class="icon-btn ripple-wrapper" id="notifBtn" data-tooltip="通知">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20h4c0 1.1-.9 2-2 2s-2-.9-2-2zm10-2.65V19H4v-1.65l2-1.88v-5.15C6 7.4 7.56 5.1 10 4.34v-.38c0-1.42 1.49-2.5 2.99-1.76.65.32 1.01 1.03 1.01 1.76v.39c2.44.75 4 3.06 4 5.98v5.15l2 1.87zm-1 .42-2-1.88v-5.47c0-2.47-1.19-4.36-3.13-5.1-1.26-.53-2.64-.5-3.84.03C8.15 6.11 7 7.99 7 10.42v5.47l-2 1.88V18h14v-.23z"/></svg>
+      </button>
+      <button class="profile-avatar-btn ripple-wrapper" id="profileBtn" data-tooltip="プロフィール">
+        <img src="https://yt3.ggpht.com/a/default-user=s88-c-k-c0x00ffffff-no-rj" alt="Avatar">
+      </button>
+
+      <div class="dropdown-panel create-menu" id="createPanel">
+        <div class="menu-item ripple-wrapper"><svg viewBox="0 0 24 24"><path d="M14 13h-3v3H9v-3H6v-2h3V8h2v3h3v2zm3-7H3v12h14v-6.39l4 1.83V8.56l-4 1.83V6m2-4v3.88L22 4v16l-3-1.88V22H1V4h18z"/></svg>動画をアップロード</div>
+        <div class="menu-item ripple-wrapper"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z"/></svg>ライブ配信を開始</div>
+      </div>
+
+      <div class="dropdown-panel notif-menu" id="notifPanel">
+        <div class="notif-header">通知 <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style="cursor:pointer;"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></div>
+        <div class="notif-body">
+          <div class="notif-empty">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20h4c0 1.1-.9 2-2 2s-2-.9-2-2zm10-2.65V19H4v-1.65l2-1.88v-5.15C6 7.4 7.56 5.1 10 4.34v-.38c0-1.42 1.49-2.5 2.99-1.76.65.32 1.01 1.03 1.01 1.76v.39c2.44.75 4 3.06 4 5.98v5.15l2 1.87z"/></svg>
+            ここに通知が表示されます
           </div>
         </div>
       </div>
 
-      <div id="appVersion" class="version-badge"><span class="version-badge-text"></span></div>
-
-      <a href="/youtube-pro" class="icon-btn" title="ホーム" style="text-decoration:none;">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-      </a>
+      <div class="dropdown-panel profile-menu" id="profilePanel">
+        <div class="profile-header">
+          <img src="https://yt3.ggpht.com/a/default-user=s88-c-k-c0x00ffffff-no-rj" alt="Avatar">
+          <div class="profile-info">
+            <div class="profile-name">Guest User</div>
+            <div class="profile-handle">@user-guest</div>
+            <a href="#" class="profile-link">チャンネルを表示</a>
+          </div>
+        </div>
+        <div class="menu-divider"></div>
+        <div class="menu-item ripple-wrapper" id="themeToggleBtn">
+          <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-2.98 0-5.4-2.42-5.4-5.4 0-1.81.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
+          外観: デバイスのテーマ
+          <svg class="arrow" viewBox="0 0 24 24"><path d="M9.4 18.4l-1.4-1.4 5.6-5.6-5.6-5.6 1.4-1.4 7 7-7 7z"/></svg>
+        </div>
+        <div class="theme-options" id="themeOptions">
+           <label class="theme-radio-label ripple-wrapper">
+            <input type="radio" name="themeMode" id="themeDark" value="dark">ダークモード
+          </label>
+          <label class="theme-radio-label ripple-wrapper">
+            <input type="radio" name="themeMode" id="themeLight" value="light">ライトモード
+          </label>
+        </div>
+        <div class="menu-divider"></div>
+        <div style="padding: 8px 16px;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">🎬 再生方法</div>
+          <select id="playbackMode" style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:8px; border-radius:4px; outline:none;">
+            <option value="googlevideo">Googlevideo（デフォルト）</option>
+            <option value="youtube-nocookie">Youtube-nocookie</option>
+            <option value="DL-Pro">DL-Pro</option>
+            <option value="YoutubeEdu-Kahoot">YoutubeEdu-Kahoot</option>
+            <option value="YoutubeEdu-Scratch">YoutubeEdu-Scratch</option>
+            <option value="Youtube-Pro">Youtube-Pro</option>
+          </select>
+          <div id="playbackHint" style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">Googlevideoのストリームで再生します。</div>
+        </div>
+      </div>
     </div>
   </header>
 
   <div class="layout">
     <nav class="sidebar" id="sidebar">
-      <a href="/" class="sidebar-item active">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <a href="/" class="sidebar-item active ripple-wrapper">
+        <svg viewBox="0 0 24 24"><path d="M12 2.099l-9 6.8v11.4h6v-6h6v6h6v-11.4l-9-6.8zm-1 3.2v-1h2v1h-2zm-2.8 1.9l2.8-2.1 2.8 2.1v-.7l-2.8-2.1-2.8 2.1v.7zm-2 1.5l4.8-3.6 4.8 3.6v-.7l-4.8-3.6-4.8 3.6v.7zm-2 1.5l6.8-5.1 6.8 5.1v-.7l-6.8-5.1-6.8 5.1v.7z" fill="currentColor"/></svg>
         <span class="sidebar-label">ホーム</span>
       </a>
-      <a href="#" class="sidebar-item" data-q="shorts">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.77 10.32l-1.2-.5L18 9.06c1.84-.96 2.53-3.23 1.56-5.06s-3.23-2.53-5.06-1.56L6 6.94c-1.29.68-2.07 2.04-2 3.49.07 1.4.93 2.67 2.22 3.25L7.42 14 6 14.75c-1.84.96-2.53 3.23-1.56 5.06.65 1.27 1.94 2 3.31 2 .58 0 1.18-.14 1.75-.44L17 17.06c1.29-.68 2.07-2.04 2-3.49-.07-1.4-.93-2.67-2.23-3.25zM10 14.65V9.35L15 12l-5 2.65z"/></svg>
+      <a href="#" class="sidebar-item ripple-wrapper" data-q="shorts">
+        <svg viewBox="0 0 24 24"><path d="M17.77 10.32l-1.2-.5L18 9.06c1.84-.96 2.53-3.23 1.56-5.06s-3.23-2.53-5.06-1.56L6 6.94c-1.29.68-2.07 2.04-2 3.49.07 1.4.93 2.67 2.22 3.25L7.42 14 6 14.75c-1.84.96-2.53 3.23-1.56 5.06.65 1.27 1.94 2 3.31 2 .58 0 1.18-.14 1.75-.44L17 17.06c1.29-.68 2.07-2.04 2-3.49-.07-1.4-.93-2.67-2.23-3.25zM10 14.65V9.35L15 12l-5 2.65z" fill="currentColor"/></svg>
         <span class="sidebar-label">ショート</span>
       </a>
-      <a href="#" class="sidebar-item">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 6.5C21 5.12 19.88 4 18.5 4h-13C4.12 4 3 5.12 3 6.5v11C3 18.88 4.12 20 5.5 20h13c1.38 0 2.5-1.12 2.5-2.5v-11zM18.5 6c.28 0 .5.22.5.5V11H5V6.5c0-.28.22-.5.5-.5h13zM5 17.5v-4.5h14v4.5c0 .28-.22.5-.5.5h-13c-.28 0-.5-.22-.5-.5z"/></svg>
+      <a href="#" class="sidebar-item ripple-wrapper">
+        <svg viewBox="0 0 24 24"><path d="M20 7h-1v13H4v1h15c.55 0 1-.45 1-1V7zm-3-4H3c-.55 0-1 .45-1 1v12c0 .55.45 1 1 1h14c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zm-1 12H4V5h12v10zM7 14l5.5-3.5L7 7v7z" fill="currentColor"/></svg>
         <span class="sidebar-label">登録チャンネル</span>
       </a>
       <hr class="sidebar-divider">
-      <div class="sidebar-section-title">探索</div>
-      <a href="#" class="sidebar-item" data-q="trending">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.53 11.2c-.23-.3-.5-.56-.76-.82-.65-.6-1.4-1.03-2.03-1.66-1.46-1.51-1.79-3.04-1.68-4.55.19-2.61 2.05-4.22 2.08-4.25-.1.09-.76.62-1.33 1.59-.43.73-.6 1.57-.63 2.28-.04.97.12 1.7.33 2.31.32.9.94 1.73 1.39 2.25.48.56 1.08 1.24 1.4 1.99.31.74.28 1.61-.04 2.35-.15.36-.36.7-.62 1.02-.52.61-1.15 1.04-1.75 1.3-.1.04.39-.14.55-.33.18-.2.35-.44.45-.72.08-.22.09-.47.04-.72-.06-.25-.17-.47-.32-.66-.16-.2-.34-.38-.52-.56-.4-.38-.83-.71-1.17-1.13-.64-.78-.89-1.64-.78-2.58.1-.75.41-1.44.85-2.01.46-.59.97-1.07 1.42-1.63.47-.57.77-1.19.77-1.87 0 0 1.39 1.8 1.44 4.39.02.65 0 1.36-.2 2.02-.19.63-.52 1.18-.96 1.57 0 0 1.5-1.13 2.62-2.78.87-1.27 1.25-2.69 1.13-4.11.81.97 1.37 2.15 1.48 3.34.2 2.09-.53 3.89-2 5.25-1.22 1.13-2.81 1.79-4.07 2.94-.51.46-1.02 1.04-1.25 1.7-.27.78-.18 1.65.17 2.36.36.73.95 1.28 1.61 1.6.65.32 1.39.43 2.11.29.71-.14 1.36-.54 1.82-1.09.45-.54.68-1.22.73-1.9.1-1.35-.47-2.63-1.47-3.51z"/></svg>
-        <span class="sidebar-label">急上昇</span>
+      <a href="#" class="sidebar-item lib-nav ripple-wrapper" onclick="openDrawer('history'); return false;">
+        <svg viewBox="0 0 24 24"><path d="M14.97 16.95 10 13.87V7h2v5.76l4.03 2.49-1.06 1.7zM12 3c-4.96 0-9 4.04-9 9s4.04 9 9 9 9-4.04 9-9-4.04-9-9-9m0-1c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z" fill="currentColor"/></svg>
+        <span class="sidebar-label">履歴</span>
       </a>
-      <a href="#" class="sidebar-item" data-q="Music">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-        <span class="sidebar-label">音楽</span>
-      </a>
-      <a href="#" class="sidebar-item" data-q="ゲーム">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5S14.67 12 15.5 12s1.5.67 1.5 1.5S16.33 15 15.5 15zm3-3c-.83 0-1.5-.67-1.5-1.5S17.67 9 18.5 9s1.5.67 1.5 1.5S19.33 12 18.5 12z"/></svg>
-        <span class="sidebar-label">ゲーム</span>
+      <a href="#" class="sidebar-item lib-nav ripple-wrapper" onclick="openDrawer('playlists'); return false;">
+        <svg viewBox="0 0 24 24"><path d="M22 7H2v1h20V7zm-9 5H2v-1h11v1zm0 4H2v-1h11v1zm2 3v-8l7 4-7 4z" fill="currentColor"/></svg>
+        <span class="sidebar-label">再生リスト</span>
       </a>
       <hr class="sidebar-divider">
-      <div class="sidebar-section-title">ライブラリ</div>
-      <a href="#" class="sidebar-item lib-nav" onclick="openDrawer('history'); return false;">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3a9 9 0 1 0 0 18A9 9 0 0 0 13 3zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7zm.5-11H12v6l5.25 3.15.75-1.23-4.5-2.67V8z"/></svg>
-        <span class="sidebar-label">視聴履歴</span>
+      <div class="sidebar-section-title">探索</div>
+      <a href="#" class="sidebar-item ripple-wrapper" data-q="trending">
+        <svg viewBox="0 0 24 24"><path d="M17.53 11.2c-.23-.3-.5-.56-.76-.82-.65-.6-1.4-1.03-2.03-1.66-1.46-1.51-1.79-3.04-1.68-4.55.19-2.61 2.05-4.22 2.08-4.25-.1.09-.76.62-1.33 1.59-.43.73-.6 1.57-.63 2.28-.04.97.12 1.7.33 2.31.32.9.94 1.73 1.39 2.25.48.56 1.08 1.24 1.4 1.99.31.74.28 1.61-.04 2.35-.15.36-.36.7-.62 1.02-.52.61-1.15 1.04-1.75 1.3-.1.04.39-.14.55-.33.18-.2.35-.44.45-.72.08-.22.09-.47.04-.72-.06-.25-.17-.47-.32-.66-.16-.2-.34-.38-.52-.56-.4-.38-.83-.71-1.17-1.13-.64-.78-.89-1.64-.78-2.58.1-.75.41-1.44.85-2.01.46-.59.97-1.07 1.42-1.63.47-.57.77-1.19.77-1.87 0 0 1.39 1.8 1.44 4.39.02.65 0 1.36-.2 2.02-.19.63-.52 1.18-.96 1.57 0 0 1.5-1.13 2.62-2.78.87-1.27 1.25-2.69 1.13-4.11.81.97 1.37 2.15 1.48 3.34.2 2.09-.53 3.89-2 5.25-1.22 1.13-2.81 1.79-4.07 2.94-.51.46-1.02 1.04-1.25 1.7-.27.78-.18 1.65.17 2.36.36.73.95 1.28 1.61 1.6.65.32 1.39.43 2.11.29.71-.14 1.36-.54 1.82-1.09.45-.54.68-1.22.73-1.9.1-1.35-.47-2.63-1.47-3.51z" fill="currentColor"/></svg>
+        <span class="sidebar-label">急上昇</span>
       </a>
-      <a href="#" class="sidebar-item lib-nav" onclick="openDrawer('liked'); return false;">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
-        <span class="sidebar-label">高評価した動画</span>
+      <a href="#" class="sidebar-item ripple-wrapper" data-q="Music">
+        <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" fill="currentColor"/></svg>
+        <span class="sidebar-label">音楽</span>
       </a>
-      <a href="#" class="sidebar-item lib-nav" onclick="openDrawer('playlists'); return false;">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
-        <span class="sidebar-label">再生リスト</span>
+      <a href="#" class="sidebar-item ripple-wrapper" data-q="ゲーム">
+        <svg viewBox="0 0 24 24"><path d="M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-10 7H8v3H6v-3H3v-2h3V8h2v3h3v2zm4.5 2c-.83 0-1.5-.67-1.5-1.5S14.67 12 15.5 12s1.5.67 1.5 1.5S16.33 15 15.5 15zm3-3c-.83 0-1.5-.67-1.5-1.5S17.67 9 18.5 9s1.5.67 1.5 1.5S19.33 12 18.5 12z" fill="currentColor"/></svg>
+        <span class="sidebar-label">ゲーム</span>
       </a>
     </nav>
 
-    <div id="drawerOverlay" class="drawer-overlay" onclick="closeDrawer()"></div>
-    <aside id="libraryDrawer" class="drawer">
-      <div class="drawer-header">
-        <span class="drawer-title" id="drawerTitle">ライブラリ</span>
-        <button class="drawer-close" onclick="closeDrawer()" aria-label="閉じる">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-        </button>
-      </div>
-      <div class="drawer-body" id="drawerBody"></div>
-    </aside>
-
-    <div id="cardDropdown" class="card-dropdown">
-      <div class="card-dropdown-item" onclick="ddAddLiked()">
-        <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
-        高評価に追加
-      </div>
-      <div class="card-dropdown-item" onclick="ddShowPlaylistPicker()">
-        <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
-        再生リストに追加
-      </div>
-    </div>
-
-    <div id="plPickerModal" class="modal-overlay" onclick="if(event.target===this)closePlPicker()">
-      <div class="modal">
-        <div class="modal-title">再生リストに追加</div>
-        <div class="modal-playlist-list" id="plPickerList"></div>
-        <hr class="modal-divider">
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">新しい再生リストを作成</div>
-        <input class="modal-input" id="plPickerInput" type="text" placeholder="再生リスト名" maxlength="40">
-        <div class="modal-btn-row">
-          <button class="modal-btn cancel" onclick="closePlPicker()">キャンセル</button>
-          <button class="modal-btn confirm" onclick="plPickerCreate()">作成して追加</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="createPlModal" class="modal-overlay" onclick="if(event.target===this)closeCreatePl()">
-      <div class="modal">
-        <div class="modal-title">新しい再生リスト</div>
-        <input class="modal-input" id="createPlInput" type="text" placeholder="再生リスト名" maxlength="40">
-        <div class="modal-btn-row">
-          <button class="modal-btn cancel" onclick="closeCreatePl()">キャンセル</button>
-          <button class="modal-btn confirm" onclick="doCreatePlaylist()">作成</button>
-        </div>
-      </div>
-    </div>
-
     <main class="main">
-      <div class="chips-bar" id="chipsBar">
-        <button class="chip active" data-q="trending">すべて</button>
-        <button class="chip" data-q="Music">音楽</button>
-        <button class="chip" data-q="実況">実況</button>
-        <button class="chip" data-q="ゲーム">ゲーム</button>
-        <button class="chip" data-q="エンタメ">エンタメ</button>
-        <button class="chip" data-q="最新テクノロジー">テック</button>
+      <div class="chips-bar-wrapper">
+        <div class="chips-bar" id="chipsBar">
+          <button class="chip active ripple-wrapper" data-q="trending">すべて</button>
+          <button class="chip ripple-wrapper" data-q="Music">音楽</button>
+          <button class="chip ripple-wrapper" data-q="実況">実況</button>
+          <button class="chip ripple-wrapper" data-q="ゲーム">ゲーム</button>
+          <button class="chip ripple-wrapper" data-q="エンタメ">エンタメ</button>
+          <button class="chip ripple-wrapper" data-q="最新テクノロジー">テック</button>
+          <button class="chip ripple-wrapper" data-q="料理">料理</button>
+          <button class="chip ripple-wrapper" data-q="ニュース">ニュース</button>
+        </div>
       </div>
 
       <div class="content-area">
         <div id="shortsSection" class="shorts-section" style="display:none;">
           <div class="section-header">
             <div class="section-title">
-              <span class="shorts-badge">Shorts</span>
-              ショート動画
+              <svg viewBox="0 0 24 24"><path d="M17.77 10.32l-1.2-.5L18 9.06c1.84-.96 2.53-3.23 1.56-5.06s-3.23-2.53-5.06-1.56L6 6.94c-1.29.68-2.07 2.04-2 3.49.07 1.4.93 2.67 2.22 3.25L7.42 14 6 14.75c-1.84.96-2.53 3.23-1.56 5.06.65 1.27 1.94 2 3.31 2 .58 0 1.18-.14 1.75-.44L17 17.06c1.29-.68 2.07-2.04 2-3.49-.07-1.4-.93-2.67-2.23-3.25zM10 14.65V9.35L15 12l-5 2.65z"/></svg>
+              ショート
             </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:12px;color:var(--text-muted);">横スクロールで表示</span>
-              <button id="shortsToggle" class="shorts-toggle-btn" aria-expanded="true">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg>
-                非表示
-              </button>
-            </div>
+            <button id="shortsToggle" class="shorts-toggle-btn ripple-wrapper" aria-expanded="true">
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
           </div>
           <div id="shortsRow" class="shorts-row"></div>
         </div>
 
-        <div id="videoGrid" class="video-grid"></div>
-        <div id="loading" style="display:none;">
-          <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--text-muted)" stroke-width="2" style="animation:spin 1s linear infinite;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto;">
-            <circle cx="12" cy="12" r="10" stroke-dasharray="30 60" stroke-linecap="round"/>
-          </svg>
-          読み込み中...
-        </div>
+        <div id="skeletonGrid" class="skeleton-grid">
+          </div>
+
+        <div id="videoGrid" class="video-grid" style="display:none;"></div>
       </div>
     </main>
   </div>
 
-  <style>
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
+  <div id="drawerOverlay" class="drawer-overlay" onclick="closeDrawer()"></div>
+  <aside id="libraryDrawer" class="drawer">
+    <div class="drawer-header">
+      <span class="drawer-title" id="drawerTitle">ライブラリ</span>
+      <button class="drawer-close ripple-wrapper" onclick="closeDrawer()">
+        <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" fill="currentColor"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+  </aside>
+
+  <div id="cardDropdown" class="card-dropdown">
+    <div class="card-dropdown-item ripple-wrapper" onclick="ddAddLiked()">
+      <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
+      高く評価した動画に追加
+    </div>
+    <div class="card-dropdown-item ripple-wrapper" onclick="ddShowPlaylistPicker()">
+      <svg viewBox="0 0 24 24"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>
+      再生リストに保存
+    </div>
+  </div>
+
+  <div id="plPickerModal" class="modal-overlay" onclick="if(event.target===this)closePlPicker()">
+    <div class="modal">
+      <div class="modal-title">保存先...</div>
+      <div class="modal-playlist-list" id="plPickerList"></div>
+      <div class="modal-divider"></div>
+      <div style="font-size:14px; margin-bottom:8px; display:flex; align-items:center; gap:8px; color:var(--text);">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg>
+        新しい再生リストを作成
+      </div>
+      <input class="modal-input" id="plPickerInput" type="text" placeholder="タイトルを入力..." maxlength="40">
+      <div class="modal-btn-row">
+        <button class="modal-btn cancel ripple-wrapper" onclick="closePlPicker()">キャンセル</button>
+        <button class="modal-btn confirm ripple-wrapper" onclick="plPickerCreate()">作成</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="createPlModal" class="modal-overlay" onclick="if(event.target===this)closeCreatePl()">
+    <div class="modal">
+      <div class="modal-title">新しい再生リスト</div>
+      <input class="modal-input" id="createPlInput" type="text" placeholder="タイトルを追加..." maxlength="40">
+      <div class="modal-btn-row">
+        <button class="modal-btn cancel ripple-wrapper" onclick="closeCreatePl()">キャンセル</button>
+        <button class="modal-btn confirm ripple-wrapper" onclick="doCreatePlaylist()">作成</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="voiceSearchModal" class="voice-modal-overlay" onclick="if(event.target===this)closeVoiceSearch()">
+    <div class="voice-modal">
+      <button class="voice-close" onclick="closeVoiceSearch()">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+      </button>
+      <div class="voice-title" id="voiceTitle">音声でお話しください...</div>
+      <button class="voice-btn-huge" id="voiceMicBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3c-1.66 0-3 1.34-3 3v7c0 1.66 1.34 3 3 3s3-1.34 3-3V6c0-1.66-1.34-3-3-3zm5 10c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-4.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <nav class="mobile-bottom-nav">
+    <a href="/" class="mobile-nav-item active ripple-wrapper">
+      <svg viewBox="0 0 24 24"><path d="M12 2.099l-9 6.8v11.4h6v-6h6v6h6v-11.4l-9-6.8zm-1 3.2v-1h2v1h-2zm-2.8 1.9l2.8-2.1 2.8 2.1v-.7l-2.8-2.1-2.8 2.1v.7zm-2 1.5l4.8-3.6 4.8 3.6v-.7l-4.8-3.6-4.8 3.6v.7zm-2 1.5l6.8-5.1 6.8 5.1v-.7l-6.8-5.1-6.8 5.1v.7z" fill="currentColor"/></svg>
+      ホーム
+    </a>
+    <a href="#" class="mobile-nav-item ripple-wrapper" data-q="shorts">
+      <svg viewBox="0 0 24 24"><path d="M17.77 10.32l-1.2-.5L18 9.06c1.84-.96 2.53-3.23 1.56-5.06s-3.23-2.53-5.06-1.56L6 6.94c-1.29.68-2.07 2.04-2 3.49.07 1.4.93 2.67 2.22 3.25L7.42 14 6 14.75c-1.84.96-2.53 3.23-1.56 5.06.65 1.27 1.94 2 3.31 2 .58 0 1.18-.14 1.75-.44L17 17.06c1.29-.68 2.07-2.04 2-3.49-.07-1.4-.93-2.67-2.23-3.25zM10 14.65V9.35L15 12l-5 2.65z" fill="currentColor"/></svg>
+      ショート
+    </a>
+    <div class="mobile-nav-item ripple-wrapper" style="position:relative;">
+      <svg viewBox="0 0 24 24" width="36" height="36" style="margin-bottom:0;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z" fill="currentColor"/></svg>
+    </div>
+    <button class="mobile-nav-item ripple-wrapper" onclick="openDrawer('history')">
+      <svg viewBox="0 0 24 24"><path d="M20 7h-1v13H4v1h15c.55 0 1-.45 1-1V7zm-3-4H3c-.55 0-1 .45-1 1v12c0 .55.45 1 1 1h14c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1zm-1 12H4V5h12v10zM7 14l5.5-3.5L7 7v7z" fill="currentColor"/></svg>
+      登録チャンネル
+    </button>
+    <button class="mobile-nav-item ripple-wrapper" onclick="openDrawer('playlists')">
+      <svg viewBox="0 0 24 24"><path d="M11 7l6 3.5-6 3.5V7zm7 13H4V6H3v15h15v-1zm3-2H6V3h15v15zM7 4h13v13H7V4z" fill="currentColor"/></svg>
+      マイページ
+    </button>
+  </nav>
 
   <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
@@ -862,26 +997,40 @@
   const db = getDatabase(app);
   const currentUrl = window.location.origin;
 
-if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !currentUrl.includes("cloudflare")) {
+  if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !currentUrl.includes("cloudflare")) {
       const safeKey = btoa(currentUrl).replace(/[=+/]/g, '_');
       const dbRef = ref(db);
-
       get(child(dbRef, `public_domains/${safeKey}`)).then((snapshot) => {
         if (!snapshot.exists()) {
-          set(ref(db, `public_domains/${safeKey}`), {
-            url: currentUrl,
-            timestamp: Date.now()
-          });
+          set(ref(db, `public_domains/${safeKey}`), { url: currentUrl, timestamp: Date.now() });
         }
       });
   }
-</script>
+  </script>
 
   <script>
+    /* ===== Ripple Effect ===== */
+    document.addEventListener('mousedown', function(e) {
+      const target = e.target.closest('.ripple-wrapper');
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      const ripple = document.createElement('span');
+      const size = Math.max(rect.width, rect.height);
+      const left = e.clientX - rect.left - size / 2;
+      const top = e.clientY - rect.top - size / 2;
+      ripple.style.width = ripple.style.height = `${size}px`;
+      ripple.style.left = `${left}px`;
+      ripple.style.top = `${top}px`;
+      ripple.classList.add('ripple');
+      target.appendChild(ripple);
+      setTimeout(() => ripple.remove(), 600);
+    });
+
+    /* ===== Elements ===== */
     const videoGrid = document.getElementById('videoGrid');
+    const skeletonGrid = document.getElementById('skeletonGrid');
     const searchForm = document.getElementById('searchForm');
     const searchInput = document.getElementById('searchInput');
-    const loading = document.getElementById('loading');
     const shortsSection = document.getElementById('shortsSection');
     const shortsRow = document.getElementById('shortsRow');
     const shortsToggle = document.getElementById('shortsToggle');
@@ -893,11 +1042,110 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
     let currentQuery = 'trending';
     let shortsExpanded = true;
 
-    // Sidebar toggle
-    document.getElementById('menuBtn').addEventListener('click', () => {
-      sidebar.classList.toggle('expanded');
+    /* ===== Dropdowns & UI ===== */
+    const menuBtn = document.getElementById('menuBtn');
+    menuBtn.addEventListener('click', () => sidebar.classList.toggle('expanded'));
+
+    searchForm.querySelector('input').addEventListener('focus', () => searchForm.classList.add('focused'));
+    searchForm.querySelector('input').addEventListener('blur', () => searchForm.classList.remove('focused'));
+
+    function closeAllDropdowns() {
+      document.querySelectorAll('.dropdown-panel').forEach(p => p.classList.remove('open'));
+    }
+    
+    document.getElementById('createBtn').addEventListener('click', (e) => {
+      e.stopPropagation(); closeAllDropdowns(); document.getElementById('createPanel').classList.toggle('open');
+    });
+    document.getElementById('notifBtn').addEventListener('click', (e) => {
+      e.stopPropagation(); closeAllDropdowns(); document.getElementById('notifPanel').classList.toggle('open');
+    });
+    document.getElementById('profileBtn').addEventListener('click', (e) => {
+      e.stopPropagation(); closeAllDropdowns(); document.getElementById('profilePanel').classList.toggle('open');
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.dropdown-panel')) closeAllDropdowns();
     });
 
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    const themeOptions = document.getElementById('themeOptions');
+    themeToggleBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      themeOptions.classList.toggle('open');
+      themeToggleBtn.querySelector('.arrow').style.transform = themeOptions.classList.contains('open') ? 'rotate(180deg)' : '';
+    });
+
+    /* ===== Voice Search API ===== */
+    const micBtn = document.getElementById('micBtn');
+    const voiceModal = document.getElementById('voiceSearchModal');
+    const voiceTitle = document.getElementById('voiceTitle');
+    const voiceMicBtn = document.getElementById('voiceMicBtn');
+    let recognition;
+
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      recognition.lang = 'ja-JP';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = function() {
+        voiceTitle.textContent = "お話しください...";
+        voiceMicBtn.classList.add('active');
+        micBtn.classList.add('listening');
+      }
+      recognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        voiceTitle.textContent = `「${transcript}」`;
+        searchInput.value = transcript;
+        setTimeout(() => {
+          closeVoiceSearch();
+          searchForm.dispatchEvent(new Event('submit'));
+        }, 1000);
+      }
+      recognition.onerror = function(event) {
+        voiceTitle.textContent = "音声が認識できませんでした。もう一度お試しください。";
+        voiceMicBtn.classList.remove('active');
+        micBtn.classList.remove('listening');
+      }
+      recognition.onend = function() {
+        voiceMicBtn.classList.remove('active');
+        micBtn.classList.remove('listening');
+      }
+    }
+
+    micBtn.addEventListener('click', () => {
+      voiceModal.classList.add('open');
+      if (recognition) { recognition.start(); } else { voiceTitle.textContent = "お使いのブラウザは音声検索に対応していません。"; }
+    });
+    voiceMicBtn.addEventListener('click', () => {
+      if (recognition && !voiceMicBtn.classList.contains('active')) recognition.start();
+    });
+    function closeVoiceSearch() {
+      voiceModal.classList.remove('open');
+      if (recognition) recognition.stop();
+    }
+    window.closeVoiceSearch = closeVoiceSearch;
+
+    /* ===== Init Skeleton ===== */
+    function renderSkeletons() {
+      skeletonGrid.innerHTML = '';
+      for (let i = 0; i < 12; i++) {
+        skeletonGrid.innerHTML += `
+          <div class="skeleton-card">
+            <div class="skeleton-thumb skeleton"></div>
+            <div class="skeleton-meta">
+              <div class="skeleton-avatar skeleton"></div>
+              <div class="skeleton-details">
+                <div class="skeleton-text skeleton"></div>
+                <div class="skeleton-text short skeleton"></div>
+              </div>
+            </div>
+          </div>`;
+      }
+    }
+    renderSkeletons();
+
+    /* ===== Fetching & Rendering ===== */
     function shuffleArray(arr) {
       for (let i = arr.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -912,9 +1160,7 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
         if (!res.ok) return [];
         const data = await res.json();
         return data.items || [];
-      } catch (err) {
-        return [];
-      }
+      } catch (err) { return []; }
     }
 
     function normalizeAndFilterList(list) {
@@ -938,32 +1184,29 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
     function updateShortsToggleUI() {
       if (!shortsSection || !shortsToggle || !shortsRow) return;
       if (!shortsSection.style.display || shortsSection.style.display === 'none') {
-        shortsToggle.style.display = 'none';
-        return;
+        shortsToggle.style.display = 'none'; return;
       }
-      shortsToggle.style.display = 'inline-flex';
+      shortsToggle.style.display = 'flex';
       if (shortsExpanded) {
-        shortsToggle.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/></svg> 非表示`;
-        shortsToggle.setAttribute('aria-expanded', 'true');
+        shortsToggle.innerHTML = `<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`;
         shortsRow.style.display = 'flex';
       } else {
-        shortsToggle.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg> 表示`;
-        shortsToggle.setAttribute('aria-expanded', 'false');
+        shortsToggle.innerHTML = `<svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z"/></svg>`;
         shortsRow.style.display = 'none';
       }
     }
 
     shortsToggle.addEventListener('click', () => {
-      shortsExpanded = !shortsExpanded;
-      updateShortsToggleUI();
+      shortsExpanded = !shortsExpanded; updateShortsToggleUI();
     });
 
     async function loadContent(query = 'trending', page = 0) {
       if (isFetching) return;
       isFetching = true;
-      loading.style.display = 'block';
-
+      
       if (page === 0) {
+        skeletonGrid.style.display = 'grid';
+        videoGrid.style.display = 'none';
         displayedIds.clear();
         videoGrid.innerHTML = '';
         shortsRow.innerHTML = '';
@@ -972,97 +1215,80 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
       }
 
       const isDefault = query === 'trending';
-      const endpoint = isDefault
-        ? `/api/trending?page=${page}`
-        : `/api/search?q=${encodeURIComponent(query)}&page=${page}`;
+      const endpoint = isDefault ? `/api/trending?page=${page}` : `/api/search?q=${encodeURIComponent(query)}&page=${page}`;
 
       try {
         let items = await fetchEndpoint(endpoint);
         items = normalizeAndFilterList(items);
 
-        if (page === 0) {
-          const MIN_ITEMS = 12;
-          if (items.length < MIN_ITEMS) {
-            const chips = Array.from(document.querySelectorAll('.chip'))
-              .map(c => c.dataset.q).filter(q => q && q !== query);
-            shuffleArray(chips);
-            const supplementPromises = [];
-            const maxSources = Math.min(4, chips.length);
-            for (let i = 0; i < maxSources; i++) {
-              const cat = chips[i];
-              const ep = cat === 'trending' ? `/api/trending?page=0` : `/api/search?q=${encodeURIComponent(cat)}&page=0`;
-              supplementPromises.push(fetchEndpoint(ep));
-            }
-            const supplementResults = await Promise.all(supplementPromises);
-            const combined = items.concat(...supplementResults.flat());
-            const filteredCombined = normalizeAndFilterList(combined);
-            const seen = new Set();
-            const deduped = [];
-            for (const it of filteredCombined) {
-              if (!it || !it.id) continue;
-              if (seen.has(it.id)) continue;
-              seen.add(it.id);
-              deduped.push(it);
-            }
-            items = shuffleArray(deduped);
+        if (page === 0 && items.length < 12) {
+          const chips = Array.from(document.querySelectorAll('.chip')).map(c => c.dataset.q).filter(q => q && q !== query);
+          shuffleArray(chips);
+          const supplementPromises = [];
+          for (let i = 0; i < Math.min(4, chips.length); i++) {
+            const ep = chips[i] === 'trending' ? `/api/trending?page=0` : `/api/search?q=${encodeURIComponent(chips[i])}&page=0`;
+            supplementPromises.push(fetchEndpoint(ep));
           }
+          const supplementResults = await Promise.all(supplementPromises);
+          const combined = items.concat(...supplementResults.flat());
+          const filteredCombined = normalizeAndFilterList(combined);
+          const seen = new Set();
+          const deduped = [];
+          for (const it of filteredCombined) {
+            if (!it || !it.id || seen.has(it.id)) continue;
+            seen.add(it.id); deduped.push(it);
+          }
+          items = shuffleArray(deduped);
         }
 
+        skeletonGrid.style.display = 'none';
+        videoGrid.style.display = 'grid';
+
         if (items.length === 0 && page === 0) {
-          videoGrid.innerHTML = '<p class="empty">動画が見つかりませんでした。</p>';
+          videoGrid.style.display = 'block';
+          videoGrid.innerHTML = '<div class="empty"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>一致する動画が見つかりませんでした</div>';
+          return;
         }
 
         let shorts = [];
         const normals = [];
         items.forEach(item => {
           if (!item || !item.id) return;
-          const title = item.title || '';
-          if (title.includes('#')) shorts.push(item);
+          if ((item.title || '').includes('#')) shorts.push(item);
           else normals.push(item);
         });
 
         if (page === 0) {
           if (currentQuery !== 'trending' && shorts.length > 0 && shorts.length <= 4) {
-            const needed = 6;
             const addedShortIds = new Set(shorts.map(s => s.id));
-            for (let p = 1; p <= 3 && shorts.length < needed; p++) {
-              const ep = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${p}`;
+            for (let p = 1; p <= 2 && shorts.length < 6; p++) {
               try {
-                const resItems = await fetchEndpoint(ep);
-                const norm = normalizeAndFilterList(resItems);
-                for (const it of norm) {
-                  if (!it || !it.id || addedShortIds.has(it.id)) continue;
-                  if ((it.title || '').includes('#')) {
-                    shorts.push(it);
-                    addedShortIds.add(it.id);
-                    if (shorts.length >= needed) break;
+                const ep = `/api/search?q=${encodeURIComponent(currentQuery)}&page=${p}`;
+                const resItems = normalizeAndFilterList(await fetchEndpoint(ep));
+                for (const it of resItems) {
+                  if (it && it.id && !addedShortIds.has(it.id) && (it.title || '').includes('#')) {
+                    shorts.push(it); addedShortIds.add(it.id);
+                    if (shorts.length >= 6) break;
                   }
                 }
               } catch (e) {}
             }
           }
 
-          if (shorts.length <= 4) {
-            shortsSection.style.display = 'none';
-          } else {
+          if (shorts.length > 4) {
             shortsSection.style.display = 'block';
             shorts.forEach(item => {
               if (!item || !item.id || displayedIds.has(item.id)) return;
               displayedIds.add(item.id);
               const a = document.createElement('a');
-              a.className = 'short-card';
+              a.className = 'short-card ripple-wrapper';
               a.href = `/video/${item.id}`;
-              const thumbUrl = `https://i3.ytimg.com/vi/${item.id}/hqdefault.jpg`;
-              const channel = item.channelTitle || '';
-              const viewText = item.viewCountText || '';
               a.innerHTML = `
                 <div class="short-thumb">
-                  <img src="${thumbUrl}" loading="lazy" alt="${item.title || 'ショート'}">
-                  <div class="short-overlay">
-                    <div class="short-title">${item.title || ''}</div>
-                    <div class="short-views">${viewText}</div>
-                  </div>
+                  <img src="https://i3.ytimg.com/vi/${item.id}/hqdefault.jpg" loading="lazy" alt="Short">
                 </div>
+                <div class="short-title">${item.title || ''}</div>
+                <div class="short-views">${item.viewCountText || '視聴回数'}</div>
               `;
               shortsRow.appendChild(a);
             });
@@ -1073,29 +1299,25 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
         normals.forEach(item => {
           if (!item || !item.id || displayedIds.has(item.id)) return;
           displayedIds.add(item.id);
-
           const card = document.createElement('a');
-          card.className = 'video-card';
+          card.className = 'video-card ripple-wrapper';
           card.href = `/video/${item.id}`;
-          const thumbUrl = `https://i3.ytimg.com/vi/${item.id}/mqdefault.jpg`;
           const channel = item.channelTitle || '';
-          const viewText = item.viewCountText || '';
-          const published = item.publishedTimeText || '';
-          const initial = channel ? channel[0].toUpperCase() : 'C';
-
+          const initial = channel ? channel[0].toUpperCase() : '';
+          
           card.innerHTML = `
             <div class="thumb">
-              <img src="${thumbUrl}" loading="lazy" alt="${item.title || '動画'}">
-              <div class="duration-badge">4:32</div>
+              <img src="https://i3.ytimg.com/vi/${item.id}/mqdefault.jpg" loading="lazy" alt="Thumbnail">
+              <div class="duration-badge">動画</div>
             </div>
             <div class="meta">
-              <div class="channel-avatar">${initial}</div>
+              <div class="channel-avatar">${initial ? initial : '<svg viewBox="0 0 24 24" width="24" height="24" fill="white"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>'}</div>
               <div class="details">
                 <h3>${item.title || ''}</h3>
-                <div class="channel-name">${channel}</div>
-                <div class="video-stats">${viewText}${viewText && published ? ' • ' : ''}${published}</div>
+                <div class="channel-name">${channel} <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="opacity:0.8"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm-1.9 14.7L6 12.6l1.5-1.5 2.6 2.6 6.4-6.4 1.5 1.5-7.9 7.9z"/></svg></div>
+                <div class="video-stats">${item.viewCountText || ''}${item.viewCountText && item.publishedTimeText ? ' • ' : ''}${item.publishedTimeText || ''}</div>
+                <button class="card-menu-btn" aria-label="メニュー" data-id="${item.id}" data-title="${(item.title||'').replace(/"/g,'&quot;')}" data-channel="${channel.replace(/"/g,'&quot;')}">⋮</button>
               </div>
-              <button class="card-menu-btn" aria-label="メニュー" data-id="${item.id}" data-title="${(item.title||'').replace(/"/g,'&quot;')}" data-channel="${channel.replace(/"/g,'&quot;')}" data-views="${viewText}" data-published="${published}">⋮</button>
             </div>
           `;
           videoGrid.appendChild(card);
@@ -1105,7 +1327,7 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
         console.error("Fetch error", err);
       } finally {
         isFetching = false;
-        loading.style.display = 'none';
+        skeletonGrid.style.display = 'none';
       }
     }
 
@@ -1113,8 +1335,7 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
       e.preventDefault();
       const q = searchInput.value.trim();
       if (!q) return;
-      currentQuery = q;
-      currentPage = 0;
+      currentQuery = q; currentPage = 0;
       document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
       history.pushState(null, '', `/search?q=${encodeURIComponent(q)}`);
       loadContent(q, 0);
@@ -1131,71 +1352,49 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
       if (chip) {
         document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
-        currentQuery = chip.dataset.q;
-        currentPage = 0;
-        searchInput.value = '';
+        currentQuery = chip.dataset.q; currentPage = 0; searchInput.value = '';
         loadContent(currentQuery, 0);
       }
     };
 
-    // Sidebar link clicks
-    document.querySelectorAll('.sidebar-item[data-q]').forEach(item => {
+    document.querySelectorAll('.sidebar-item[data-q], .mobile-nav-item[data-q]').forEach(item => {
       item.addEventListener('click', (e) => {
         e.preventDefault();
-        const q = item.dataset.q;
-        if (!q) return;
+        const q = item.dataset.q; if (!q) return;
         document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
         const matchingChip = document.querySelector(`.chip[data-q="${q}"]`);
         if (matchingChip) matchingChip.classList.add('active');
-        currentQuery = q; currentPage = 0;
-        searchInput.value = '';
+        document.querySelectorAll('.mobile-nav-item, .sidebar-item').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+        currentQuery = q; currentPage = 0; searchInput.value = '';
         loadContent(q, 0);
       });
     });
 
-    // Settings
-    const settingsBtn = document.getElementById('settingsBtn');
-    const settingsPanel = document.getElementById('settingsPanel');
+    /* ===== Settings & Theme ===== */
     const themeDark = document.getElementById('themeDark');
     const themeLight = document.getElementById('themeLight');
-    const darkLabel = document.getElementById('darkLabel');
-    const lightLabel = document.getElementById('lightLabel');
-
-    settingsBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      settingsPanel.classList.toggle('open');
-    });
-    settingsPanel.addEventListener('click', (e) => e.stopPropagation());
-    document.addEventListener('click', (e) => {
-      if (!settingsBtn.contains(e.target)) settingsPanel.classList.remove('open');
-    });
 
     function applyTheme(isLight) {
       if (isLight) {
-        document.body.classList.add('light-mode');
-        lightLabel.classList.add('selected'); darkLabel.classList.remove('selected');
-        themeLight.checked = true;
+        document.body.classList.add('light-mode'); themeLight.checked = true;
       } else {
-        document.body.classList.remove('light-mode');
-        darkLabel.classList.add('selected'); lightLabel.classList.remove('selected');
-        themeDark.checked = true;
+        document.body.classList.remove('light-mode'); themeDark.checked = true;
       }
       localStorage.setItem('theme', isLight ? 'light' : 'dark');
     }
     themeDark.addEventListener('change', () => { if (themeDark.checked) applyTheme(false); });
     themeLight.addEventListener('change', () => { if (themeLight.checked) applyTheme(true); });
-    const savedTheme = localStorage.getItem('theme');
-    applyTheme(savedTheme === 'light');
+    applyTheme(localStorage.getItem('theme') === 'light');
 
-    // Playback
     const playbackMode = document.getElementById('playbackMode');
     const playbackHint = document.getElementById('playbackHint');
     const PLAYBACK_HINTS = {
-      'googlevideo': 'Googlevideoのストリームで再生します（デフォルト）。',
-      'youtube-nocookie': 'YouTube埋め込みプレイヤーで再生します（確実に動作します）。',
-      'DL-Pro': 'DL-Proサーバー経由で360p相当のストリームを取得します。',
-      'YoutubeEdu-Kahoot': 'Kahoot経由のYouTube教育プレイヤーで再生します。',
-      'YoutubeEdu-Scratch': 'Scratch経由のYouTube教育プレイヤーで再生します。',
+      'googlevideo': 'Googlevideoのストリームで再生します。',
+      'youtube-nocookie': 'YouTube埋め込みプレイヤーで再生します。',
+      'DL-Pro': 'DL-Proサーバー経由で取得します。',
+      'YoutubeEdu-Kahoot': 'Kahoot経由の教育プレイヤーで再生します。',
+      'YoutubeEdu-Scratch': 'Scratch経由の教育プレイヤーで再生します。',
       'Youtube-Pro': 'Youtube-Proサーバー経由で再生します。'
     };
     function applyPlaybackMode(mode) {
@@ -1206,37 +1405,14 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
     playbackMode.addEventListener('change', () => applyPlaybackMode(playbackMode.value));
     applyPlaybackMode(localStorage.getItem('playbackMode') || 'googlevideo');
 
-    // Version
-    async function fetchAndShowVersion() {
-      try {
-        const res = await fetch('/version');
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data && data.version) {
-          const badge = document.getElementById('appVersion');
-          const textEl = badge.querySelector('.version-badge-text');
-          if (badge && textEl) {
-            textEl.textContent = 'v' + data.version;
-            badge.classList.add('show');
-          }
-        }
-      } catch (e) {}
-    }
-    fetchAndShowVersion();
-
     window.onload = () => {
       const params = new URLSearchParams(window.location.search);
       const q = params.get('q');
-      if (q) {
-        currentQuery = q;
-        searchInput.value = q;
-        loadContent(q, 0);
-      } else {
-        loadContent('trending', 0);
-      }
+      if (q) { currentQuery = q; searchInput.value = q; loadContent(q, 0); } 
+      else { loadContent('trending', 0); }
     };
 
-    // ===== LIBRARY: History / Liked / Playlists =====
+    /* ===== LIBRARY: History / Liked / Playlists ===== */
     const LIB_HISTORY  = 'mt_history';
     const LIB_LIKED    = 'mt_liked';
     const LIB_PLAYLISTS = 'mt_playlists';
@@ -1245,305 +1421,173 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
     function libGet(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch { return []; } }
     function libSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
-    // --- History ---
     function recordHistory(item) {
       let hist = libGet(LIB_HISTORY);
       hist = hist.filter(h => h.id !== item.id);
-      hist.unshift({ id: item.id, title: item.title, channel: item.channel, views: item.views, published: item.published, ts: Date.now() });
+      hist.unshift({ id: item.id, title: item.title, channel: item.channel, ts: Date.now() });
       if (hist.length > MAX_HISTORY) hist = hist.slice(0, MAX_HISTORY);
       libSet(LIB_HISTORY, hist);
     }
 
-    // --- Liked ---
     function addLiked(item) {
       let liked = libGet(LIB_LIKED);
-      if (liked.find(x => x.id === item.id)) {
-        showToast('既に高評価済みです');
-        return;
-      }
+      if (liked.find(x => x.id === item.id)) { showToast('既に高く評価済みです'); return; }
       liked.unshift({ ...item, ts: Date.now() });
       libSet(LIB_LIKED, liked);
-      showToast('高評価に追加しました 👍');
+      showToast('高く評価した動画に追加しました');
     }
-    function removeLiked(id) {
-      libSet(LIB_LIKED, libGet(LIB_LIKED).filter(x => x.id !== id));
-      openDrawer('liked');
-    }
+    window.removeLiked = function(id) { libSet(LIB_LIKED, libGet(LIB_LIKED).filter(x => x.id !== id)); openDrawer('liked'); };
 
-    // --- Playlists ---
     function getPlaylists() { return libGet(LIB_PLAYLISTS); }
     function savePlaylists(pls) { libSet(LIB_PLAYLISTS, pls); }
     function addPlaylist(name) {
-      const pls = getPlaylists();
-      const pl = { id: Date.now().toString(), name, items: [], createdAt: Date.now() };
-      pls.push(pl);
-      savePlaylists(pls);
-      return pl;
+      const pls = getPlaylists(); const pl = { id: Date.now().toString(), name, items: [], createdAt: Date.now() };
+      pls.push(pl); savePlaylists(pls); return pl;
     }
-    function deletePlaylist(plId) {
-      savePlaylists(getPlaylists().filter(p => p.id !== plId));
-    }
+    window.deletePlaylistUI = function(plId) { if (confirm('再生リストを削除しますか？')) { savePlaylists(getPlaylists().filter(p => p.id !== plId)); openDrawer('playlists'); } };
     function addToPlaylist(plId, item) {
-      const pls = getPlaylists();
-      const pl = pls.find(p => p.id === plId);
+      const pls = getPlaylists(); const pl = pls.find(p => p.id === plId);
       if (!pl) return false;
-      if (pl.items.find(x => x.id === item.id)) { showToast('既に追加済みです'); return false; }
-      pl.items.push({ ...item, ts: Date.now() });
-      savePlaylists(pls);
-      return true;
+      if (pl.items.find(x => x.id === item.id)) { showToast('追加済みです'); return false; }
+      pl.items.push({ ...item, ts: Date.now() }); savePlaylists(pls); return true;
     }
-    function removeFromPlaylist(plId, itemId) {
-      const pls = getPlaylists();
-      const pl = pls.find(p => p.id === plId);
-      if (pl) { pl.items = pl.items.filter(x => x.id !== itemId); savePlaylists(pls); }
-    }
-    function exportPlaylist(plId) {
-      const pl = getPlaylists().find(p => p.id === plId);
-      if (!pl) return;
+    window.removePlItem = function(plId, itemId) {
+      const pls = getPlaylists(); const pl = pls.find(p => p.id === plId);
+      if (pl) { pl.items = pl.items.filter(x => x.id !== itemId); savePlaylists(pls); openDrawer('playlistDetail', plId); }
+    };
+    window.exportPlaylist = function(plId) {
+      const pl = getPlaylists().find(p => p.id === plId); if (!pl) return;
       const blob = new Blob([JSON.stringify(pl, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `playlist_${pl.name.replace(/\s+/g,'_')}.json`;
-      a.click();
-    }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `playlist_${pl.name}.json`; a.click();
+    };
 
-    // --- Toast ---
     let _toastTimer;
     function showToast(msg) {
       let t = document.getElementById('libToast');
       if (!t) {
-        t = document.createElement('div');
-        t.id = 'libToast';
-        t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:20px;font-size:14px;z-index:3000;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;';
+        t = document.createElement('div'); t.id = 'libToast';
+        t.style.cssText = 'position:fixed;bottom:80px;left:24px;background:#323232;color:#fff;padding:12px 24px;border-radius:4px;font-size:14px;z-index:4000;transition:opacity 0.3s;pointer-events:none; box-shadow:0 2px 5px rgba(0,0,0,0.2); font-weight:500;';
         document.body.appendChild(t);
       }
-      t.textContent = msg;
-      t.style.opacity = '1';
-      clearTimeout(_toastTimer);
-      _toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
+      t.textContent = msg; t.style.opacity = '1';
+      clearTimeout(_toastTimer); _toastTimer = setTimeout(() => { t.style.opacity = '0'; }, 3000);
     }
 
-    // --- Drawer ---
-    let _drawerMode = null;
-    let _drawerPlId = null;
+    let _drawerMode = null, _drawerPlId = null;
     function openDrawer(mode, plId) {
-      _drawerMode = mode;
-      _drawerPlId = plId || null;
-      const drawer = document.getElementById('libraryDrawer');
-      const overlay = document.getElementById('drawerOverlay');
-      const title = document.getElementById('drawerTitle');
-      const body = document.getElementById('drawerBody');
-      const titles = { history: '視聴履歴', liked: '高評価した動画', playlists: '再生リスト', playlistDetail: '再生リスト' };
-      title.textContent = titles[mode] || 'ライブラリ';
-      body.innerHTML = '';
+      _drawerMode = mode; _drawerPlId = plId || null;
+      const drawer = document.getElementById('libraryDrawer'), overlay = document.getElementById('drawerOverlay');
+      const title = document.getElementById('drawerTitle'), body = document.getElementById('drawerBody');
+      const titles = { history: '履歴', liked: '高く評価した動画', playlists: '再生リスト', playlistDetail: '再生リスト' };
+      title.textContent = titles[mode] || 'ライブラリ'; body.innerHTML = '';
       if (mode === 'history') renderHistoryDrawer(body);
       else if (mode === 'liked') renderLikedDrawer(body);
       else if (mode === 'playlists') renderPlaylistsDrawer(body);
       else if (mode === 'playlistDetail') renderPlaylistDetail(body, plId);
-      drawer.classList.add('open');
-      overlay.classList.add('open');
+      drawer.classList.add('open'); overlay.classList.add('open');
     }
-    function closeDrawer() {
-      document.getElementById('libraryDrawer').classList.remove('open');
-      document.getElementById('drawerOverlay').classList.remove('open');
-    }
+    window.openDrawer = openDrawer;
+    window.closeDrawer = function() { document.getElementById('libraryDrawer').classList.remove('open'); document.getElementById('drawerOverlay').classList.remove('open'); };
 
     function libItemHTML(item, removeFn) {
-      return `<div style="display:flex;gap:12px;align-items:center;padding:8px;border-radius:10px;margin-bottom:4px;transition:background 0.1s;" onmouseenter="this.style.background='rgba(255,255,255,0.06)'" onmouseleave="this.style.background=''">
-        <a href="/video/${item.id}" onclick="recordHistory(${JSON.stringify(item).replace(/</g,'\\u003c')})" style="display:flex;gap:12px;align-items:center;flex:1;text-decoration:none;color:inherit;min-width:0;">
-          <div style="width:96px;min-width:96px;aspect-ratio:16/9;border-radius:8px;overflow:hidden;background:#1a1a1a;">
-            <img src="https://i.ytimg.com/vi/${item.id}/mqdefault.jpg" style="width:100%;height:100%;object-fit:cover;display:block;" loading="lazy">
-          </div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:500;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:4px;">${item.title || ''}</div>
-            <div style="font-size:12px;color:var(--text-muted);">${item.channel || ''}${item.views ? ' • '+item.views : ''}</div>
+      return `<div class="lib-item">
+        <a href="/video/${item.id}" onclick="recordHistory(${JSON.stringify(item).replace(/</g,'\\u003c')})" style="display:flex;gap:16px;align-items:flex-start;flex:1;text-decoration:none;color:inherit;min-width:0;">
+          <div class="lib-thumb"><img src="https://i.ytimg.com/vi/${item.id}/mqdefault.jpg" loading="lazy"></div>
+          <div class="lib-info">
+            <div class="lib-title">${item.title || ''}</div>
+            <div class="lib-meta">${item.channel || ''}</div>
           </div>
         </a>
-        <button onclick="${removeFn}" style="background:none;border:none;color:var(--text-muted);width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;" title="削除">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-        </button>
+        <button onclick="${removeFn}" class="lib-remove"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
       </div>`;
     }
 
     function renderHistoryDrawer(body) {
       const hist = libGet(LIB_HISTORY);
-      if (!hist.length) { body.innerHTML = `<div class="lib-empty"><svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><path d="M13 3a9 9 0 1 0 0 18A9 9 0 0 0 13 3zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7zm.5-11H12v6l5.25 3.15.75-1.23-4.5-2.67V8z"/></svg>視聴履歴はまだありません</div>`; return; }
-      const clearBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button onclick="clearHistory()" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:6px;font-size:13px;cursor:pointer;">履歴をすべて削除</button></div>`;
-      body.innerHTML = clearBtn + hist.map(item => libItemHTML(item, `removeHistory('${item.id}')`)).join('');
+      if (!hist.length) { body.innerHTML = `<div class="lib-empty"><svg viewBox="0 0 24 24"><path d="M14.97 16.95 10 13.87V7h2v5.76l4.03 2.49-1.06 1.7zM12 3c-4.96 0-9 4.04-9 9s4.04 9 9 9 9-4.04 9-9-4.04-9-9-9m0-1c5.52 0 10 4.48 10 10s-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/></svg>このリストには動画がありません。</div>`; return; }
+      body.innerHTML = `<div style="display:flex;justify-content:flex-end;margin-bottom:16px;"><button onclick="if(confirm('すべての履歴をクリアしますか？')){localStorage.setItem('${LIB_HISTORY}', '[]');openDrawer('history');}" style="background:none;border:none;color:#3ea6ff;font-weight:500;cursor:pointer;font-size:14px;padding:8px;border-radius:18px;">すべての再生履歴をクリア</button></div>` + 
+      hist.map(item => libItemHTML(item, `localStorage.setItem('${LIB_HISTORY}', JSON.stringify(JSON.parse(localStorage.getItem('${LIB_HISTORY}')||'[]').filter(x=>x.id!=='${item.id}')));openDrawer('history');`)).join('');
     }
-    function clearHistory() { if (confirm('視聴履歴をすべて削除しますか？')) { libSet(LIB_HISTORY, []); openDrawer('history'); } }
-    function removeHistory(id) { libSet(LIB_HISTORY, libGet(LIB_HISTORY).filter(x => x.id !== id)); openDrawer('history'); }
-
     function renderLikedDrawer(body) {
       const liked = libGet(LIB_LIKED);
-      if (!liked.length) { body.innerHTML = `<div class="lib-empty"><svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>高評価した動画はまだありません</div>`; return; }
+      if (!liked.length) { body.innerHTML = `<div class="lib-empty"><svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>高く評価した動画はありません</div>`; return; }
       body.innerHTML = liked.map(item => libItemHTML(item, `removeLiked('${item.id}')`)).join('');
     }
-    window.removeLiked = removeLiked;
-    window.removeHistory = removeHistory;
-
     function renderPlaylistsDrawer(body) {
       const pls = getPlaylists();
-      const actRow = `<div class="drawer-action-row">
-        <button class="btn-create-playlist" onclick="openCreatePl()">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>新しい再生リスト
-        </button>
-      </div>`;
-      if (!pls.length) {
-        body.innerHTML = actRow + `<div class="lib-empty"><svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>再生リストはまだありません</div>`;
-        return;
-      }
-      const cards = pls.map(pl => `
-        <div class="playlist-card">
-          <div class="playlist-card-header" onclick="openDrawer('playlistDetail','${pl.id}')">
-            <div class="playlist-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg></div>
-            <div>
-              <div class="playlist-name">${pl.name}</div>
-              <div class="playlist-count">${pl.items.length}本の動画</div>
-            </div>
+      const actRow = `<div class="drawer-action-row"><button class="btn-create-playlist ripple-wrapper" onclick="openCreatePl()"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zm4 8v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zM2 16h8v-2H2v2z"/></svg> 新しい再生リスト</button></div>`;
+      if (!pls.length) { body.innerHTML = actRow + `<div class="lib-empty"><svg viewBox="0 0 24 24"><path d="M22 7H2v1h20V7zm-9 5H2v-1h11v1zm0 4H2v-1h11v1zm2 3v-8l7 4-7 4z"/></svg>再生リストはありません</div>`; return; }
+      body.innerHTML = actRow + pls.map(pl => `
+        <div class="playlist-card ripple-wrapper" onclick="openDrawer('playlistDetail','${pl.id}')">
+          <div class="playlist-icon-wrap">
+            <svg viewBox="0 0 24 24"><path d="M22 7H2v1h20V7zm-9 5H2v-1h11v1zm0 4H2v-1h11v1zm2 3v-8l7 4-7 4z"/></svg>
+            <div class="playlist-overlay"><svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg> ${pl.items.length}</div>
           </div>
-          <div class="playlist-card-actions">
-            <button class="btn-playlist-open" onclick="openDrawer('playlistDetail','${pl.id}')">開く</button>
-            <button class="btn-playlist-export" onclick="exportPlaylist('${pl.id}')" title="JSONエクスポート">
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg> 書き出し
-            </button>
-            <button class="btn-playlist-delete" onclick="deletePlaylistUI('${pl.id}')">削除</button>
+          <div class="playlist-info">
+            <div class="playlist-name">${pl.name}</div>
+            <div class="playlist-count">非公開 • 再生リスト</div>
           </div>
         </div>`).join('');
-      body.innerHTML = actRow + cards;
     }
-    function deletePlaylistUI(plId) { if (confirm('この再生リストを削除しますか？')) { deletePlaylist(plId); openDrawer('playlists'); } }
-    window.deletePlaylistUI = deletePlaylistUI;
-    window.exportPlaylist = exportPlaylist;
-
     function renderPlaylistDetail(body, plId) {
       const pl = getPlaylists().find(p => p.id === plId);
       if (!pl) { body.innerHTML = '<div class="lib-empty">見つかりません</div>'; return; }
       document.getElementById('drawerTitle').textContent = pl.name;
-      const backBtn = `<button class="drawer-back-btn" onclick="openDrawer('playlists')">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>再生リスト一覧
-      </button>`;
-      const exportBtn = `<div style="display:flex;justify-content:flex-end;margin-bottom:10px;"><button onclick="exportPlaylist('${plId}')" style="background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;border-radius:6px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;"><svg viewBox='0 0 24 24' width='14' height='14' fill='currentColor'><path d='M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z'/></svg>JSONで書き出し</button></div>`;
-      if (!pl.items.length) {
-        body.innerHTML = backBtn + exportBtn + `<div class="lib-empty">この再生リストはまだ空です</div>`;
-        return;
-      }
-      body.innerHTML = backBtn + exportBtn + pl.items.map(item => libItemHTML(item, `removePlItem('${plId}','${item.id}')`)).join('');
+      const exportBtn = `<div style="display:flex;gap:16px;margin-bottom:16px;">
+        <button class="btn-export-all ripple-wrapper" onclick="openDrawer('playlists')"><svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <button class="btn-export-all ripple-wrapper" onclick="exportPlaylist('${plId}')"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" style="margin-right:8px;"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>エクスポート</button>
+        <button class="btn-export-all ripple-wrapper" onclick="deletePlaylistUI('${plId}')" style="color:#ff4e4e;"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zm2.46-7.12l1.41-1.41L12 12.59l2.12-2.12 1.41 1.41L13.41 14l2.12 2.12-1.41 1.41L12 15.41l-2.12 2.12-1.41-1.41L10.59 14l-2.13-2.12zM15.5 4l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
+      </div>`;
+      if (!pl.items.length) { body.innerHTML = exportBtn + `<div class="lib-empty">動画がありません</div>`; return; }
+      body.innerHTML = exportBtn + pl.items.map(item => libItemHTML(item, `removePlItem('${plId}','${item.id}')`)).join('');
     }
-    function removePlItem(plId, itemId) { removeFromPlaylist(plId, itemId); openDrawer('playlistDetail', plId); }
-    window.removePlItem = removePlItem;
 
-    // --- Create playlist modal ---
-    function openCreatePl() {
-      const m = document.getElementById('createPlModal');
-      document.getElementById('createPlInput').value = '';
-      m.classList.add('open');
-      setTimeout(() => document.getElementById('createPlInput').focus(), 50);
-    }
-    function closeCreatePl() { document.getElementById('createPlModal').classList.remove('open'); }
-    function doCreatePlaylist() {
+    window.openCreatePl = function() { document.getElementById('createPlModal').classList.add('open'); document.getElementById('createPlInput').value = ''; setTimeout(()=>document.getElementById('createPlInput').focus(),50);};
+    window.closeCreatePl = function() { document.getElementById('createPlModal').classList.remove('open'); };
+    window.doCreatePlaylist = function() {
       const name = document.getElementById('createPlInput').value.trim();
-      if (!name) return;
-      addPlaylist(name);
-      closeCreatePl();
-      openDrawer('playlists');
-      showToast(`「${name}」を作成しました`);
-    }
-    window.openCreatePl = openCreatePl;
-    window.closeCreatePl = closeCreatePl;
-    window.doCreatePlaylist = doCreatePlaylist;
+      if (!name) return; addPlaylist(name); closeCreatePl(); openDrawer('playlists'); showToast(`再生リスト「${name}」を作成しました`);
+    };
 
-    // --- Playlist picker modal (from card menu) ---
     let _ddItem = null;
-    function closePlPicker() { document.getElementById('plPickerModal').classList.remove('open'); }
-    function openPlPicker(item) {
-      _ddItem = item;
-      const pls = getPlaylists();
-      const list = document.getElementById('plPickerList');
+    window.closePlPicker = function() { document.getElementById('plPickerModal').classList.remove('open'); };
+    window.openPlPicker = function(item) {
+      _ddItem = item; const pls = getPlaylists(); const list = document.getElementById('plPickerList');
       document.getElementById('plPickerInput').value = '';
-      if (!pls.length) { list.innerHTML = '<div style="font-size:13px;color:var(--text-muted);margin-bottom:8px;">再生リストがありません。下から新規作成してください。</div>'; }
-      else {
-        list.innerHTML = pls.map(pl => `<div class="modal-pl-item" onclick="plPickerAdd('${pl.id}')">
-          <div class="modal-pl-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="white"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg></div>
-          <span>${pl.name}</span><span style="margin-left:auto;font-size:12px;color:var(--text-muted);">${pl.items.length}本</span>
-        </div>`).join('');
-      }
+      list.innerHTML = pls.length ? pls.map(pl => `<label class="modal-pl-item ripple-wrapper"><input type="checkbox" onchange="plPickerToggle('${pl.id}', this.checked)"> <span>${pl.name}</span></label>`).join('') : '<div style="font-size:14px;color:var(--text-muted);padding:8px 0;">再生リストがありません</div>';
       document.getElementById('plPickerModal').classList.add('open');
-    }
-    function plPickerAdd(plId) {
-      if (!_ddItem) return;
-      const ok = addToPlaylist(plId, _ddItem);
-      if (ok) { showToast('再生リストに追加しました ✅'); }
-      closePlPicker();
-    }
-    function plPickerCreate() {
-      const name = document.getElementById('plPickerInput').value.trim();
-      if (!name) { showToast('名前を入力してください'); return; }
-      const pl = addPlaylist(name);
-      if (_ddItem) addToPlaylist(pl.id, _ddItem);
-      showToast(`「${name}」を作成して追加しました ✅`);
-      closePlPicker();
-    }
-    window.plPickerAdd = plPickerAdd;
-    window.plPickerCreate = plPickerCreate;
-    window.closePlPicker = closePlPicker;
+    };
+    window.plPickerToggle = function(plId, checked) { if(!_ddItem) return; if(checked) addToPlaylist(plId, _ddItem); else window.removePlItem(plId, _ddItem.id); };
+    window.plPickerCreate = function() {
+      const name = document.getElementById('plPickerInput').value.trim(); if (!name) return;
+      const pl = addPlaylist(name); if (_ddItem) addToPlaylist(pl.id, _ddItem);
+      showToast('再生リストに追加しました'); closePlPicker();
+    };
 
-    // --- Card context dropdown ---
     const cardDropdown = document.getElementById('cardDropdown');
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('.card-menu-btn');
       if (btn) {
         e.preventDefault(); e.stopPropagation();
-        _ddItem = { id: btn.dataset.id, title: btn.dataset.title, channel: btn.dataset.channel, views: btn.dataset.views, published: btn.dataset.published };
+        _ddItem = { id: btn.dataset.id, title: btn.dataset.title, channel: btn.dataset.channel };
         const rect = btn.getBoundingClientRect();
-        const ddW = 210, ddH = 100;
-        let top = rect.bottom + 4, left = rect.left;
-        if (left + ddW > window.innerWidth) left = window.innerWidth - ddW - 8;
-        if (top + ddH > window.innerHeight) top = rect.top - ddH - 4;
-        cardDropdown.style.top = top + 'px';
-        cardDropdown.style.left = left + 'px';
-        cardDropdown.classList.add('open');
-        return;
+        let top = rect.bottom, left = rect.left - 200;
+        if (left < 10) left = 10;
+        cardDropdown.style.top = top + 'px'; cardDropdown.style.left = left + 'px';
+        cardDropdown.classList.add('open'); return;
       }
       cardDropdown.classList.remove('open');
     });
-    function ddAddLiked() { if (_ddItem) addLiked(_ddItem); cardDropdown.classList.remove('open'); }
-    function ddShowPlaylistPicker() { cardDropdown.classList.remove('open'); if (_ddItem) openPlPicker(_ddItem); }
-    window.ddAddLiked = ddAddLiked;
-    window.ddShowPlaylistPicker = ddShowPlaylistPicker;
+    window.ddAddLiked = function() { if (_ddItem) addLiked(_ddItem); cardDropdown.classList.remove('open'); };
+    window.ddShowPlaylistPicker = function() { cardDropdown.classList.remove('open'); if (_ddItem) window.openPlPicker(_ddItem); };
 
-    // Intercept video card clicks to record history
     document.addEventListener('click', (e) => {
       const card = e.target.closest('a.video-card');
       if (card && !e.target.closest('.card-menu-btn')) {
         const btn = card.querySelector('.card-menu-btn');
-        if (btn) {
-          recordHistory({ id: btn.dataset.id, title: btn.dataset.title, channel: btn.dataset.channel, views: btn.dataset.views, published: btn.dataset.published });
-        }
+        if (btn) recordHistory({ id: btn.dataset.id, title: btn.dataset.title, channel: btn.dataset.channel });
       }
     });
-    window.recordHistory = recordHistory;
-    window.openDrawer = openDrawer;
-    window.closeDrawer = closeDrawer;
   </script>
-  
-  <nav class="mobile-bottom-nav">
-  <a href="/" class="mobile-nav-item active">
-    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-    ホーム
-  </a>
-  <a href="#" class="mobile-nav-item" data-q="shorts">
-    <svg viewBox="0 0 24 24"><path d="M17.77 10.32l-1.2-.5L18 9.06c1.84-.96 2.53-3.23 1.56-5.06s-3.23-2.53-5.06-1.56L6 6.94c-1.29.68-2.07 2.04-2 3.49.07 1.4.93 2.67 2.22 3.25L7.42 14 6 14.75c-1.84.96-2.53 3.23-1.56 5.06.65 1.27 1.94 2 3.31 2 .58 0 1.18-.14 1.75-.44L17 17.06c1.29-.68 2.07-2.04 2-3.49-.07-1.4-.93-2.67-2.23-3.25zM10 14.65V9.35L15 12l-5 2.65z"/></svg>
-    ショート
-  </a>
-  <button class="mobile-nav-item" onclick="openDrawer('history')">
-    <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 1 0 0 18A9 9 0 0 0 13 3zm0 16c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7zm.5-11H12v6l5.25 3.15.75-1.23-4.5-2.67V8z"/></svg>
-    履歴
-  </button>
-  <button class="mobile-nav-item" onclick="openDrawer('playlists')">
-    <svg viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
-    ライブラリ
-  </button>
-</nav>
 </body>
 </html>
