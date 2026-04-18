@@ -595,10 +595,54 @@
     }
     .sidebar.expanded .lib-badge { display: inline-block; }
     .lib-badge { display: none; }
+
+    /* ===== MOBILE BOTTOM NAV ===== */
+    .mobile-bottom-nav {
+      display: none;
+    }
+    @media (max-width: 768px) {
+      .mobile-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--bg);
+        border-top: 1px solid var(--border);
+        z-index: 1000;
+        height: 56px;
+        padding-bottom: env(safe-area-inset-bottom);
+        justify-content: space-around;
+        align-items: center;
+      }
+      .mobile-nav-item {
+        background: none;
+        border: none;
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        font-size: 10px;
+        flex: 1;
+        height: 100%;
+        cursor: pointer;
+        font-family: 'Roboto', Arial, sans-serif;
+      }
+      .mobile-nav-item svg {
+        width: 24px;
+        height: 24px;
+        fill: currentColor;
+        margin-bottom: 4px;
+      }
+      .mobile-nav-item.active {
+        font-weight: 700;
+      }
+    }
   </style>
 </head>
 <body>
-  <!-- HEADER -->
   <header>
     <div class="header-left">
       <button class="menu-btn" id="menuBtn" aria-label="メニュー">
@@ -657,19 +701,15 @@
         </div>
       </div>
 
-      <!-- Version badge -->
       <div id="appVersion" class="version-badge"><span class="version-badge-text"></span></div>
 
-      <!-- Home btn -->
       <a href="/youtube-pro" class="icon-btn" title="ホーム" style="text-decoration:none;">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
       </a>
     </div>
   </header>
 
-  <!-- LAYOUT -->
   <div class="layout">
-    <!-- Sidebar -->
     <nav class="sidebar" id="sidebar">
       <a href="/" class="sidebar-item active">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
@@ -713,7 +753,6 @@
       </a>
     </nav>
 
-    <!-- ===== LIBRARY DRAWER ===== -->
     <div id="drawerOverlay" class="drawer-overlay" onclick="closeDrawer()"></div>
     <aside id="libraryDrawer" class="drawer">
       <div class="drawer-header">
@@ -725,7 +764,6 @@
       <div class="drawer-body" id="drawerBody"></div>
     </aside>
 
-    <!-- Card context dropdown -->
     <div id="cardDropdown" class="card-dropdown">
       <div class="card-dropdown-item" onclick="ddAddLiked()">
         <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>
@@ -737,7 +775,6 @@
       </div>
     </div>
 
-    <!-- Playlist picker modal -->
     <div id="plPickerModal" class="modal-overlay" onclick="if(event.target===this)closePlPicker()">
       <div class="modal">
         <div class="modal-title">再生リストに追加</div>
@@ -752,7 +789,6 @@
       </div>
     </div>
 
-    <!-- Create playlist modal -->
     <div id="createPlModal" class="modal-overlay" onclick="if(event.target===this)closeCreatePl()">
       <div class="modal">
         <div class="modal-title">新しい再生リスト</div>
@@ -764,9 +800,7 @@
       </div>
     </div>
 
-    <!-- Main -->
     <main class="main">
-      <!-- Chips bar -->
       <div class="chips-bar" id="chipsBar">
         <button class="chip active" data-q="trending">すべて</button>
         <button class="chip" data-q="Music">音楽</button>
@@ -777,7 +811,6 @@
       </div>
 
       <div class="content-area">
-        <!-- Shorts section -->
         <div id="shortsSection" class="shorts-section" style="display:none;">
           <div class="section-header">
             <div class="section-title">
@@ -795,7 +828,6 @@
           <div id="shortsRow" class="shorts-row"></div>
         </div>
 
-        <!-- Video grid -->
         <div id="videoGrid" class="video-grid"></div>
         <div id="loading" style="display:none;">
           <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--text-muted)" stroke-width="2" style="animation:spin 1s linear infinite;margin-bottom:8px;display:block;margin-left:auto;margin-right:auto;">
