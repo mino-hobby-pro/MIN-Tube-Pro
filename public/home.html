@@ -358,7 +358,15 @@
       flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       color: var(--text-muted); font-weight: 700; font-size: 14px;
+      overflow: hidden; position: relative;
     }
+    .channel-avatar img {
+      width: 100%; height: 100%; object-fit: cover;
+      position: absolute; top: 0; left: 0;
+      border-radius: 50%; display: none;
+    }
+    .channel-avatar img.loaded { display: block; }
+    .channel-avatar .avatar-initial { position: relative; z-index: 1; }
     .details { flex: 1; min-width: 0; }
     .details h3 {
       font-size: 14px; line-height: 1.4; font-weight: 500;
@@ -530,6 +538,19 @@
       padding: 4px 0; margin-bottom: 12px; transition: color 0.1s;
     }
     .drawer-back-btn:hover { color: var(--text); }
+
+    /* Subscribe button on card */
+    .card-sub-btn {
+      display: none; /* show on hover via JS */
+      background: white; color: #000;
+      border: none; padding: 4px 10px; border-radius: 14px;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      margin-top: 4px; transition: background 0.1s;
+      font-family: 'Roboto', Arial, sans-serif;
+    }
+    .card-sub-btn.subscribed { background: #272727; color: var(--text-muted); }
+    body.light-mode .card-sub-btn { background: #0f0f0f; color: #fff; }
+    body.light-mode .card-sub-btn.subscribed { background: #e5e5e5; color: #606060; }
 
     /* Card context menu */
     .card-dropdown {
@@ -803,6 +824,7 @@
     <main class="main">
       <div class="chips-bar" id="chipsBar">
         <button class="chip active" data-q="trending">すべて</button>
+        <button class="chip" data-q="recommended" style="display:inline-flex;align-items:center;gap:5px;"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>おすすめ</button>
         <button class="chip" data-q="Music">音楽</button>
         <button class="chip" data-q="実況">実況</button>
         <button class="chip" data-q="ゲーム">ゲーム</button>
@@ -1082,6 +1104,10 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
           const viewText = item.viewCountText || '';
           const published = item.publishedTimeText || '';
           const initial = channel ? channel[0].toUpperCase() : 'C';
+          // チャンネルアバター画像URL（ui-avatars フォールバック）
+          const avatarUrl = item.channelThumbnail || item.channelImage || '';
+          const subKey = 'subscribed_' + channel;
+          const isSub = localStorage.getItem(subKey) === 'true';
 
           card.innerHTML = `
             <div class="thumb">
@@ -1089,15 +1115,29 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
               <div class="duration-badge">4:32</div>
             </div>
             <div class="meta">
-              <div class="channel-avatar">${initial}</div>
+              <div class="channel-avatar" data-initial="${initial}">
+                <span class="avatar-initial">${initial}</span>
+                ${avatarUrl ? `<img src="${avatarUrl}" alt="${channel}" onload="this.classList.add('loaded')" onerror="this.remove()">` : ''}
+              </div>
               <div class="details">
                 <h3>${item.title || ''}</h3>
                 <div class="channel-name">${channel}</div>
                 <div class="video-stats">${viewText}${viewText && published ? ' • ' : ''}${published}</div>
+                <button class="card-sub-btn${isSub ? ' subscribed' : ''}" data-channel="${channel.replace(/"/g,'&quot;')}" onclick="toggleCardSub(event, this)">${isSub ? '登録済み' : 'チャンネル登録'}</button>
               </div>
               <button class="card-menu-btn" aria-label="メニュー" data-id="${item.id}" data-title="${(item.title||'').replace(/"/g,'&quot;')}" data-channel="${channel.replace(/"/g,'&quot;')}" data-views="${viewText}" data-published="${published}">⋮</button>
             </div>
           `;
+          // アバター画像がない場合はui-avatarsから取得
+          if (!avatarUrl) {
+            const avatarEl = card.querySelector('.channel-avatar');
+            const img = document.createElement('img');
+            img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(channel)}&background=random&color=fff&size=64&bold=true`;
+            img.alt = channel;
+            img.onload = () => img.classList.add('loaded');
+            img.onerror = () => img.remove();
+            avatarEl.appendChild(img);
+          }
           videoGrid.appendChild(card);
         });
 
@@ -1115,14 +1155,22 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
       if (!q) return;
       currentQuery = q;
       currentPage = 0;
+      isPersonalized = false;
       document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
       history.pushState(null, '', `/search?q=${encodeURIComponent(q)}`);
       loadContent(q, 0);
     };
 
     window.onscroll = () => {
-      if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 800) {
-        if (!isFetching) { currentPage++; loadContent(currentQuery, currentPage); }
+      const scrollPos = window.innerHeight + window.scrollY;
+      const threshold = document.documentElement.scrollHeight - 800;
+      if (scrollPos >= threshold && !isFetching) {
+        currentPage++;
+        if (isPersonalized) {
+          loadPersonalizedFeed(currentPage);
+        } else {
+          loadContent(currentQuery, currentPage);
+        }
       }
     };
 
@@ -1131,10 +1179,16 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
       if (chip) {
         document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
-        currentQuery = chip.dataset.q;
         currentPage = 0;
         searchInput.value = '';
-        loadContent(currentQuery, 0);
+        if (chip.dataset.q === 'recommended') {
+          isPersonalized = true;
+          loadPersonalizedFeed(0);
+        } else {
+          isPersonalized = false;
+          currentQuery = chip.dataset.q;
+          loadContent(currentQuery, 0);
+        }
       }
     };
 
@@ -1147,9 +1201,16 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
         document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
         const matchingChip = document.querySelector(`.chip[data-q="${q}"]`);
         if (matchingChip) matchingChip.classList.add('active');
-        currentQuery = q; currentPage = 0;
+        currentPage = 0;
         searchInput.value = '';
-        loadContent(q, 0);
+        if (q === 'recommended') {
+          isPersonalized = true;
+          loadPersonalizedFeed(0);
+        } else {
+          isPersonalized = false;
+          currentQuery = q;
+          loadContent(q, 0);
+        }
       });
     });
 
@@ -1224,15 +1285,194 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
     }
     fetchAndShowVersion();
 
+    // ===== パーソナライズ =====
+    // チャンネル登録リストを取得
+    function getSubscribedChannels() {
+      const channels = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('subscribed_') && localStorage.getItem(key) === 'true') {
+          channels.push(key.replace('subscribed_', ''));
+        }
+      }
+      return channels;
+    }
+
+    // 閲覧履歴からキーワードを抽出（チャンネル名 + タイトルの主要語）
+    function getHistoryKeywords() {
+      const hist = libGet(LIB_HISTORY);
+      const channels = [...new Set(hist.slice(0, 30).map(h => h.channel).filter(Boolean))];
+      const titleWords = [];
+      hist.slice(0, 20).forEach(h => {
+        if (!h.title) return;
+        // 短い語・記号を除いてキーワード抽出
+        const words = h.title.replace(/[【】「」()!！?？\[\]#♪★☆◆◇]/g, ' ').split(/\s+/).filter(w => w.length >= 3);
+        words.slice(0, 2).forEach(w => titleWords.push(w));
+      });
+      return { channels: channels.slice(0, 5), titleWords: [...new Set(titleWords)].slice(0, 8) };
+    }
+
+    // パーソナライズフィードを構築（登録チャンネル＋履歴キーワードで検索、シャッフル混合）
+    async function loadPersonalizedFeed(page = 0) {
+      if (isFetching) return;
+      isFetching = true;
+      loading.style.display = 'block';
+
+      if (page === 0) {
+        displayedIds.clear();
+        videoGrid.innerHTML = '';
+        shortsRow.innerHTML = '';
+        shortsSection.style.display = 'none';
+        shortsExpanded = true;
+      }
+
+      const subscribedChannels = getSubscribedChannels();
+      const { channels: histChannels, titleWords } = getHistoryKeywords();
+
+      // 登録チャンネルと履歴チャンネルを合算（重複除去）
+      const allChannels = [...new Set([...subscribedChannels, ...histChannels])];
+      const allKeywords = [...allChannels, ...titleWords];
+
+      // キーワードがなければトレンドにフォールバック
+      if (allKeywords.length === 0) {
+        isFetching = false;
+        loading.style.display = 'none';
+        loadContent('trending', page);
+        return;
+      }
+
+      try {
+        // ページに応じてキーワードをローテーション（無限スクロール対応）
+        const shuffled = shuffleArray([...allKeywords]);
+        const pick = shuffled.slice((page % Math.max(shuffled.length, 1)) * 2, (page % Math.max(shuffled.length, 1)) * 2 + 3);
+        const queries = pick.length > 0 ? pick : shuffled.slice(0, 3);
+
+        const promises = queries.map(q => fetchEndpoint(`/api/search?q=${encodeURIComponent(q)}&page=${Math.floor(page / Math.max(queries.length, 1))}`));
+        // トレンドも少し混ぜる（page=0のみ）
+        if (page === 0) promises.push(fetchEndpoint(`/api/trending?page=0`));
+
+        const results = await Promise.all(promises);
+        let items = normalizeAndFilterList(results.flat());
+
+        // 重複除去
+        const seen = new Set([...displayedIds]);
+        items = items.filter(it => { if (seen.has(it.id)) return false; seen.add(it.id); return true; });
+        items = shuffleArray(items);
+
+        if (items.length === 0 && page === 0) {
+          videoGrid.innerHTML = '<p class="empty">動画が見つかりませんでした。</p>';
+        }
+
+        const shorts = [], normals = [];
+        items.forEach(item => {
+          if (!item || !item.id) return;
+          if ((item.title || '').includes('#')) shorts.push(item);
+          else normals.push(item);
+        });
+
+        // ショート表示（page=0のみ）
+        if (page === 0 && shorts.length > 4) {
+          shortsSection.style.display = 'block';
+          shorts.forEach(item => {
+            if (displayedIds.has(item.id)) return;
+            displayedIds.add(item.id);
+            const a = document.createElement('a');
+            a.className = 'short-card';
+            a.href = `/video/${item.id}`;
+            const thumbUrl = `https://i3.ytimg.com/vi/${item.id}/hqdefault.jpg`;
+            a.innerHTML = `
+              <div class="short-thumb">
+                <img src="${thumbUrl}" loading="lazy" alt="${item.title || 'ショート'}">
+                <div class="short-overlay">
+                  <div class="short-title">${item.title || ''}</div>
+                  <div class="short-views">${item.viewCountText || ''}</div>
+                </div>
+              </div>
+            `;
+            shortsRow.appendChild(a);
+          });
+          updateShortsToggleUI();
+        }
+
+        normals.forEach(item => {
+          if (!item || !item.id || displayedIds.has(item.id)) return;
+          displayedIds.add(item.id);
+          const card = document.createElement('a');
+          card.className = 'video-card';
+          card.href = `/video/${item.id}`;
+          const thumbUrl = `https://i3.ytimg.com/vi/${item.id}/mqdefault.jpg`;
+          const channel = item.channelTitle || '';
+          const viewText = item.viewCountText || '';
+          const published = item.publishedTimeText || '';
+          const initial = channel ? channel[0].toUpperCase() : 'C';
+          const avatarUrl = item.channelThumbnail || item.channelImage || '';
+          const subKey = 'subscribed_' + channel;
+          const isSub = localStorage.getItem(subKey) === 'true';
+          card.innerHTML = `
+            <div class="thumb">
+              <img src="${thumbUrl}" loading="lazy" alt="${item.title || '動画'}">
+              <div class="duration-badge">4:32</div>
+            </div>
+            <div class="meta">
+              <div class="channel-avatar" data-initial="${initial}">
+                <span class="avatar-initial">${initial}</span>
+                ${avatarUrl ? `<img src="${avatarUrl}" alt="${channel}" onload="this.classList.add('loaded')" onerror="this.remove()">` : ''}
+              </div>
+              <div class="details">
+                <h3>${item.title || ''}</h3>
+                <div class="channel-name">${channel}</div>
+                <div class="video-stats">${viewText}${viewText && published ? ' • ' : ''}${published}</div>
+                <button class="card-sub-btn${isSub ? ' subscribed' : ''}" data-channel="${channel.replace(/"/g,'&quot;')}" onclick="toggleCardSub(event, this)">${isSub ? '登録済み' : 'チャンネル登録'}</button>
+              </div>
+              <button class="card-menu-btn" aria-label="メニュー" data-id="${item.id}" data-title="${(item.title||'').replace(/"/g,'&quot;')}" data-channel="${channel.replace(/"/g,'&quot;')}" data-views="${viewText}" data-published="${published}">⋮</button>
+            </div>
+          `;
+          if (!avatarUrl) {
+            const avatarEl = card.querySelector('.channel-avatar');
+            const img = document.createElement('img');
+            img.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(channel)}&background=random&color=fff&size=64&bold=true`;
+            img.alt = channel;
+            img.onload = () => img.classList.add('loaded');
+            img.onerror = () => img.remove();
+            avatarEl.appendChild(img);
+          }
+          videoGrid.appendChild(card);
+        });
+
+      } catch (err) {
+        console.error('Personalized feed error', err);
+      } finally {
+        isFetching = false;
+        loading.style.display = 'none';
+      }
+    }
+
+    // パーソナライズモードかどうか
+    let isPersonalized = false;
+
     window.onload = () => {
       const params = new URLSearchParams(window.location.search);
       const q = params.get('q');
       if (q) {
         currentQuery = q;
         searchInput.value = q;
+        isPersonalized = false;
         loadContent(q, 0);
       } else {
-        loadContent('trending', 0);
+        // 登録チャンネルか履歴があればパーソナライズフィード
+        const hasSubs = getSubscribedChannels().length > 0;
+        const hasHistory = libGet(LIB_HISTORY).length > 0;
+        if (hasSubs || hasHistory) {
+          isPersonalized = true;
+          // 「おすすめ」チップをアクティブにする
+          document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+          const recChip = document.querySelector('.chip[data-q="recommended"]');
+          if (recChip) recChip.classList.add('active');
+          loadPersonalizedFeed(0);
+        } else {
+          isPersonalized = false;
+          loadContent('trending', 0);
+        }
       }
     };
 
@@ -1522,6 +1762,43 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
         }
       }
     });
+    // チャンネル登録トグル（ホームカード）
+    function toggleCardSub(e, btn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const channel = btn.dataset.channel;
+      const subKey = 'subscribed_' + channel;
+      const isSub = localStorage.getItem(subKey) === 'true';
+      if (isSub) {
+        localStorage.removeItem(subKey);
+        btn.textContent = 'チャンネル登録';
+        btn.classList.remove('subscribed');
+        showToast(`「${channel}」の登録を解除しました`);
+      } else {
+        localStorage.setItem(subKey, 'true');
+        btn.textContent = '登録済み';
+        btn.classList.add('subscribed');
+        showToast(`「${channel}」を登録しました 🔔`);
+      }
+    }
+    window.toggleCardSub = toggleCardSub;
+
+    // カードホバーでチャンネル登録ボタンを表示
+    document.addEventListener('mouseover', (e) => {
+      const meta = e.target.closest('.meta');
+      if (meta) {
+        const btn = meta.querySelector('.card-sub-btn');
+        if (btn) btn.style.display = 'inline-block';
+      }
+    });
+    document.addEventListener('mouseout', (e) => {
+      const meta = e.target.closest('.meta');
+      if (meta && !meta.contains(e.relatedTarget)) {
+        const btn = meta.querySelector('.card-sub-btn');
+        if (btn) btn.style.display = 'none';
+      }
+    });
+
     window.recordHistory = recordHistory;
     window.openDrawer = openDrawer;
     window.closeDrawer = closeDrawer;
