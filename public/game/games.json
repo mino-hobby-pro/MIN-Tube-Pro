@@ -222,5 +222,19 @@
   "tags": ["アクション", "サバイバル", "ローグライク"],
   "isNew": true,
   "status": "done"
+},
+    {
+  "key": "1/2",
+  "name": "1/2 surviver",
+  "emoji": "2️⃣",
+  "sub": "アーケード · 1人プレイ",
+  "file": "fun/2bun1.html",
+  "desc": "minの仲間と高みを目指せ‼︎",
+  "genre": "arcade",
+  "genreLabel": "アーケード",
+  "players": "対戦",
+  "tags": ["アーケード", "対戦", "運"],
+  "isNew": true,
+  "status": "done"
 }
 ]
