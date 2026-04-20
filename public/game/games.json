@@ -236,5 +236,19 @@
   "tags": ["アーケード", "対戦", "運"],
   "isNew": true,
   "status": "done"
+},
+  {
+  "key": "1/2",
+  "name": "1/2 surviver",
+  "emoji": "2️⃣",
+  "sub": "アクション · 1人プレイ",
+  "file": "fun/Cat.html",
+  "desc": "猫を操るアクションゲー‼︎",
+  "genre": "action",
+  "genreLabel": "アクション",
+  "players": "1人",
+  "tags": ["アクション", "サバイバル", "ロールプレイ"],
+  "isNew": true,
+  "status": "done"
 }
 ]
