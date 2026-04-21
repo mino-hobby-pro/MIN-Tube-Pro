@@ -30,7 +30,6 @@ const keys = [
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
-app.use(express.json());
 
 let apiListCache = [];
 
@@ -501,39 +500,12 @@ const shortsHtml = `
         .comment-item { display: flex; gap: 16px; margin-bottom: 20px; }
         .comment-avatar { width: 40px; height: 40px; border-radius: 50%; }
         .comment-author { font-weight: bold; font-size: 13px; margin-bottom: 4px; display: block; }
-        .rec-item { display: flex; gap: 8px; margin-bottom: 12px; cursor: pointer; text-decoration: none; color: inherit; position: relative; }
-        .rec-thumb { width: 160px; height: 90px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #222; position: relative; }
+        .rec-item { display: flex; gap: 8px; margin-bottom: 12px; cursor: pointer; text-decoration: none; color: inherit; }
+        .rec-thumb { width: 160px; height: 90px; flex-shrink: 0; border-radius: 8px; overflow: hidden; background: #222; }
         .rec-thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .rec-info { display: flex; flex-direction: column; justify-content: flex-start; flex: 1; }
+        .rec-info { display: flex; flex-direction: column; justify-content: flex-start; }
         .rec-title { font-size: 14px; font-weight: bold; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; }
         .rec-meta { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
-        
-        /* --- AI Recommendation Styles --- */
-        .ai-banner { font-size: 11px; background: linear-gradient(90deg, #4285f4, #9b72cb, #d96570); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: bold; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
-        .ai-close-btn { position: absolute; top: 0; right: 0; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; z-index: 10; transition: 0.2s; }
-        .ai-close-btn:hover { background: #ff0000; }
-        .ai-rec-box { background: rgba(66, 133, 244, 0.05); border: 1px solid rgba(155, 114, 203, 0.3); border-radius: 8px; padding: 8px; margin-bottom: 16px; position: relative; }
-        
-        .ai-floating-btn { position: fixed; top: 70px; right: 20px; background: #121212; border: 1px solid #333; border-radius: 20px; padding: 8px 16px; color: white; display: flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 999; transition: transform 0.2s, background 0.2s; font-size: 13px; font-weight: bold; }
-        .ai-floating-btn:hover { background: #222; transform: scale(1.05); }
-        .ai-floating-btn .gemini-icon { background: linear-gradient(90deg, #4285f4, #ea4335, #fbbc05, #34a853); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-size: 16px; }
-        .ai-floating-close { margin-left: 8px; color: #888; font-size: 14px; padding: 4px; }
-        .ai-floating-close:hover { color: #ff0000; }
-
-        .ai-floating-panel { position: fixed; top: 120px; right: 20px; width: 320px; background: #1f1f1f; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.8); border: 1px solid #333; overflow: hidden; z-index: 998; display: none; transform-origin: top right; }
-        .ai-floating-panel.show { display: block; animation: popup 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        @keyframes popup { 0% { opacity: 0; transform: scale(0.8); } 100% { opacity: 1; transform: scale(1); } }
-        .ai-panel-header { background: #121212; padding: 12px; border-bottom: 1px solid #333; font-size: 13px; display: flex; align-items: center; gap: 8px; font-weight: bold; }
-
-        /* Gemini風 ローディングアニメーション */
-        .gemini-loader-container { padding: 40px 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
-        .gemini-stars { display: flex; gap: 8px; }
-        .gemini-star { width: 16px; height: 16px; border-radius: 50%; background: linear-gradient(135deg, #4285f4, #9b72cb); animation: geminiPulse 1.5s infinite ease-in-out alternate; }
-        .gemini-star:nth-child(2) { animation-delay: 0.2s; background: linear-gradient(135deg, #ea4335, #d96570); }
-        .gemini-star:nth-child(3) { animation-delay: 0.4s; background: linear-gradient(135deg, #fbbc05, #34a853); }
-        @keyframes geminiPulse { 0% { transform: scale(0.5); opacity: 0.5; } 100% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 10px rgba(255,255,255,0.5); } }
-        .gemini-text { font-size: 12px; color: #aaa; letter-spacing: 1px; }
-
         .shorts-shelf-container { margin-top: 24px; border-top: 4px solid var(--bg-secondary); padding-top: 20px; margin-bottom: 24px; }
         .shorts-shelf-title { display: flex; align-items: center; font-size: 18px; font-weight: bold; margin-bottom: 16px; color: white; }
         .shorts-shelf-title svg { margin-right: 8px; width: 24px; height: 24px; }
@@ -556,7 +528,7 @@ const shortsHtml = `
         .video-loading-overlay.active { opacity: 1; pointer-events: auto; }
         .spinner { border: 4px solid rgba(255, 255, 255, 0.1); width: 50px; height: 50px; border-radius: 50%; border-top-color: var(--yt-red); animation: spin 1s ease-in-out infinite; margin-bottom: 16px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @media (max-width: 1000px) { .container { flex-direction: column; padding: 0; } .sidebar { width: 100%; padding: 16px; box-sizing: border-box; } .player-container { border-radius: 0; } .main-content { padding: 16px; } .ai-floating-btn, .ai-floating-panel { display: none !important; } }
+        @media (max-width: 1000px) { .container { flex-direction: column; padding: 0; } .sidebar { width: 100%; padding: 16px; box-sizing: border-box; } .player-container { border-radius: 0; } .main-content { padding: 16px; } }
     </style>
 </head>
 <body>
@@ -565,18 +537,6 @@ const shortsHtml = `
     <div class="nav-center"><form class="search-bar" action="/nothing/search"><input type="text" name="q" placeholder="検索"><button type="submit" class="search-btn"><i class="fas fa-search"></i></button></form></div>
     <div style="width:100px;"></div>
 </nav>
-
-<div id="aiFloatingBtn" class="ai-floating-btn" style="display: none;">
-    <i class="fas fa-sparkles gemini-icon"></i> AIのおすすめに飛ぶ
-    <i class="fas fa-times ai-floating-close" onclick="closeAiPermanently(event)"></i>
-</div>
-<div id="aiFloatingPanel" class="ai-floating-panel">
-    <div class="ai-panel-header">
-        <i class="fas fa-sparkles gemini-icon"></i> AIがおすすめを探索中...
-    </div>
-    <div id="aiFloatingContent">
-        </div>
-</div>
 
 <div class="container">
     <div class="main-content">
@@ -620,8 +580,6 @@ const shortsHtml = `
         </div>
     </div>
     <div class="sidebar">
-        <div id="aiInlineContainer"></div>
-
         <div id="recommendations"></div>
         <div id="shortsShelf" class="shorts-shelf-container" style="display:none;">
             <div class="shorts-shelf-title">
@@ -639,17 +597,6 @@ const shortsHtml = `
 <script>
     function toggleServerMenu() { document.getElementById('serverMenu').classList.toggle('show'); }
     window.addEventListener('click', function(e) { if (!e.target.closest('.server-dropdown-container')) { const menu = document.getElementById('serverMenu'); if (menu && menu.classList.contains('show')) menu.classList.remove('show'); } });
-
-    // 視聴履歴の記録
-    function saveHistory() {
-        let history = JSON.parse(localStorage.getItem('watchHistory') || '[]');
-        const currentTitle = "${videoData.videoTitle}".replace(/["']/g, '');
-        if (!history.includes(currentTitle)) {
-            history.push(currentTitle);
-            if(history.length > 30) history.shift(); // 履歴を30件に制限
-            localStorage.setItem('watchHistory', JSON.stringify(history));
-        }
-    }
 
     // チャンネル登録機能
     const VIDEO_CHANNEL = ${JSON.stringify(videoData.channelName || '')};
@@ -676,112 +623,7 @@ const shortsHtml = `
       }
       updateSubBtnUI();
     }
-    
-    // --- AI Recommendation Logic ---
-    const isAiClosed = localStorage.getItem('ai_rec_closed') === 'true';
-    const hasAiShownInline = localStorage.getItem('ai_rec_shown_inline') === 'true';
-
-    function closeAiPermanently(event) {
-        if(event) event.stopPropagation();
-        localStorage.setItem('ai_rec_closed', 'true');
-        document.getElementById('aiFloatingBtn').style.display = 'none';
-        document.getElementById('aiInlineContainer').style.display = 'none';
-        document.getElementById('aiFloatingPanel').classList.remove('show');
-    }
-
-    function getSubscribedChannels() {
-        let subs = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            let key = localStorage.key(i);
-            if (key.startsWith('subscribed_')) {
-                subs.push(key.replace('subscribed_', ''));
-            }
-        }
-        return subs;
-    }
-
-    async function fetchAiRecommendation() {
-        const history = JSON.parse(localStorage.getItem('watchHistory') || '[]');
-        const subscriptions = getSubscribedChannels();
-        
-        const res = await fetch('/api/ai-recommend', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ history, subscriptions })
-        });
-        return await res.json();
-    }
-
-    function renderAiItem(item, containerId, isInline) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = \`
-            <div class="\${isInline ? 'ai-rec-box' : ''}">
-                \${isInline ? '<button class="ai-close-btn" onclick="closeAiPermanently(event)"><i class="fas fa-times"></i></button>' : ''}
-                <div class="ai-banner"><i class="fas fa-sparkles"></i> AIはあなたにこの動画をおすすめしました</div>
-                <a href="/video/\${item.id}" class="rec-item" style="\${isInline ? 'margin-bottom:0;' : 'padding: 12px;'}">
-                    <div class="rec-thumb" style="\${!isInline ? 'width: 120px; height: 68px;' : ''}">
-                        <img src="https://i.ytimg.com/vi/\${item.id}/mqdefault.jpg">
-                    </div>
-                    <div class="rec-info">
-                        <div class="rec-title">\${item.title}</div>
-                        <div class="rec-meta">\${item.channelTitle || ''}</div>
-                    </div>
-                </a>
-            </div>
-        \`;
-    }
-
-    function showGeminiLoader(containerId) {
-        document.getElementById(containerId).innerHTML = \`
-            <div class="gemini-loader-container">
-                <div class="gemini-stars">
-                    <div class="gemini-star"></div>
-                    <div class="gemini-star"></div>
-                    <div class="gemini-star"></div>
-                </div>
-                <div class="gemini-text">AIが動画を解析中...</div>
-            </div>
-        \`;
-    }
-
-    async function handleAiFeatures() {
-        if (isAiClosed) return;
-
-        if (!hasAiShownInline) {
-            // 初回：インラインで表示
-            showGeminiLoader('aiInlineContainer');
-            const data = await fetchAiRecommendation();
-            if (data.success) {
-                renderAiItem(data.item, 'aiInlineContainer', true);
-                localStorage.setItem('ai_rec_shown_inline', 'true');
-            } else {
-                document.getElementById('aiInlineContainer').innerHTML = '';
-            }
-        } else {
-            // 2回目以降：右上にボタンを表示
-            const btn = document.getElementById('aiFloatingBtn');
-            const panel = document.getElementById('aiFloatingPanel');
-            btn.style.display = 'flex';
-
-            btn.addEventListener('click', async () => {
-                if(panel.classList.contains('show')) {
-                    panel.classList.remove('show');
-                    return;
-                }
-                panel.classList.add('show');
-                showGeminiLoader('aiFloatingContent');
-                
-                const data = await fetchAiRecommendation();
-                if (data.success) {
-                    renderAiItem(data.item, 'aiFloatingContent', false);
-                } else {
-                    document.getElementById('aiFloatingContent').innerHTML = '<div style="padding:16px;text-align:center;color:#aaa;font-size:12px;">おすすめの取得に失敗しました</div>';
-                }
-            });
-        }
-    }
-
-    // --- End AI Logic ---
+    updateSubBtnUI();
 
     async function changeServer(serverName, endpointPath, event) {
         document.getElementById('serverMenu').classList.remove('show');
@@ -794,17 +636,21 @@ const shortsHtml = `
 
         try {
             let newUrl = '';
+            // --- ロジックの条件分岐 ---
             if (serverName === 'googlevideo') {
                 newUrl = "${videoData.stream_url}" === "youtube-nocookie" ? \`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1\` : "${videoData.stream_url}";
             } else if (serverName === 'Youtube-Pro') {
+                // Youtube-ProはエンドポイントURLをそのまま使用
                 newUrl = endpointPath;
             } else {
+                // それ以外はサーバーから生のURLを取得
                 const res = await fetch(endpointPath);
                 if (!res.ok) throw new Error("サーバーエラー");
                 newUrl = await res.text();
             }
 
             const playerContainer = document.getElementById('playerWrapper');
+            // Kahoot, Scratch, Youtube-Pro, およびnocookieは強制的にiframe
             const forceIframe = ['YoutubeEdu-Kahoot', 'YoutubeEdu-Scratch', 'Youtube-Pro', 'youtube-nocookie'].includes(serverName);
             const isIframe = forceIframe || newUrl.includes('embed');
 
@@ -851,13 +697,11 @@ const shortsHtml = `
             \`).join('');
         }
     }
-
     window.onload = () => {
-        saveHistory();
-        updateSubBtnUI();
-        handleAiFeatures(); 
         loadRecommendations();
 
+        // ページ読み込み時に localStorage の再生方法を即座に適用
+        // (sessionStorage ガードと setTimeout を廃止: 毎回正しいモードで初期化する)
         const savedMode = localStorage.getItem('playbackMode') || 'googlevideo';
         const serverEndpoints = {
             'googlevideo':        '',
@@ -870,6 +714,7 @@ const shortsHtml = `
         const serverName = serverEndpoints.hasOwnProperty(savedMode) ? savedMode : 'googlevideo';
         const endpointPath = serverEndpoints[serverName];
 
+        // 対応する .server-option 要素を探してアクティブにする
         const options = document.querySelectorAll('.server-option');
         let targetOption = options[0];
         options.forEach(opt => {
@@ -2031,54 +1876,6 @@ app.get('/stream/inv/:videoId', async (req, res) => {
     } catch (error) {
         console.error('Error fetching the URL:', error.message);
         res.status(500).send('Internal Server Error');
-    }
-});
-
-app.post("/api/ai-recommend", async (req, res) => {
-    try {
-        const { history, subscriptions } = req.body;
-        
-        const historyText = history && history.length > 0 ? history.slice(-20).join(", ") : "なし"; 
-        const subsText = subscriptions && subscriptions.length > 0 ? subscriptions.join(", ") : "なし";
-
-        const prompt = `情報を基にこのユーザーにおすすめできる次の動画のタイトルを教えてください。動画のタイトルは必ず「」内に書いてください。その他の説明や前置きは一切不要です。\n\nユーザーの視聴履歴: ${historyText}\n登録チャンネル: ${subsText}`;
-
-        const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Authorization": `Bearer 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`,
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                model: "llama3-8b-8192", 
-                messages: [{ role: "user", content: prompt }],
-                temperature: 0.7
-            })
-        });
-
-        if (!groqResponse.ok) {
-            throw new Error(`Groq API Error: ${groqResponse.status}`);
-        }
-
-        const groqData = await groqResponse.json();
-        const reply = groqData.choices[0].message.content;
-        
-        const match = reply.match(/「(.*?)」/);
-        const searchTitle = match ? match[1] : reply.trim().replace(/^['"]|['"]$/g, '');
-
-        console.log("AI Suggested Title:", searchTitle);
-
-        const results = await yts.GetListByKeyword(searchTitle, false, 1);
-        
-        if (results.items && results.items.length > 0) {
-            return res.json({ success: true, item: results.items[0] });
-        } else {
-            return res.json({ success: false, error: "動画が見つかりませんでした" });
-        }
-
-    } catch (error) {
-        console.error("AI Recommendation Error:", error);
-        res.status(500).json({ success: false, error: "AI処理中にエラーが発生しました" });
     }
 });
 
