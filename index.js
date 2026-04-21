@@ -3,6 +3,7 @@ const path = require("path");
 const yts = require("youtube-search-api");
 const fetch = require("node-fetch");
 const cookieParser = require("cookie-parser");
+const { OpenAI } = require("openai");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -27,6 +28,11 @@ const keys = [
   process.env.RAPIDAPI_KEY_2 || 'ece95806fdmshe322f47bce30060p1c3411jsn41a3d4820039',
   process.env.RAPIDAPI_KEY_3 || '41c9265bc6msha0fa7dfc1a63eabp18bf7cjsne6ef10b79b38'
 ];
+
+const groqClient = new OpenAI({
+    apiKey: "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",
+    baseURL: "https://api.groq.com/openai/v1",
+});
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
@@ -1876,6 +1882,39 @@ app.get('/stream/inv/:videoId', async (req, res) => {
     } catch (error) {
         console.error('Error fetching the URL:', error.message);
         res.status(500).send('Internal Server Error');
+    }
+});
+
+app.post("/api/ai-recommend", express.json(), async (req, res) => {
+    try {
+        const { history, subscriptions } = req.body;
+        
+        const histStr = Array.isArray(history) ? history.slice(-15).join(", ") : "なし";
+        const subsStr = Array.isArray(subscriptions) ? subscriptions.join(", ") : "なし";
+
+        const prompt = `以下のユーザーの動画視聴履歴と登録チャンネルの情報を基に、このユーザーにおすすめできる次の動画のタイトルを1つだけ教えてください。動画のタイトルは必ず「」内に書いてください。余計な解説や挨拶は一切不要です。\n\n【視聴履歴】\n${histStr}\n\n【登録チャンネル】\n${subsStr}`;
+
+        const completion = await groqClient.chat.completions.create({
+            model: "llama3-8b-8192", 
+            messages: [{ role: "user", content: prompt }]
+        });
+
+        const aiText = completion.choices[0].message.content;
+        
+        const match = aiText.match(/「([^」]+)」/);
+        let searchKeyword = match ? match[1] : aiText.trim().substring(0, 40);
+
+        const searchResults = await yts.GetListByKeyword(searchKeyword, false, 3);
+        const video = searchResults.items.find(item => item.type === 'video');
+
+        if (video) {
+            res.json({ success: true, video: video });
+        } else {
+            res.json({ success: false, message: "動画が見つかりませんでした" });
+        }
+    } catch (err) {
+        console.error("AI Recommendation Error:", err);
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 
