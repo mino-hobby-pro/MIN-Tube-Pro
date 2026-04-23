@@ -295,11 +295,11 @@
 },  
   {
   "key": "cube",
-  "name": "ルービックキューブ",
+  "name": "Cube",
   "emoji": "🟥",
   "sub": "アーケード · 1人プレイ",
   "file": "fun/Cube.html",
-  "desc": "ルービックキューブのタイムを競え",
+  "desc": "ルービックキューブのタイムを競え!!",
   "genre": "arcade",
   "genreLabel": "アーケード",
   "players": "1人",
