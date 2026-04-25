@@ -522,8 +522,6 @@ kbd {
   </div>
 </section>
 
-<!-- TABS -->
-<div class="tabs" id="tabs"></div>
 
 <!-- CONTENT -->
 <main class="content">
@@ -611,22 +609,8 @@ const $=id=>document.getElementById(id);
 /* ===== INIT ===== */
 window.addEventListener('DOMContentLoaded',()=>{
   setTimeout(()=>{$('loader').classList.add('done');doSearch(true);},1000);
-  renderTabs();
   renderHistory();
 });
-
-/* ===== TABS ===== */
-const PRESETS=['人気アニメ','新作アニメ','劇場版','アニメ映画','少年アニメ','恋愛アニメ'];
-function renderTabs(){
-  const d=$('tabs');
-  d.innerHTML=PRESETS.map((t,i)=>`<button class="tab ${i===0?'active':''}" onclick="setTab(this,'${t}')">${t}</button>`).join('');
-}
-function setTab(el,txt){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  $('searchIn').value=txt;
-  doSearch(true);
-}
 
 /* ===== HISTORY ===== */
 function addHistory(q){
@@ -663,7 +647,14 @@ function doSearch(reset=false){
   fetch(`/api/search?q=${encodeURIComponent(query)}&page=${page}`)
     .then(r=>r.json())
     .then(data=>{
-      const items=extractItems(data);
+      const rawItems=extractItems(data);
+      const items=rawItems.filter(it=>{
+        const t=String(it.title||it.snippet?.title||'');
+        if(t.includes('#')) return false;
+        const id=getId(it);
+        if(id && id.startsWith('UC')) return false;
+        return true;
+      });
       if(reset) $('grid').innerHTML='';
       if(!items.length && reset){ empty(); hasMore=false; return; }
       items.forEach((it,i)=>$('grid').appendChild(makeCard(it,i)));
