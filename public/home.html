@@ -592,19 +592,6 @@
     }
     .drawer-back-btn:hover { color: var(--text); }
 
-    /* Subscribe button on card */
-    .card-sub-btn {
-      display: none; /* show on hover via JS */
-      background: white; color: #000;
-      border: none; padding: 4px 10px; border-radius: 14px;
-      font-size: 12px; font-weight: 700; cursor: pointer;
-      margin-top: 4px; transition: background 0.1s;
-      font-family: 'Roboto', Arial, sans-serif;
-    }
-    .card-sub-btn.subscribed { background: #272727; color: var(--text-muted); }
-    body.light-mode .card-sub-btn { background: #0f0f0f; color: #fff; }
-    body.light-mode .card-sub-btn.subscribed { background: #e5e5e5; color: #606060; }
-
     /* Card context menu */
     .card-dropdown {
       position: fixed; background: var(--card); border: 1px solid var(--border);
@@ -1193,8 +1180,7 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
               <div class="details">
                 <h3>${item.title || ''}</h3>
                 <a href="/channel/${encodeURIComponent(channel)}" class="channel-name" onclick="event.stopPropagation()" style="text-decoration:none;color:var(--text-muted);">${channel}</a>
-                <div class="video-stats">${viewText}${viewText && published ? ' • ' : ''}${published}</div>
-                <button class="card-sub-btn${isSub ? ' subscribed' : ''}" data-channel="${channel.replace(/"/g,'&quot;')}" onclick="toggleCardSub(event, this)">${isSub ? '登録済み' : 'チャンネル登録'}</button>
+                <div class="video-stats">${viewText}${viewText && published ? ' • ' : ''}${published || item.publishedTimeText || ''}</div>
               </div>
               <button class="card-menu-btn" aria-label="メニュー" data-id="${item.id}" data-title="${(item.title||'').replace(/"/g,'&quot;')}" data-channel="${channel.replace(/"/g,'&quot;')}" data-views="${viewText}" data-published="${published}">⋮</button>
             </div>
@@ -1615,8 +1601,7 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
               <div class="details">
                 <h3>${item.title || ''}</h3>
                 <a href="/channel/${encodeURIComponent(channel)}" class="channel-name" onclick="event.stopPropagation()" style="text-decoration:none;color:var(--text-muted);">${channel}</a>
-                <div class="video-stats">${viewText}${viewText && published ? ' • ' : ''}${published}</div>
-                <button class="card-sub-btn${isSub ? ' subscribed' : ''}" data-channel="${channel.replace(/"/g,'&quot;')}" onclick="toggleCardSub(event, this)">${isSub ? '登録済み' : 'チャンネル登録'}</button>
+                <div class="video-stats">${viewText}${viewText && published ? ' • ' : ''}${published || item.publishedTimeText || ''}</div>
               </div>
               <button class="card-menu-btn" aria-label="メニュー" data-id="${item.id}" data-title="${(item.title||'').replace(/"/g,'&quot;')}" data-channel="${channel.replace(/"/g,'&quot;')}" data-views="${viewText}" data-published="${published}">⋮</button>
             </div>
@@ -1945,42 +1930,6 @@ if (!currentUrl.includes("projects") && !currentUrl.includes("private") && !curr
       }
     });
     // チャンネル登録トグル（ホームカード）
-    function toggleCardSub(e, btn) {
-      e.preventDefault();
-      e.stopPropagation();
-      const channel = btn.dataset.channel;
-      const subKey = 'subscribed_' + channel;
-      const isSub = localStorage.getItem(subKey) === 'true';
-      if (isSub) {
-        localStorage.removeItem(subKey);
-        btn.textContent = 'チャンネル登録';
-        btn.classList.remove('subscribed');
-        showToast(`「${channel}」の登録を解除しました`);
-      } else {
-        localStorage.setItem(subKey, 'true');
-        btn.textContent = '登録済み';
-        btn.classList.add('subscribed');
-        showToast(`「${channel}」を登録しました 🔔`);
-      }
-    }
-    window.toggleCardSub = toggleCardSub;
-
-    // カードホバーでチャンネル登録ボタンを表示
-    document.addEventListener('mouseover', (e) => {
-      const meta = e.target.closest('.meta');
-      if (meta) {
-        const btn = meta.querySelector('.card-sub-btn');
-        if (btn) btn.style.display = 'inline-block';
-      }
-    });
-    document.addEventListener('mouseout', (e) => {
-      const meta = e.target.closest('.meta');
-      if (meta && !meta.contains(e.relatedTarget)) {
-        const btn = meta.querySelector('.card-sub-btn');
-        if (btn) btn.style.display = 'none';
-      }
-    });
-
     window.recordHistory = recordHistory;
     window.openDrawer = openDrawer;
     window.closeDrawer = closeDrawer;
