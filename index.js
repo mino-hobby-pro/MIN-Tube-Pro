@@ -268,24 +268,7 @@ if (!videoData) {
 }
 
 console.log(commentsData)
-    // ショート判定: durationが60秒以下 or lengthTextが"0:xx"形式 or shortsフラグ
-    // タイトルの#のみに依存する旧判定はフォールバックとして残す
-    let isShortForm = false;
-    if (videoData.isShort === true) {
-      isShortForm = true;
-    } else if (videoData.lengthText) {
-      // "0:45" や "0:59" のような60秒以下の形式を検出
-      const ltMatch = videoData.lengthText.match(/^(\d+):(\d{2})$/);
-      if (ltMatch) {
-        const totalSec = parseInt(ltMatch[1]) * 60 + parseInt(ltMatch[2]);
-        isShortForm = totalSec <= 60;
-      }
-    } else if (videoData.duration && typeof videoData.duration === 'number') {
-      isShortForm = videoData.duration <= 60;
-    } else if (videoData.videoTitle && videoData.videoTitle.includes('#') && !videoData.videoViews) {
-      // フォールバック: タイトルに#を含み視聴回数が不明な場合のみ
-      isShortForm = true;
-    }
+    const isShortForm = videoData.videoTitle.includes('#');
 
     if (isShortForm) {
       // --- SHORTS MODE HTML ---
@@ -514,7 +497,7 @@ const shortsHtml = `
         .channel-name { font-weight: bold; font-size: 16px; }
         .btn-sub { background: white; color: black; border: none; padding: 0 16px; height: 36px; border-radius: 18px; font-weight: bold; cursor: pointer; }
         .action-btn { background: var(--bg-secondary); border: none; color: white; padding: 0 16px; height: 36px; border-radius: 18px; cursor: pointer; font-size: 14px; }
-        .description-box { background: var(--bg-secondary); border-radius: 12px; padding: 12px; font-size: 14px; margin-bottom: 24px; white-space: pre-wrap; word-break: break-word; }
+        .description-box { background: var(--bg-secondary); border-radius: 12px; padding: 12px; font-size: 14px; margin-bottom: 24px; }
         .comment-item { display: flex; gap: 16px; margin-bottom: 20px; }
         .comment-avatar { width: 40px; height: 40px; border-radius: 50%; }
         .comment-author { font-weight: bold; font-size: 13px; margin-bottom: 4px; display: block; }
@@ -591,7 +574,7 @@ const shortsHtml = `
             </div>
             <div style="display:flex; gap:8px;"><button class="action-btn">👍 ${videoData.likeCount || 0}</button><button class="action-btn">共有</button></div>
         </div>
-        <div class="description-box"><b>${videoData.videoViews || '0'} 回視聴</b><br><br>${(videoData.videoDes || '').replace(/\r\n/g, '\n')}</div>
+        <div class="description-box"><b>${videoData.videoViews || '0'} 回視聴</b><br><br>${videoData.videoDes || ''}</div>
         <div class="comments-section">
             <h3>コメント ${commentsData.commentCount} 件</h3>
             ${commentsData.comments.map(c => `<div class="comment-item"><img class="comment-avatar" src="${c.authorThumbnails?.[0]?.url || ''}"><div><span class="comment-author">${c.author}</span><div style="font-size:14px;">${c.content}</div></div></div>`).join('')}
@@ -688,25 +671,15 @@ const shortsHtml = `
         const params = new URLSearchParams({ title: "${videoData.videoTitle}", channel: "${videoData.channelName}", id: "${videoId}" });
         const res = await fetch(\`/api/recommendations?\${params.toString()}\`);
         const data = await res.json();
-        // ショート判定: durationが60秒以下 or lengthTextが"0:xx"形式
-        function isShortItem(item) {
-            if (item.isShort) return true;
-            if (item.lengthText) {
-                const m = item.lengthText.match(/^(\d+):(\d{2})$/);
-                if (m && parseInt(m[1]) * 60 + parseInt(m[2]) <= 60) return true;
-            }
-            if (typeof item.duration === 'number' && item.duration <= 60) return true;
-            return false;
-        }
-        const shorts = data.items.filter(isShortItem);
-        const regulars = data.items.filter(item => !isShortItem(item));
+        const shorts = data.items.filter(item => item.title.includes('#'));
+        const regulars = data.items.filter(item => !item.title.includes('#'));
         document.getElementById('recommendations').innerHTML = regulars.map(item => \`
             <a href="/video/\${item.id}" class="rec-item">
                 <div class="rec-thumb"><img src="https://i.ytimg.com/vi/\${item.id}/mqdefault.jpg"></div>
                 <div class="rec-info">
                     <div class="rec-title">\${item.title}</div>
-                    <a href="/channel/\${encodeURIComponent(item.channelTitle||'')}" class="rec-meta" onclick="event.stopPropagation()" style="text-decoration:none;color:inherit;">\${item.channelTitle}</a>
-                    <div class="rec-meta">\${item.viewCountText || ''}\${item.viewCountText && item.publishedTimeText ? ' • ' : ''}\${item.publishedTimeText || ''}</div>
+                    <div class="rec-meta">\${item.channelTitle}</div>
+                    <div class="rec-meta">\${item.viewCountText || ''}</div>
                 </div>
             </a>
         \`).join('');
@@ -1911,6 +1884,7 @@ app.get("/channel/:channelName", (req, res) => {
 </html>`;
   res.send(html);
 });
+
 
 app.get('/stream/inv/:videoId', async (req, res) => {
     const videoId = req.params.videoId;
