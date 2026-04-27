@@ -1,6 +1,7 @@
 # ver1.3.5
 - Abyss V5と統合
-- /abyss/=root=index.js>>files>static>uv
+# Abyss V5について
+もともとはjacksoncraft859が作成した静的なUVプロキシです。bareサーバーが動かなくなっていたので、dinguschan-owoのサーバーを組み込んで作りました。デザインやバグ修正などはMIN-Tube-Proに搭載するためだけに改変されています。このプロキシを単体として展開したい場合は<br>https://github.com/mino-hobby-pro/UV-Static_Netlify<br>を利用することを推奨します。旧サイト開発者<br>dinguschan-owo<br>jacksoncraft859<br>に感謝します。
   
 - アニメの視聴ページに飛ぶルートの修正を行いました
 
