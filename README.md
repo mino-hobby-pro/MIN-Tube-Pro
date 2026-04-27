@@ -1,7 +1,7 @@
 # ver1.3.5
 - Abyss V5と統合
 - /abyss/=root=index.js>>files>static>uv
-- 
+  
 - アニメの視聴ページに飛ぶルートの修正を行いました
 
 # ver1.3.0
