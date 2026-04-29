@@ -480,7 +480,7 @@ const shortsHtml = `
 
     // --- STANDARD VIDEO MODE HTML ---
     // playerWrapper は空にして、クライアント側JSが localStorage.playbackMode に基づいて初期化する
-    const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;"><div class="spinner"></div></div>`;
+const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;"><div class="spinner"></div></div>`;
 
     const html = `
 <!DOCTYPE html>
@@ -497,10 +497,14 @@ const shortsHtml = `
         .nav-left { display: flex; align-items: center; gap: 16px; }
         .logo { display: flex; align-items: center; color: white; text-decoration: none; font-weight: bold; font-size: 18px; }
         .logo i { color: var(--yt-red); font-size: 24px; margin-right: 4px; }
-        .nav-center { flex: 0 1 600px; display: flex; }
+        .nav-center { flex: 0 1 600px; display: flex; position: relative; }
         .search-bar { display: flex; width: 100%; background: #121212; border: 1px solid #303030; border-radius: 40px 0 0 40px; padding: 0 16px; }
         .search-bar input { width: 100%; background: transparent; border: none; color: white; height: 38px; font-size: 16px; outline: none; }
         .search-btn { background: #222; border: 1px solid #303030; border-left: none; border-radius: 0 40px 40px 0; width: 64px; height: 40px; color: white; cursor: pointer; }
+        .autocomplete-dropdown { position: absolute; top: calc(100% + 4px); left: 0; width: calc(100% - 64px); background: #212121; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); z-index: 2000; overflow: hidden; display: none; padding: 12px 0; border: 1px solid #303030; }
+        .autocomplete-item { padding: 8px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; color: white; font-size: 16px; }
+        .autocomplete-item:hover { background: #3f3f3f; }
+        .autocomplete-item i { color: #aaa; font-size: 14px; }
         .container { margin-top: 56px; display: flex; justify-content: center; padding: 24px; gap: 24px; max-width: 1700px; margin-left: auto; margin-right: auto; }
         .main-content { flex: 1; min-width: 0; position: relative; }
         .sidebar { width: 400px; flex-shrink: 0; }
@@ -512,7 +516,11 @@ const shortsHtml = `
         .channel-name { font-weight: bold; font-size: 16px; }
         .btn-sub { background: white; color: black; border: none; padding: 0 16px; height: 36px; border-radius: 18px; font-weight: bold; cursor: pointer; }
         .action-btn { background: var(--bg-secondary); border: none; color: white; padding: 0 16px; height: 36px; border-radius: 18px; cursor: pointer; font-size: 14px; }
-        .description-box { background: var(--bg-secondary); border-radius: 12px; padding: 12px; font-size: 14px; margin-bottom: 24px; }
+        .description-box { background: var(--bg-secondary); border-radius: 12px; padding: 12px; font-size: 14px; margin-bottom: 24px; cursor: pointer; transition: background 0.2s; }
+        .description-box:hover { background: var(--bg-hover); }
+        .description-content { max-height: 60px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; margin-top: 8px; line-height: 1.5; }
+        .description-box.expanded .description-content { max-height: none; -webkit-line-clamp: unset; display: block; }
+        .description-show-more { font-weight: bold; margin-top: 8px; font-size: 14px; }
         .comment-item { display: flex; gap: 16px; margin-bottom: 20px; }
         .comment-avatar { width: 40px; height: 40px; border-radius: 50%; }
         .comment-author { font-weight: bold; font-size: 13px; margin-bottom: 4px; display: block; }
@@ -550,7 +558,13 @@ const shortsHtml = `
 <body>
 <nav class="navbar">
     <div class="nav-left"><a href="/" class="logo"><i class="fab fa-youtube"></i>YouTube Pro</a></div>
-    <div class="nav-center"><form class="search-bar" action="/nothing/search"><input type="text" name="q" placeholder="検索"><button type="submit" class="search-btn"><i class="fas fa-search"></i></button></form></div>
+    <div class="nav-center">
+        <form class="search-bar" action="/nothing/search">
+            <input type="text" name="q" id="searchInput" placeholder="検索" autocomplete="off">
+            <button type="submit" class="search-btn"><i class="fas fa-search"></i></button>
+        </form>
+        <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+    </div>
     <div style="width:100px;"></div>
 </nav>
 
@@ -589,7 +603,13 @@ const shortsHtml = `
             </div>
             <div style="display:flex; gap:8px;"><button class="action-btn">👍 ${videoData.likeCount || 0}</button><button class="action-btn">共有</button></div>
         </div>
-        <div class="description-box"><b>${videoData.videoViews || '0'} 回視聴</b><br><br>${videoData.videoDes || ''}</div>
+        <div class="description-box" id="descriptionBox" onclick="toggleDescription(event)">
+            <b>${videoData.videoViews || '0'} 回視聴</b>
+            <div class="description-content" id="descriptionContent">
+                ${(videoData.videoDes || '').replace(/\r\n|\n|\r/g, '<br>')}
+            </div>
+            <div class="description-show-more" id="descriptionToggleBtn">全文を表示</div>
+        </div>
         <div class="comments-section">
             <h3>コメント ${commentsData.commentCount} 件</h3>
             ${commentsData.comments.map(c => `<div class="comment-item"><img class="comment-avatar" src="${c.authorThumbnails?.[0]?.url || ''}"><div><span class="comment-author">${c.author}</span><div style="font-size:14px;">${c.content}</div></div></div>`).join('')}
@@ -678,7 +698,27 @@ const shortsHtml = `
             }
             playerContainer.innerHTML = playerHtml;
             const newVideo = document.getElementById('mainPlayer');
-            if (newVideo) { newVideo.load(); newVideo.play().catch(e => console.log("Auto")); }
+            if (newVideo) { 
+                newVideo.load(); 
+                newVideo.play().catch(e => console.log("Auto")); 
+
+                // Googlevideo選択時の2秒後自動再読み込み処理
+                if (serverName === 'googlevideo' && !window.googlevideoReloaded) {
+                    window.googlevideoReloaded = true;
+                    setTimeout(() => {
+                        const vid = document.getElementById('mainPlayer');
+                        if (vid) {
+                            const currentTime = vid.currentTime;
+                            const isPlaying = !vid.paused;
+                            vid.load();
+                            vid.currentTime = currentTime;
+                            if (isPlaying) {
+                                vid.play().catch(e => console.log("Auto reload play failed"));
+                            }
+                        }
+                    }, 2000);
+                }
+            }
         } catch (error) { console.error(error); alert('サーバー切り替えに失敗しました。'); } finally { overlay.classList.remove('active'); }
     }
 
@@ -742,6 +782,70 @@ const shortsHtml = `
             changeServer(serverName, endpointPath, { currentTarget: targetOption });
         }
     };
+
+    // 検索オートコンプリート機能
+    const searchInput = document.getElementById('searchInput');
+    const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+    let searchTimeout = null;
+
+    if(searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.trim();
+            if (!query) {
+                autocompleteDropdown.style.display = 'none';
+                return;
+            }
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const script = document.createElement('script');
+                script.src = 'https://suggestqueries.google.com/complete/search?client=youtube&ds=yt&q=' + encodeURIComponent(query) + '&jsonp=handleAutocomplete';
+                document.body.appendChild(script);
+            }, 200);
+        });
+    }
+
+    window.handleAutocomplete = function(data) {
+        const suggestions = data[1];
+        if (!suggestions || suggestions.length === 0) {
+            autocompleteDropdown.style.display = 'none';
+            return;
+        }
+        autocompleteDropdown.innerHTML = suggestions.map(function(s) {
+            return '<div class="autocomplete-item" data-query="' + encodeURIComponent(s[0]) + '" onclick="selectSuggestion(this)">' +
+                   '<i class="fas fa-search"></i><span>' + s[0] + '</span>' +
+                   '</div>';
+        }).join('');
+        autocompleteDropdown.style.display = 'block';
+    };
+
+    window.selectSuggestion = function(el) {
+        searchInput.value = decodeURIComponent(el.getAttribute('data-query'));
+        autocompleteDropdown.style.display = 'none';
+        searchInput.closest('form').submit();
+    };
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.nav-center')) {
+            if(autocompleteDropdown) autocompleteDropdown.style.display = 'none';
+        }
+    });
+
+    // 概要欄の表示切り替え機能
+    function toggleDescription(e) {
+        // リンクをクリックした場合はトグルさせない
+        if(e && e.target.tagName === 'A') return;
+        
+        const box = document.getElementById('descriptionBox');
+        const btn = document.getElementById('descriptionToggleBtn');
+        
+        if (box.classList.contains('expanded')) {
+            box.classList.remove('expanded');
+            btn.textContent = '全文を表示';
+        } else {
+            box.classList.add('expanded');
+            btn.textContent = '一部を表示';
+        }
+    }
 </script>
 </body>
 </html>
