@@ -289,6 +289,8 @@ app.get("/video/:id", async (req, res, next) => {
     
     if (isShortForm) {
       const shortsHtml = `
+ if (isShortForm) {
+      return res.send(`
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -297,144 +299,122 @@ app.get("/video/:id", async (req, res, next) => {
     <title>${videoData.videoTitle}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: #fff; font-family: "Roboto", sans-serif; overflow: hidden; }
-        .shorts-wrapper { position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: #000; }
-        .video-container { position: relative; height: 94vh; aspect-ratio: 9/16; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10; }
-        @media (max-width: 600px) { .video-container { height: 100%; width: 100%; border-radius: 0; } }
-        #playerWrapper { width: 100%; height: 100%; position: relative; z-index: 11; background: #000; }
-        video, iframe { width: 100%; height: 100%; object-fit: cover; border: none; display: block; }
-        .video-loading-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 150; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; backdrop-filter: blur(4px); }
-        .video-loading-overlay.active { opacity: 1; pointer-events: auto; }
-        .spinner { border: 4px solid rgba(255, 255, 255, 0.1); width: 40px; height: 40px; border-radius: 50%; border-top-color: #ff0000; animation: spin 1s ease-in-out infinite; margin-bottom: 15px; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
+        .wrapper { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        .container { position: relative; height: 100%; width: 100%; max-width: 500px; aspect-ratio: 9/16; background: #000; }
+        #playerWrapper { width: 100%; height: 100%; }
+        video, iframe { width: 100%; height: 100%; object-fit: cover; border: none; }
+        .overlay { position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; pointer-events:none; opacity:0; transition:0.3s; }
+        .overlay.active { opacity:1; }
+        .spinner { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid red; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .progress-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: rgba(255,255,255,0.2); z-index: 25; }
-        .progress-bar { height: 100%; background: #ff0000; width: 0%; transition: width 0.1s linear; }
-        .bottom-overlay { position: absolute; bottom: 0; left: 0; width: 100%; padding: 100px 16px 24px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); z-index: 20; pointer-events: none; }
-        .bottom-overlay * { pointer-events: auto; }
-        .channel-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-        .channel-info img { width: 32px; height: 32px; border-radius: 50%; }
-        .channel-name { font-weight: 500; font-size: 15px; }
-        .subscribe-btn { background: #fff; color: #000; border: none; padding: 6px 12px; border-radius: 18px; font-size: 12px; font-weight: bold; cursor: pointer; }
-        .video-title { font-size: 14px; line-height: 1.4; margin-bottom: 8px; font-weight: 400; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .side-bar { position: absolute; right: 8px; bottom: 80px; display: flex; flex-direction: column; gap: 16px; align-items: center; z-index: 30; }
-        .action-btn { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
-        .btn-icon { width: 44px; height: 44px; background: rgba(255,255,255,0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.2s; margin-bottom: 4px; }
-        .server-menu { display: none; position: absolute; right: 60px; bottom: 80px; background: #212121; border-radius: 8px; overflow: hidden; z-index: 200; min-width: 180px; border: 1px solid #333; }
+        .side-bar { position: absolute; right: 10px; bottom: 100px; z-index: 50; display: flex; flex-direction: column; gap: 20px; }
+        .btn { background: rgba(255,255,255,0.2); border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .bottom-info { position: absolute; bottom: 20px; left: 15px; z-index: 50; pointer-events: none; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .server-menu { display: none; position: absolute; bottom: 160px; right: 10px; background: #222; border-radius: 10px; overflow: hidden; z-index: 200; border: 1px solid #444; }
         .server-menu.show { display: block; }
-        .server-option { padding: 12px 16px; cursor: pointer; font-size: 13px; border-bottom: 1px solid #333; }
-        .server-option.active { color: #ff0000; font-weight: bold; }
-        .top-nav { position: absolute; top: 16px; left: 16px; z-index: 35; display: flex; align-items: center; color: white; text-decoration: none; }
+        .server-opt { padding: 12px 20px; cursor: pointer; border-bottom: 1px solid #333; font-size: 14px; }
+        .server-opt:hover { background: #333; }
     </style>
 </head>
 <body>
-    <div class="shorts-wrapper">
-        <div class="video-container">
-            <a href="/" class="top-nav"><i class="fas fa-arrow-left"></i></a>
+    <div class="wrapper" onclick="handleFirstClick()">
+        <div class="container">
             <div id="playerWrapper"></div>
-            <div id="videoLoadingOverlay" class="video-loading-overlay">
-                <div class="spinner"></div>
-                <div style="font-size: 14px; font-weight: bold;">接続中...</div>
-            </div>
-            <div class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
+            <div id="loading" class="overlay"><div class="spinner"></div><p>読み込み中...</p></div>
+            
             <div class="side-bar">
-                <div class="action-btn" onclick="toggleServerMenu()"><div class="btn-icon"><i class="fas fa-server"></i></div><span>サーバー</span></div>
-                <div class="action-btn"><div class="btn-icon"><i class="fas fa-thumbs-up"></i></div><span>${videoData.likeCount || '評価'}</span></div>
-                <div class="action-btn"><div class="btn-icon"><i class="fas fa-comment-dots"></i></div><span>${commentsData.commentCount || 0}</span></div>
+                <div class="btn" onclick="toggleServer()"><i class="fas fa-server"></i></div>
+                <div class="btn"><i class="fas fa-thumbs-up"></i></div>
+                <div class="btn"><i class="fas fa-comment"></i></div>
             </div>
+
             <div id="serverMenu" class="server-menu">
-                <div class="server-option" onclick="changeServer('googlevideo', '', event)">Googlevideo</div>
-                <div class="server-option" onclick="changeServer('youtube-nocookie', '/nocookie/${videoId}', event)">Youtube-nocookie</div>
-                <div class="server-option" onclick="changeServer('DL-Pro', '/360/${videoId}', event)">DL-Pro</div>
-                <div class="server-option" onclick="changeServer('YoutubeEdu-Kahoot', '/kahoot-edu/${videoId}', event)">YoutubeEdu-Kahoot</div>
-                <div class="server-option" onclick="changeServer('YoutubeEdu-Scratch', '/scratch-edu/${videoId}', event)">YoutubeEdu-Scratch</div>
-                <div class="server-option" onclick="changeServer('Youtube-Pro', '/pro-stream/${videoId}', event)">Youtube-Pro</div>
+                <div class="server-opt" onclick="changeServer('googlevideo', '')">Googlevideo</div>
+                <div class="server-opt" onclick="changeServer('youtube-nocookie', '/nocookie/${videoId}')">Youtube-nocookie</div>
+                <div class="server-opt" onclick="changeServer('DL-Pro', '/360/${videoId}')">DL-Pro</div>
+                <div class="server-opt" onclick="changeServer('Youtube-Pro', '/pro-stream/${videoId}')">Youtube-Pro</div>
             </div>
-            <div class="bottom-overlay">
-                <div class="channel-info">
-                    <img src="${videoData.channelImage || ''}" onerror="this.src='https://ui-avatars.com/api/?name=C&background=555&color=fff'">
-                    <span class="channel-name">@${videoData.channelName}</span>
-                    <button class="subscribe-btn">登録</button>
-                </div>
-                <div class="video-title">${videoData.videoTitle}</div>
+
+            <div class="bottom-info">
+                <div style="font-weight:bold; margin-bottom:5px;">@${videoData.channelName}</div>
+                <div style="font-size:14px; opacity:0.9;">${videoData.videoTitle}</div>
             </div>
         </div>
     </div>
+
     <script>
-        const progressBar = document.getElementById('progressBar');
-        const playerWrapper = document.getElementById('playerWrapper');
-        const overlay = document.getElementById('videoLoadingOverlay');
-        let googlevideoReloaded = false;
+        let hasInteracted = false;
+        let isReloaded = false;
 
-        function toggleServerMenu() { document.getElementById('serverMenu').classList.toggle('show'); }
+        function toggleServer() { document.getElementById('serverMenu').classList.toggle('show'); }
 
-        async function changeServer(serverName, endpointPath, event) {
-            if(event) {
-                document.getElementById('serverMenu').classList.remove('show');
-                const options = document.querySelectorAll('.server-option');
-                options.forEach(opt => opt.classList.remove('active'));
-                event.currentTarget.classList.add('active');
-                localStorage.setItem('playbackMode', serverName);
+        function handleFirstClick() {
+            if (!hasInteracted) {
+                const v = document.querySelector('video');
+                if (v) { v.muted = false; v.play().catch(e => {}); }
+                hasInteracted = true;
             }
+        }
 
-            overlay.classList.add('active');
-            googlevideoReloaded = false;
+        async function changeServer(name, path) {
+            document.getElementById('serverMenu').classList.remove('show');
+            const loading = document.getElementById('loading');
+            const wrapper = document.getElementById('playerWrapper');
+            loading.classList.add('active');
+            isReloaded = false;
 
+            let url = '';
             try {
-                let newUrl = '';
-                if (serverName === 'googlevideo') {
-                    newUrl = "${videoData.stream_url}" === "youtube-nocookie" ? \`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1\` : "${videoData.stream_url}";
-                } else if (serverName === 'Youtube-Pro') {
-                    newUrl = endpointPath;
+                if (name === 'googlevideo') {
+                    url = "${videoData.stream_url}" === "youtube-nocookie" ? "https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1" : "${videoData.stream_url}";
+                } else if (name === 'Youtube-Pro') {
+                    url = path;
                 } else {
-                    const res = await fetch(endpointPath);
-                    if (!res.ok) throw new Error("サーバーエラー");
-                    newUrl = await res.text();
+                    const r = await fetch(path);
+                    url = await r.text();
                 }
 
-                const forceIframe = ['YoutubeEdu-Kahoot', 'YoutubeEdu-Scratch', 'Youtube-Pro', 'youtube-nocookie'].includes(serverName);
-                const isIframe = forceIframe || newUrl.includes('embed');
+                const isIframe = name.includes('edu') || name.includes('nocookie') || name === 'Youtube-Pro' || url.includes('embed');
 
                 if (isIframe) {
-                    playerWrapper.innerHTML = \`<iframe id="mainPlayer" src="\${newUrl}" allow="autoplay; fullscreen" style="width:100%; height:100%;"></iframe>\`;
-                    document.getElementById('mainPlayer').onload = () => setTimeout(() => overlay.classList.remove('active'), 800);
+                    // Iframeの場合は自動再生＆ミュートパラメータを強制付与
+                    const finalUrl = url + (url.includes('?') ? '&' : '?') + "autoplay=1&mute=1";
+                    wrapper.innerHTML = \`<iframe src="\${finalUrl}" allow="autoplay; fullscreen"></iframe>\`;
+                    setTimeout(() => loading.classList.remove('active'), 1500);
                 } else {
-                    playerWrapper.innerHTML = \`<video id="mainPlayer" playsinline loop autoplay style="width:100%; height:100%; object-fit:cover; background:#000;"><source src="\${newUrl}" type="video/mp4"></video>\`;
-                    const v = document.getElementById('mainPlayer');
-                    v.oncanplay = () => { if (serverName !== 'googlevideo' || googlevideoReloaded) overlay.classList.remove('active'); };
-                    v.ontimeupdate = () => { progressBar.style.width = (v.currentTime / v.duration) * 100 + '%'; };
-                    v.onerror = () => { overlay.classList.remove('active'); console.error("Playback error"); };
+                    wrapper.innerHTML = \`<video id="v" playsinline loop autoplay muted style="background:#000;"><source src="\${url}" type="video/mp4"></video>\`;
+                    const v = document.getElementById('v');
+                    
+                    v.oncanplay = () => {
+                        v.play().catch(e => console.log("Auto-play blocked, waiting for click"));
+                        if (name !== 'googlevideo' || isReloaded) loading.classList.remove('active');
+                    };
 
-                    // 標準動画と同じ2秒後リロードハック
-                    if (serverName === 'googlevideo') {
+                    // Googlevideo専用リロードハック
+                    if (name === 'googlevideo') {
                         setTimeout(() => {
-                            if (v && !googlevideoReloaded) {
-                                googlevideoReloaded = true;
+                            if (!isReloaded && v) {
+                                isReloaded = true;
                                 const t = v.currentTime;
                                 v.load();
                                 v.currentTime = t;
-                                v.play().then(() => overlay.classList.remove('active')).catch(() => overlay.classList.remove('active'));
+                                v.play().then(() => loading.classList.remove('active')).catch(() => loading.classList.remove('active'));
                             }
                         }, 2000);
                     }
                 }
-            } catch (error) {
-                console.error(error);
-                overlay.classList.remove('active');
+                localStorage.setItem('playbackMode', name);
+            } catch(e) { 
+                console.error(e);
+                loading.classList.remove('active');
             }
         }
 
         window.onload = () => {
-            const savedMode = localStorage.getItem('playbackMode') || 'googlevideo';
-            const serverEndpoints = {
-                'googlevideo': '', 'youtube-nocookie': '/nocookie/${videoId}', 'DL-Pro': '/360/${videoId}',
-                'YoutubeEdu-Kahoot': '/kahoot-edu/${videoId}', 'YoutubeEdu-Scratch': '/scratch-edu/${videoId}', 'Youtube-Pro': '/pro-stream/${videoId}'
-            };
-            const serverName = serverEndpoints.hasOwnProperty(savedMode) ? savedMode : 'googlevideo';
-            const endpointPath = serverEndpoints[serverName];
-            const options = document.querySelectorAll('.server-option');
-            let targetOpt = options[0];
-            options.forEach(opt => { if(opt.getAttribute('onclick').includes("'" + serverName + "'")) targetOpt = opt; });
-            changeServer(serverName, endpointPath, { currentTarget: targetOpt });
+            const saved = localStorage.getItem('playbackMode') || 'googlevideo';
+            const paths = { 'googlevideo':'', 'youtube-nocookie':'/nocookie/${videoId}', 'DL-Pro':'/360/${videoId}', 'Youtube-Pro':'/pro-stream/${videoId}' };
+            changeServer(saved, paths[saved] || '');
         };
     </script>
 </body>
