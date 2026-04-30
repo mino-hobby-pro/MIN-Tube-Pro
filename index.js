@@ -289,8 +289,6 @@ app.get("/video/:id", async (req, res, next) => {
     
     if (isShortForm) {
       const shortsHtml = `
- if (isShortForm) {
-      return res.send(`
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -301,128 +299,165 @@ app.get("/video/:id", async (req, res, next) => {
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
         .wrapper { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
-        .container { position: relative; height: 100%; width: 100%; max-width: 500px; aspect-ratio: 9/16; background: #000; }
-        #playerWrapper { width: 100%; height: 100%; }
-        video, iframe { width: 100%; height: 100%; object-fit: cover; border: none; }
-        .overlay { position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100; pointer-events:none; opacity:0; transition:0.3s; }
-        .overlay.active { opacity:1; }
-        .spinner { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid red; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        .container { position: relative; width: 100%; height: 100%; max-width: 500px; aspect-ratio: 9/16; background: #000; overflow: hidden; }
+        
+        /* 動画プレイヤー領域 */
+        #playerWrapper { position: absolute; inset: 0; z-index: 5; background: #000; display: flex; align-items: center; justify-content: center; }
+        video, iframe { width: 100%; height: 100%; border: none; object-fit: cover; }
+
+        /* 右上メニュー（ホーム・設定・バージョン） */
+        .top-right-menu { position: absolute; top: 15px; right: 15px; z-index: 100; display: flex; align-items: center; gap: 15px; }
+        .menu-icon { color: #fff; font-size: 22px; cursor: pointer; text-decoration: none; text-shadow: 0 0 10px rgba(0,0,0,0.5); opacity: 0.8; transition: 0.2s; }
+        .menu-icon:hover { opacity: 1; transform: scale(1.1); }
+        .version-text { font-size: 10px; color: rgba(255,255,255,0.5); font-family: monospace; }
+
+        /* 設定パネル（歯車クリックで表示） */
+        .settings-panel { position: absolute; top: 60px; right: 15px; background: rgba(30,30,30,0.95); border-radius: 12px; padding: 10px; z-index: 200; display: none; border: 1px solid #444; width: 200px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .settings-panel.show { display: block; }
+        .settings-panel div { padding: 10px; font-size: 13px; cursor: pointer; border-radius: 8px; transition: 0.2s; }
+        .settings-panel div:hover { background: #ff0000; }
+        .settings-panel .active { color: #ff0000; font-weight: bold; }
+        .settings-panel .active:hover { color: #fff; }
+
+        /* ローディング・再生ボタン（サムネイル対策） */
+        .loading-screen { position: absolute; inset: 0; z-index: 150; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .loading-screen.hidden { opacity: 0; pointer-events: none; }
+        .play-trigger { position: absolute; inset: 0; z-index: 80; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .play-trigger i { font-size: 60px; opacity: 0.5; display: none; }
+        .play-trigger.paused i { display: block; }
+
+        .spinner { border: 3px solid #333; border-top: 3px solid #f00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .side-bar { position: absolute; right: 10px; bottom: 100px; z-index: 50; display: flex; flex-direction: column; gap: 20px; }
-        .btn { background: rgba(255,255,255,0.2); border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .bottom-info { position: absolute; bottom: 20px; left: 15px; z-index: 50; pointer-events: none; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
-        .server-menu { display: none; position: absolute; bottom: 160px; right: 10px; background: #222; border-radius: 10px; overflow: hidden; z-index: 200; border: 1px solid #444; }
-        .server-menu.show { display: block; }
-        .server-opt { padding: 12px 20px; cursor: pointer; border-bottom: 1px solid #333; font-size: 14px; }
-        .server-opt:hover { background: #333; }
+
+        /* サイドバー・情報（既存UI） */
+        .side-bar { position: absolute; right: 10px; bottom: 100px; z-index: 60; display: flex; flex-direction: column; gap: 20px; align-items: center; }
+        .btn-circle { background: rgba(255,255,255,0.1); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; backdrop-filter: blur(5px); }
+        .bottom-info { position: absolute; bottom: 25px; left: 15px; z-index: 60; pointer-events: none; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
-    <div class="wrapper" onclick="handleFirstClick()">
+    <div class="wrapper">
         <div class="container">
+            <!-- プレイヤー -->
             <div id="playerWrapper"></div>
-            <div id="loading" class="overlay"><div class="spinner"></div><p>読み込み中...</p></div>
             
-            <div class="side-bar">
-                <div class="btn" onclick="toggleServer()"><i class="fas fa-server"></i></div>
-                <div class="btn"><i class="fas fa-thumbs-up"></i></div>
-                <div class="btn"><i class="fas fa-comment"></i></div>
+            <!-- 上部メニュー -->
+            <div class="top-right-menu">
+                <span class="version-text">v2.6.1-Pro</span>
+                <i class="fas fa-cog menu-icon" onclick="toggleSettings()" title="設定"></i>
+                <a href="/" class="menu-icon" title="ホーム"><i class="fas fa-home"></i></a>
             </div>
 
-            <div id="serverMenu" class="server-menu">
-                <div class="server-opt" onclick="changeServer('googlevideo', '')">Googlevideo</div>
-                <div class="server-opt" onclick="changeServer('youtube-nocookie', '/nocookie/${videoId}')">Youtube-nocookie</div>
-                <div class="server-opt" onclick="changeServer('DL-Pro', '/360/${videoId}')">DL-Pro</div>
-                <div class="server-opt" onclick="changeServer('Youtube-Pro', '/pro-stream/${videoId}')">Youtube-Pro</div>
+            <!-- 設定パネル -->
+            <div id="settingsPanel" class="settings-panel">
+                <div style="font-weight:bold; border-bottom:1px solid #444; margin-bottom:5px;">再生サーバー</div>
+                <div id="opt-googlevideo" onclick="changeServer('googlevideo')">Googlevideo (推奨)</div>
+                <div id="opt-youtube-nocookie" onclick="changeServer('youtube-nocookie')">Youtube-nocookie</div>
+                <div id="opt-DL-Pro" onclick="changeServer('DL-Pro')">DL-Pro (高速)</div>
+                <div id="opt-Youtube-Pro" onclick="changeServer('Youtube-Pro')">Youtube-Pro (高画質)</div>
             </div>
 
+            <!-- ローディングと手動再生トリガー -->
+            <div id="loading" class="loading-screen"><div class="spinner"></div><p style="font-size:12px;">読み込み中...</p></div>
+            <div id="playTrigger" class="play-trigger" onclick="manualPlay()"><i class="fas fa-play"></i></div>
+
+            <!-- 下部情報 -->
             <div class="bottom-info">
                 <div style="font-weight:bold; margin-bottom:5px;">@${videoData.channelName}</div>
-                <div style="font-size:14px; opacity:0.9;">${videoData.videoTitle}</div>
+                <div style="font-size:14px; width:280px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${videoData.videoTitle}</div>
+            </div>
+
+            <!-- サイドバー -->
+            <div class="side-bar">
+                <div class="btn-circle"><i class="fas fa-thumbs-up"></i></div>
+                <div style="font-size:12px;">${videoData.likeCount || '評価'}</div>
+                <div class="btn-circle"><i class="fas fa-comment-dots"></i></div>
+                <div style="font-size:12px;">${commentsData.commentCount || 0}</div>
+                <div class="btn-circle"><i class="fas fa-share"></i></div>
             </div>
         </div>
     </div>
 
     <script>
-        let hasInteracted = false;
+        const videoId = "${videoId}";
         let isReloaded = false;
 
-        function toggleServer() { document.getElementById('serverMenu').classList.toggle('show'); }
+        function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('show'); }
 
-        function handleFirstClick() {
-            if (!hasInteracted) {
-                const v = document.querySelector('video');
-                if (v) { v.muted = false; v.play().catch(e => {}); }
-                hasInteracted = true;
+        function manualPlay() {
+            const v = document.querySelector('video');
+            if (v) {
+                v.muted = false;
+                v.play().catch(e => {});
+                document.getElementById('playTrigger').classList.remove('paused');
             }
         }
 
-        async function changeServer(name, path) {
-            document.getElementById('serverMenu').classList.remove('show');
-            const loading = document.getElementById('loading');
-            const wrapper = document.getElementById('playerWrapper');
-            loading.classList.add('active');
+        async function changeServer(mode) {
+            document.getElementById('settingsPanel').classList.remove('show');
+            const wrap = document.getElementById('playerWrapper');
+            const loader = document.getElementById('loading');
+            loader.style.display = 'flex';
             isReloaded = false;
+            
+            // アクティブ表示の更新
+            document.querySelectorAll('.settings-panel div').forEach(el => el.classList.remove('active'));
+            const activeOpt = document.getElementById('opt-' + mode);
+            if(activeOpt) activeOpt.classList.add('active');
 
-            let url = '';
+            let url = "";
             try {
-                if (name === 'googlevideo') {
-                    url = "${videoData.stream_url}" === "youtube-nocookie" ? "https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&mute=1" : "${videoData.stream_url}";
-                } else if (name === 'Youtube-Pro') {
-                    url = path;
+                if (mode === 'googlevideo') {
+                    url = "${videoData.stream_url}" === "youtube-nocookie" ? "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=1&mute=1" : "${videoData.stream_url}";
+                } else if (mode === 'youtube-nocookie') {
+                    url = "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=1&mute=1";
                 } else {
-                    const r = await fetch(path);
+                    const r = await fetch(mode === 'DL-Pro' ? "/360/" + videoId : "/pro-stream/" + videoId);
                     url = await r.text();
                 }
 
-                const isIframe = name.includes('edu') || name.includes('nocookie') || name === 'Youtube-Pro' || url.includes('embed');
-
-                if (isIframe) {
-                    // Iframeの場合は自動再生＆ミュートパラメータを強制付与
-                    const finalUrl = url + (url.includes('?') ? '&' : '?') + "autoplay=1&mute=1";
-                    wrapper.innerHTML = \`<iframe src="\${finalUrl}" allow="autoplay; fullscreen"></iframe>\`;
-                    setTimeout(() => loading.classList.remove('active'), 1500);
+                if (url.includes('embed')) {
+                    wrap.innerHTML = \`<iframe src="\${url}\${url.includes('?')?'&':'?'}autoplay=1&mute=1" allow="autoplay; fullscreen"></iframe>\`;
+                    setTimeout(() => loader.style.display = 'none', 1500);
                 } else {
-                    wrapper.innerHTML = \`<video id="v" playsinline loop autoplay muted style="background:#000;"><source src="\${url}" type="video/mp4"></video>\`;
+                    wrap.innerHTML = \`<video id="v" playsinline loop autoplay muted style="background:#000;"><source src="\${url}" type="video/mp4"></video>\`;
                     const v = document.getElementById('v');
                     
-                    v.oncanplay = () => {
-                        v.play().catch(e => console.log("Auto-play blocked, waiting for click"));
-                        if (name !== 'googlevideo' || isReloaded) loading.classList.remove('active');
-                    };
-
-                    // Googlevideo専用リロードハック
-                    if (name === 'googlevideo') {
-                        setTimeout(() => {
-                            if (!isReloaded && v) {
+                    v.onplaying = () => {
+                        loader.style.display = 'none';
+                        if (mode === 'googlevideo' && !isReloaded) {
+                            // 2秒後リロードハック（再生を安定させる）
+                            setTimeout(() => {
                                 isReloaded = true;
                                 const t = v.currentTime;
-                                v.load();
-                                v.currentTime = t;
-                                v.play().then(() => loading.classList.remove('active')).catch(() => loading.classList.remove('active'));
-                            }
-                        }, 2000);
-                    }
+                                v.load(); v.currentTime = t; v.play().catch(()=>{});
+                            }, 1800);
+                        }
+                    };
+
+                    v.onpause = () => document.getElementById('playTrigger').classList.add('paused');
+                    v.onplay = () => document.getElementById('playTrigger').classList.remove('paused');
+
+                    // 5秒止まってたらNocookieに自動切り替え
+                    setTimeout(() => {
+                        if (loader.style.display !== 'none') changeServer('youtube-nocookie');
+                    }, 5000);
                 }
-                localStorage.setItem('playbackMode', name);
-            } catch(e) { 
-                console.error(e);
-                loading.classList.remove('active');
+                localStorage.setItem('playbackMode', mode);
+            } catch(e) {
+                changeServer('youtube-nocookie');
             }
         }
 
         window.onload = () => {
             const saved = localStorage.getItem('playbackMode') || 'googlevideo';
-            const paths = { 'googlevideo':'', 'youtube-nocookie':'/nocookie/${videoId}', 'DL-Pro':'/360/${videoId}', 'Youtube-Pro':'/pro-stream/${videoId}' };
-            changeServer(saved, paths[saved] || '');
+            changeServer(saved);
         };
     </script>
 </body>
 </html>`;
       return res.send(shortsHtml);
-    }
-
-    
+    }  
 const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;"><div class="spinner"></div></div>`;
 
     const html = `
