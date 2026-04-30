@@ -230,65 +230,76 @@ app.get("/api/recommendations", async (req, res) => {
 });
 
 app.get("/video/:id", async (req, res, next) => {
-  const videoId = req.params.id;
+const videoId = req.params.id;
+try {
+let videoData = null;
+let commentsData = { commentCount: 0, comments: [] };
+let successfulApi = null;
+
+const protocol = req.headers['x-forwarded-proto'] || 'http';
+const host = req.headers.host;
+
+for (const apiBase of apiListCache) {
   try {
-    let videoData = null;
-    let commentsData = { commentCount: 0, comments: [] };
-    let successfulApi = null;
+    videoData = await Promise.any([
+      fetchWithTimeout(`${apiBase}/api/video/${videoId}`, {}, 5000)
+        .then(res => res.ok ? res.json() : Promise.reject())
+        .then(data => data.stream_url ? data : Promise.reject()),
+      fetchWithTimeout(`${protocol}://${host}/sia-dl/${videoId}`, {}, 5000)
+        .then(res => res.ok ? res.json() : Promise.reject())
+        .then(data => data.stream_url ? data : Promise.reject()),
 
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
-    const host = req.headers.host;
-
-    // --- メタデータとストリームURLの取得ロジック（標準と共通） ---
-    for (const apiBase of apiListCache) {
-      try {
-        videoData = await Promise.any([
-          fetchWithTimeout(`${apiBase}/api/video/${videoId}`, {}, 5000)
+      new Promise((resolve, reject) => {
+        setTimeout(() => {
+          fetchWithTimeout(`${protocol}://${host}/ai-fetch/${videoId}`, {}, 5000)
             .then(res => res.ok ? res.json() : Promise.reject())
-            .then(data => data.stream_url ? data : Promise.reject()),
-          fetchWithTimeout(`${protocol}://${host}/sia-dl/${videoId}`, {}, 5000)
-            .then(res => res.ok ? res.json() : Promise.reject())
-            .then(data => data.stream_url ? data : Promise.reject()),
-          new Promise((resolve, reject) => {
-            setTimeout(() => {
-              fetchWithTimeout(`${protocol}://${host}/ai-fetch/${videoId}`, {}, 5000)
-                .then(res => res.ok ? res.json() : Promise.reject())
-                .then(data => data.stream_url ? resolve(data) : reject())
-                .catch(reject);
-            }, 2000);
-          })
-        ]);
+            .then(data => data.stream_url ? resolve(data) : reject())
+            .catch(reject);
+        }, 2000);
+      })
+    ]);
 
-        try {
-          const cRes = await fetchWithTimeout(`${apiBase}/api/comments/${videoId}`, {}, 3000);
-          if (cRes.ok) commentsData = await cRes.json();
-        } catch (e) {}
-        successfulApi = apiBase;
-        break;
-      } catch (e) {
-        try {
-          const rapidRes = await fetchWithTimeout(`${protocol}://${host}/rapid/${videoId}`, {}, 5000);
-          if (rapidRes.ok) {
-            const rapidData = await rapidRes.json();
-            if (rapidData.stream_url) {
-              videoData = rapidData;
-              break; 
-            }
-          }
-        } catch (rapidErr) {}
-        continue;
+
+    try {
+      const cRes = await fetchWithTimeout(`${apiBase}/api/comments/${videoId}`, {}, 3000);
+      if (cRes.ok) commentsData = await cRes.json();
+    } catch (e) {}
+
+    successfulApi = apiBase;
+    break;
+
+  } catch (e) {
+    try {
+      const rapidRes = await fetchWithTimeout(`${protocol}://${host}/rapid/${videoId}`, {}, 5000);
+      if (rapidRes.ok) {
+        const rapidData = await rapidRes.json();
+        if (rapidData.stream_url) {
+          videoData = rapidData;
+          
+          try {
+            const cRes = await fetchWithTimeout(`${apiBase}/api/comments/${videoId}`, {}, 3000);
+            if (cRes.ok) commentsData = await cRes.json();
+          } catch (e) {}
+
+          successfulApi = apiBase; 
+          break; 
+        }
       }
-    }
+    } catch (rapidErr) {}
+    continue;
+  }
+}
 
-    if (!videoData) {
-      videoData = { videoTitle: "再生できない動画", stream_url: "youtube-nocookie", channelName: "Unknown" };
-    }
+if (!videoData) {
+  videoData = { videoTitle: "再生できない動画", stream_url: "youtube-nocookie" };
+}
 
+console.log(commentsData)
     const isShortForm = videoData.videoTitle.includes('#');
 
-    
     if (isShortForm) {
-      const shortsHtml = `
+      // --- SHORTS MODE HTML ---
+const shortsHtml = `
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -297,167 +308,190 @@ app.get("/video/:id", async (req, res, next) => {
     <title>${videoData.videoTitle}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: #fff; font-family: sans-serif; overflow: hidden; }
-        .wrapper { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
-        .container { position: relative; width: 100%; height: 100%; max-width: 500px; aspect-ratio: 9/16; background: #000; overflow: hidden; }
-        
-        /* 動画プレイヤー領域 */
-        #playerWrapper { position: absolute; inset: 0; z-index: 5; background: #000; display: flex; align-items: center; justify-content: center; }
-        video, iframe { width: 100%; height: 100%; border: none; object-fit: cover; }
-
-        /* 右上メニュー（ホーム・設定・バージョン） */
-        .top-right-menu { position: absolute; top: 15px; right: 15px; z-index: 100; display: flex; align-items: center; gap: 15px; }
-        .menu-icon { color: #fff; font-size: 22px; cursor: pointer; text-decoration: none; text-shadow: 0 0 10px rgba(0,0,0,0.5); opacity: 0.8; transition: 0.2s; }
-        .menu-icon:hover { opacity: 1; transform: scale(1.1); }
-        .version-text { font-size: 10px; color: rgba(255,255,255,0.5); font-family: monospace; }
-
-        /* 設定パネル（歯車クリックで表示） */
-        .settings-panel { position: absolute; top: 60px; right: 15px; background: rgba(30,30,30,0.95); border-radius: 12px; padding: 10px; z-index: 200; display: none; border: 1px solid #444; width: 200px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .settings-panel.show { display: block; }
-        .settings-panel div { padding: 10px; font-size: 13px; cursor: pointer; border-radius: 8px; transition: 0.2s; }
-        .settings-panel div:hover { background: #ff0000; }
-        .settings-panel .active { color: #ff0000; font-weight: bold; }
-        .settings-panel .active:hover { color: #fff; }
-
-        /* ローディング・再生ボタン（サムネイル対策） */
-        .loading-screen { position: absolute; inset: 0; z-index: 150; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .loading-screen.hidden { opacity: 0; pointer-events: none; }
-        .play-trigger { position: absolute; inset: 0; z-index: 80; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .play-trigger i { font-size: 60px; opacity: 0.5; display: none; }
-        .play-trigger.paused i { display: block; }
-
-        .spinner { border: 3px solid #333; border-top: 3px solid #f00; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 10px; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* サイドバー・情報（既存UI） */
-        .side-bar { position: absolute; right: 10px; bottom: 100px; z-index: 60; display: flex; flex-direction: column; gap: 20px; align-items: center; }
-        .btn-circle { background: rgba(255,255,255,0.1); width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; backdrop-filter: blur(5px); }
-        .bottom-info { position: absolute; bottom: 25px; left: 15px; z-index: 60; pointer-events: none; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; color: #fff; font-family: "Roboto", sans-serif; overflow: hidden; }
+        .shorts-wrapper { position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: #000; }
+        .video-container { position: relative; height: 94vh; aspect-ratio: 9/16; background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 0 20px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10; }
+        @media (max-width: 600px) { .video-container { height: 100%; width: 100%; border-radius: 0; } }
+        /* 動画を常に最前面へ */
+        video, iframe { width: 100%; height: 100%; object-fit: cover; border: none; position: relative; z-index: 11; visibility: hidden; }
+        .progress-container { position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: rgba(255,255,255,0.2); z-index: 25; }
+        .progress-bar { height: 100%; background: #ff0000; width: 0%; transition: width 0.1s linear; }
+        .bottom-overlay { position: absolute; bottom: 0; left: 0; width: 100%; padding: 100px 16px 24px; background: linear-gradient(transparent, rgba(0,0,0,0.8)); z-index: 20; pointer-events: none; }
+        .bottom-overlay * { pointer-events: auto; }
+        .channel-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .channel-info img { width: 32px; height: 32px; border-radius: 50%; }
+        .channel-name { font-weight: 500; font-size: 15px; }
+        .subscribe-btn { background: #fff; color: #000; border: none; padding: 6px 12px; border-radius: 18px; font-size: 12px; font-weight: bold; cursor: pointer; margin-left: 8px; }
+        .video-title { font-size: 14px; line-height: 1.4; margin-bottom: 8px; font-weight: 400; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .side-bar { position: absolute; right: 8px; bottom: 80px; display: flex; flex-direction: column; gap: 16px; align-items: center; z-index: 30; }
+        .action-btn { display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .btn-icon { width: 44px; height: 44px; background: rgba(255,255,255,0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: 0.2s; margin-bottom: 4px; }
+        .btn-icon:active { transform: scale(0.9); background: rgba(255,255,255,0.25); }
+        .action-btn span { font-size: 11px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); font-weight: 400; }
+        .swipe-hint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.6); padding: 12px 20px; border-radius: 30px; display: flex; align-items: center; gap: 10px; z-index: 50; opacity: 0; pointer-events: none; transition: opacity 0.5s; border: 1px solid rgba(255,255,255,0.2); }
+        .swipe-hint.show { opacity: 1; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translate(-50%, -50%); } 50% { transform: translate(-50%, -60%); } }
+        .comments-panel { position: absolute; bottom: 0; left: 0; width: 100%; height: 70%; background: #181818; border-radius: 16px 16px 0 0; z-index: 40; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
+        .comments-panel.open { transform: translateY(0); }
+        .comments-header { padding: 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+        .comments-body { flex: 1; overflow-y: auto; padding: 16px; }
+        .comment-item { display: flex; gap: 12px; margin-bottom: 18px; }
+        .comment-avatar { width: 32px; height: 32px; border-radius: 50%; }
+        .top-nav { position: absolute; top: 16px; left: 16px; z-index: 35; display: flex; align-items: center; color: white; text-decoration: none; }
+        .top-nav i { font-size: 20px; filter: drop-shadow(0 0 4px rgba(0,0,0,0.5)); }
+        .loading-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 1; transition: 0.3s; }
+        .loading-screen.fade { opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
-    <div class="wrapper">
-        <div class="container">
-            <!-- プレイヤー -->
-            <div id="playerWrapper"></div>
+    <div id="loader" class="loading-screen"><i class="fas fa-circle-notch fa-spin fa-2x"></i></div>
+    <div class="shorts-wrapper">
+        <div class="video-container">
+            <a href="/" class="top-nav"><i class="fas fa-arrow-left"></i></a>
+            <div id="swipeHint" class="swipe-hint"><i class="fas fa-hand-pointer"></i><span>下にスワイプして次の動画へ移動</span></div>
             
-            <!-- 上部メニュー -->
-            <div class="top-right-menu">
-                <span class="version-text">v2.6.1-Pro</span>
-                <i class="fas fa-cog menu-icon" onclick="toggleSettings()" title="設定"></i>
-                <a href="/" class="menu-icon" title="ホーム"><i class="fas fa-home"></i></a>
-            </div>
-
-            <!-- 設定パネル -->
-            <div id="settingsPanel" class="settings-panel">
-                <div style="font-weight:bold; border-bottom:1px solid #444; margin-bottom:5px;">再生サーバー</div>
-                <div id="opt-googlevideo" onclick="changeServer('googlevideo')">Googlevideo (推奨)</div>
-                <div id="opt-youtube-nocookie" onclick="changeServer('youtube-nocookie')">Youtube-nocookie</div>
-                <div id="opt-DL-Pro" onclick="changeServer('DL-Pro')">DL-Pro (高速)</div>
-                <div id="opt-Youtube-Pro" onclick="changeServer('Youtube-Pro')">Youtube-Pro (高画質)</div>
-            </div>
-
-            <!-- ローディングと手動再生トリガー -->
-            <div id="loading" class="loading-screen"><div class="spinner"></div><p style="font-size:12px;">読み込み中...</p></div>
-            <div id="playTrigger" class="play-trigger" onclick="manualPlay()"><i class="fas fa-play"></i></div>
-
-            <!-- 下部情報 -->
-            <div class="bottom-info">
-                <div style="font-weight:bold; margin-bottom:5px;">@${videoData.channelName}</div>
-                <div style="font-size:14px; width:280px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">${videoData.videoTitle}</div>
-            </div>
-
-            <!-- サイドバー -->
+            ${videoData.stream_url !== "youtube-nocookie" 
+                ? `<video id="videoPlayer" data-src="${videoData.stream_url}" loop playsinline></video>` 
+                : `<iframe id="videoIframe" data-src="https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&controls=0&loop=1&playlist=${videoId}&modestbranding=1&rel=0" allow="autoplay"></iframe>`}
+            
+            <div class="progress-container"><div id="progressBar" class="progress-bar"></div></div>
             <div class="side-bar">
-                <div class="btn-circle"><i class="fas fa-thumbs-up"></i></div>
-                <div style="font-size:12px;">${videoData.likeCount || '評価'}</div>
-                <div class="btn-circle"><i class="fas fa-comment-dots"></i></div>
-                <div style="font-size:12px;">${commentsData.commentCount || 0}</div>
-                <div class="btn-circle"><i class="fas fa-share"></i></div>
+                <div class="action-btn"><div class="btn-icon"><i class="fas fa-thumbs-up"></i></div><span>${videoData.likeCount || '評価'}</span></div>
+                <div class="action-btn"><div class="btn-icon"><i class="fas fa-thumbs-down"></i></div><span>低評価</span></div>
+                <div class="action-btn" onclick="toggleComments()"><div class="btn-icon"><i class="fas fa-comment-dots"></i></div><span>${commentsData.commentCount || 0}</span></div>
+                <div class="action-btn"><div class="btn-icon"><i class="fas fa-share"></i></div><span>共有</span></div>
+                <div class="action-btn"><div class="btn-icon" style="background:none;"><img src="${videoData.channelImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(videoData.channelName||'C')}&background=random&color=fff&size=64&bold=true`}" style="width:30px; height:30px; border-radius:4px; border:2px solid #fff;" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(videoData.channelName||'C')}&background=555&color=fff&size=64&bold=true'"></div></div>
+            </div>
+            <div class="bottom-overlay">
+                <div class="channel-info"><img src="${videoData.channelImage || `https://ui-avatars.com/api/?name=${encodeURIComponent(videoData.channelName||'C')}&background=random&color=fff&size=64&bold=true`}" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(videoData.channelName||'C')}&background=555&color=fff&size=64&bold=true'"><a href="/channel/${encodeURIComponent(videoData.channelName)}" style="text-decoration:none;color:inherit;"><span class="channel-name">@${videoData.channelName}</span></a><button id="shortSubBtn" class="subscribe-btn" onclick="toggleShortSub()">登録</button></div>
+                <div class="video-title">${videoData.videoTitle}</div>
+            </div>
+            <div id="commentsPanel" class="comments-panel">
+                <div class="comments-header"><h3 style="margin:0; font-size:16px;">コメント</h3><i class="fas fa-times" style="cursor:pointer;" onclick="toggleComments()"></i></div>
+                <div class="comments-body">
+                    ${commentsData.comments.length > 0 ? commentsData.comments.map(c => `<div class="comment-item"><img class="comment-avatar" src="${c.authorThumbnails?.[0]?.url || 'https://via.placeholder.com/32'}"><div><div style="font-size:12px; color:#aaa; font-weight:bold;">${c.author}</div><div style="font-size:14px; margin-top:2px;">${c.content}</div></div></div>`).join('') : '<p style="text-align:center; color:#888;">コメントはありません</p>'}
+                </div>
             </div>
         </div>
     </div>
-
     <script>
-        const videoId = "${videoId}";
-        let isReloaded = false;
+        let startY = 0;
+        const loader = document.getElementById('loader');
+        const commentsPanel = document.getElementById('commentsPanel');
+        const swipeHint = document.getElementById('swipeHint');
+        const progressBar = document.getElementById('progressBar');
 
-        function toggleSettings() { document.getElementById('settingsPanel').classList.toggle('show'); }
+        window.onload = async () => {
+            // 設定から保存された再生方法を取得
+            const savedMode = localStorage.getItem('playbackMode') || 'googlevideo';
 
-        function manualPlay() {
-            const v = document.querySelector('video');
-            if (v) {
-                v.muted = false;
-                v.play().catch(e => {});
-                document.getElementById('playTrigger').classList.remove('paused');
-            }
-        }
+            async function initShortsPlayer() {
+                const videoEl = document.getElementById('videoPlayer');
+                const iframeEl = document.getElementById('videoIframe');
 
-        async function changeServer(mode) {
-            document.getElementById('settingsPanel').classList.remove('show');
-            const wrap = document.getElementById('playerWrapper');
-            const loader = document.getElementById('loading');
-            loader.style.display = 'flex';
-            isReloaded = false;
-            
-            // アクティブ表示の更新
-            document.querySelectorAll('.settings-panel div').forEach(el => el.classList.remove('active'));
-            const activeOpt = document.getElementById('opt-' + mode);
-            if(activeOpt) activeOpt.classList.add('active');
+                if (savedMode === 'youtube-nocookie') {
+                    // youtube-nocookie: video要素があればiframeに差し替え
+                    const targetIframe = iframeEl || document.createElement('iframe');
+                    if (!iframeEl) {
+                        targetIframe.id = 'videoIframe';
+                        targetIframe.setAttribute('allow', 'autoplay');
+                        targetIframe.setAttribute('allowfullscreen', '');
+                        targetIframe.style.cssText = 'width:100%; height:100%; object-fit:cover; border:none; position:relative; z-index:11;';
+                        if (videoEl) videoEl.replaceWith(targetIframe);
+                        else document.querySelector('.video-container').insertBefore(targetIframe, document.querySelector('.progress-container'));
+                    }
+                    targetIframe.src = \`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&controls=0&loop=1&playlist=${videoId}&modestbranding=1&rel=0\`;
+                    targetIframe.style.visibility = 'visible';
 
-            let url = "";
-            try {
-                if (mode === 'googlevideo') {
-                    url = "${videoData.stream_url}" === "youtube-nocookie" ? "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=1&mute=1" : "${videoData.stream_url}";
-                } else if (mode === 'youtube-nocookie') {
-                    url = "https://www.youtube-nocookie.com/embed/" + videoId + "?autoplay=1&mute=1";
-                } else {
-                    const r = await fetch(mode === 'DL-Pro' ? "/360/" + videoId : "/pro-stream/" + videoId);
-                    url = await r.text();
-                }
-
-                if (url.includes('embed')) {
-                    wrap.innerHTML = \`<iframe src="\${url}\${url.includes('?')?'&':'?'}autoplay=1&mute=1" allow="autoplay; fullscreen"></iframe>\`;
-                    setTimeout(() => loader.style.display = 'none', 1500);
-                } else {
-                    wrap.innerHTML = \`<video id="v" playsinline loop autoplay muted style="background:#000;"><source src="\${url}" type="video/mp4"></video>\`;
-                    const v = document.getElementById('v');
-                    
-                    v.onplaying = () => {
-                        loader.style.display = 'none';
-                        if (mode === 'googlevideo' && !isReloaded) {
-                            // 2秒後リロードハック（再生を安定させる）
-                            setTimeout(() => {
-                                isReloaded = true;
-                                const t = v.currentTime;
-                                v.load(); v.currentTime = t; v.play().catch(()=>{});
-                            }, 1800);
+                } else if (savedMode !== 'googlevideo' && videoEl) {
+                    // DL-Pro などその他のモード: エンドポイントからURLを取得して再生
+                    const endpointMap = { 'DL-Pro': '/360/${videoId}' };
+                    const endpoint = endpointMap[savedMode];
+                    if (endpoint) {
+                        try {
+                            const res = await fetch(endpoint);
+                            if (res.ok) {
+                                const url = await res.text();
+                                videoEl.src = url;
+                                videoEl.style.visibility = 'visible';
+                                videoEl.play().catch(() => {});
+                                videoEl.ontimeupdate = () => { const p = (videoEl.currentTime / videoEl.duration) * 100; progressBar.style.width = p + '%'; };
+                                return;
+                            }
+                        } catch (e) {
+                            console.warn('ショート: エンドポイント取得失敗、googlevideoにフォールバック', e);
                         }
-                    };
+                    }
+                    // フォールバック: googlevideo
+                    if (videoEl.dataset.src) {
+                        videoEl.src = videoEl.dataset.src;
+                        videoEl.style.visibility = 'visible';
+                        videoEl.play().catch(() => {});
+                        videoEl.ontimeupdate = () => { const p = (videoEl.currentTime / videoEl.duration) * 100; progressBar.style.width = p + '%'; };
+                    }
 
-                    v.onpause = () => document.getElementById('playTrigger').classList.add('paused');
-                    v.onplay = () => document.getElementById('playTrigger').classList.remove('paused');
-
-                    // 5秒止まってたらNocookieに自動切り替え
-                    setTimeout(() => {
-                        if (loader.style.display !== 'none') changeServer('youtube-nocookie');
-                    }, 5000);
+                } else {
+                    // デフォルト: googlevideo (またはサーバーがnocookieを返した場合はiframe)
+                    if (videoEl && videoEl.dataset.src) {
+                        videoEl.src = videoEl.dataset.src;
+                        videoEl.style.visibility = 'visible';
+                        videoEl.play().catch(() => {});
+                        videoEl.ontimeupdate = () => { const p = (videoEl.currentTime / videoEl.duration) * 100; progressBar.style.width = p + '%'; };
+                    }
+                    if (iframeEl && iframeEl.dataset.src) {
+                        iframeEl.src = iframeEl.dataset.src;
+                        iframeEl.style.visibility = 'visible';
+                    }
                 }
-                localStorage.setItem('playbackMode', mode);
-            } catch(e) {
-                changeServer('youtube-nocookie');
             }
-        }
 
-        window.onload = () => {
-            const saved = localStorage.getItem('playbackMode') || 'googlevideo';
-            changeServer(saved);
+            await initShortsPlayer();
+            loader.classList.add('fade');
+            swipeHint.classList.add('show');
+            setTimeout(() => { swipeHint.classList.remove('show'); }, 1500);
         };
+
+        function toggleComments() { commentsPanel.classList.toggle('open'); }
+        // チャンネル登録機能（ショート）
+        const SHORT_CHANNEL = "${videoData.channelName || ''}";
+        const SHORT_SUB_KEY = 'subscribed_' + SHORT_CHANNEL;
+        const shortSubBtn = document.getElementById('shortSubBtn');
+        function updateShortSubBtn() {
+          const isSub = localStorage.getItem(SHORT_SUB_KEY) === 'true';
+          shortSubBtn.textContent = isSub ? '登録済み' : '登録';
+          shortSubBtn.style.background = isSub ? 'rgba(255,255,255,0.3)' : '#fff';
+          shortSubBtn.style.color = isSub ? '#fff' : '#000';
+        }
+        function toggleShortSub() {
+          const isSub = localStorage.getItem(SHORT_SUB_KEY) === 'true';
+          if (isSub) localStorage.removeItem(SHORT_SUB_KEY);
+          else localStorage.setItem(SHORT_SUB_KEY, 'true');
+          updateShortSubBtn();
+        }
+        updateShortSubBtn();
+        async function loadNextShort() {
+            if (commentsPanel.classList.contains('open')) return;
+            loader.classList.remove('fade');
+            try {
+                const params = new URLSearchParams({ title: "${videoData.videoTitle}", channel: "${videoData.channelName}", id: "${videoId}" });
+                const res = await fetch(\`/api/recommendations?\${params.toString()}\`);
+                const data = await res.json();
+                const nextShort = data.items.find(item => item.title.includes('#')) || data.items[0];
+                if (nextShort) { window.location.href = '/video/' + nextShort.id; } else { window.location.href = '/'; }
+            } catch (e) { window.location.href = '/'; }
+        }
+        window.addEventListener('touchstart', e => startY = e.touches[0].pageY);
+        window.addEventListener('touchend', e => { const endY = e.changedTouches[0].pageY; if (startY - endY > 100) loadNextShort(); });
+        window.addEventListener('wheel', e => { if (e.deltaY > 50) loadNextShort(); }, { passive: true });
+        document.addEventListener('click', (e) => { if (commentsPanel.classList.contains('open') && !commentsPanel.contains(e.target) && !e.target.closest('.action-btn')) { toggleComments(); } });
     </script>
 </body>
 </html>`;
       return res.send(shortsHtml);
-    }  
+    }
+
+    // --- STANDARD VIDEO MODE HTML ---
+    // playerWrapper は空にして、クライアント側JSが localStorage.playbackMode に基づいて初期化する
 const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#000;"><div class="spinner"></div></div>`;
 
     const html = `
