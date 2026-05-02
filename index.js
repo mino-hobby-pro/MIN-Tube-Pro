@@ -673,67 +673,109 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
     }
     updateSubBtnUI();
 
-    async function changeServer(serverName, endpointPath, event) {
-        document.getElementById('serverMenu').classList.remove('show');
-        const options = document.querySelectorAll('.server-option');
-        options.forEach(opt => opt.classList.remove('active'));
+    // --- 修正版：changeServer 関数 ---
+async function changeServer(serverName, endpointPath, event) {
+    // 1. 設定を保存
+    localStorage.setItem('playbackMode', serverName);
+
+    document.getElementById('serverMenu').classList.remove('show');
+    const options = document.querySelectorAll('.server-option');
+    options.forEach(opt => opt.classList.remove('active'));
+    
+    // event が存在する場合（クリック時）は対象を active にする
+    if (event && event.currentTarget) {
         event.currentTarget.classList.add('active');
-
-        const overlay = document.getElementById('videoLoadingOverlay');
-        overlay.classList.add('active');
-
-        try {
-            let newUrl = '';
-            // --- ロジックの条件分岐 ---
-            if (serverName === 'googlevideo') {
-                newUrl = "${videoData.stream_url}" === "youtube-nocookie" ? \`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1\` : "${videoData.stream_url}";
-            } else if (serverName === 'Youtube-Pro') {
-                // Youtube-ProはエンドポイントURLをそのまま使用
-                newUrl = endpointPath;
-            } else {
-                // それ以外はサーバーから生のURLを取得
-                const res = await fetch(endpointPath);
-                if (!res.ok) throw new Error("サーバーエラー");
-                newUrl = await res.text();
-            }
-
-            const playerContainer = document.getElementById('playerWrapper');
-            // Kahoot, Scratch, Youtube-Pro, およびnocookieは強制的にiframe
-            const forceIframe = ['YoutubeEdu-Kahoot', 'YoutubeEdu-Scratch', 'Youtube-Pro', 'youtube-nocookie'].includes(serverName);
-            const isIframe = forceIframe || newUrl.includes('embed');
-
-            let playerHtml = '';
-            if (isIframe) {
-                playerHtml = \`<iframe id="mainIframe" src="\${newUrl}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:relative; z-index:10;"></iframe>\`;
-            } else {
-                playerHtml = \`<video id="mainPlayer" controls autoplay style="width:100%; height:100%; position:relative; z-index:10; background:#000;"><source src="\${newUrl}" type="video/mp4"></video>\`;
-            }
-            playerContainer.innerHTML = playerHtml;
-            const newVideo = document.getElementById('mainPlayer');
-            if (newVideo) { 
-                newVideo.load(); 
-                newVideo.play().catch(e => console.log("Auto")); 
-
-                // Googlevideo選択時の2秒後自動再読み込み処理
-                if (serverName === 'googlevideo' && !window.googlevideoReloaded) {
-                    window.googlevideoReloaded = true;
-                    setTimeout(() => {
-                        const vid = document.getElementById('mainPlayer');
-                        if (vid) {
-                            const currentTime = vid.currentTime;
-                            const isPlaying = !vid.paused;
-                            vid.load();
-                            vid.currentTime = currentTime;
-                            if (isPlaying) {
-                                vid.play().catch(e => console.log("Auto reload play failed"));
-                            }
-                        }
-                    }, 2000);
-                }
-            }
-        } catch (error) { console.error(error); alert('サーバー切り替えに失敗しました。'); } finally { overlay.classList.remove('active'); }
     }
 
+    const overlay = document.getElementById('videoLoadingOverlay');
+    overlay.classList.add('active');
+
+    try {
+        let newUrl = '';
+        if (serverName === 'googlevideo') {
+            newUrl = "${videoData.stream_url}" === "youtube-nocookie" ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1` : "${videoData.stream_url}";
+        } else if (serverName === 'Youtube-Pro') {
+            newUrl = endpointPath;
+        } else {
+            const res = await fetch(endpointPath);
+            if (!res.ok) throw new Error("サーバーエラー");
+            newUrl = await res.text();
+        }
+
+        const playerContainer = document.getElementById('playerWrapper');
+        const forceIframe = ['YoutubeEdu-Kahoot', 'YoutubeEdu-Scratch', 'Youtube-Pro', 'youtube-nocookie'].includes(serverName);
+        const isIframe = forceIframe || newUrl.includes('embed');
+
+        let playerHtml = '';
+        if (isIframe) {
+            playerHtml = `<iframe id="mainIframe" src="\${newUrl}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:relative; z-index:10;"></iframe>`;
+        } else {
+            playerHtml = `<video id="mainPlayer" controls autoplay style="width:100%; height:100%; position:relative; z-index:10; background:#000;"><source src="\${newUrl}" type="video/mp4"></video>`;
+        }
+        playerContainer.innerHTML = playerHtml;
+        
+        const newVideo = document.getElementById('mainPlayer');
+        if (newVideo) { 
+            newVideo.load(); 
+            newVideo.play().catch(e => console.log("Auto play blocked")); 
+
+            if (serverName === 'googlevideo' && !window.googlevideoReloaded) {
+                window.googlevideoReloaded = true;
+                setTimeout(() => {
+                    const vid = document.getElementById('mainPlayer');
+                    if (vid) {
+                        const currentTime = vid.currentTime;
+                        const isPlaying = !vid.paused;
+                        vid.load();
+                        vid.currentTime = currentTime;
+                        if (isPlaying) vid.play().catch(e => {});
+                    }
+                }, 2000);
+            }
+        }
+    } catch (error) { 
+        console.error(error); 
+        // 失敗した場合は googlevideo に戻すなどの処理
+    } finally { 
+        overlay.classList.remove('active'); 
+    }
+}
+
+// --- 修正版：window.onload ---
+window.onload = () => {
+    loadRecommendations();
+
+    // 保存されたモードを取得（デフォルトは googlevideo）
+    const savedMode = localStorage.getItem('playbackMode') || 'googlevideo';
+    
+    const serverEndpoints = {
+        'googlevideo':        '',
+        'youtube-nocookie':   '/nocookie/${videoId}',
+        'DL-Pro':             '/360/${videoId}',
+        'YoutubeEdu-Kahoot':  '/kahoot-edu/${videoId}',
+        'YoutubeEdu-Scratch': '/scratch-edu/${videoId}',
+        'Youtube-Pro':        '/pro-stream/${videoId}'
+    };
+
+    const serverName = serverEndpoints.hasOwnProperty(savedMode) ? savedMode : 'googlevideo';
+    const endpointPath = serverEndpoints[serverName];
+
+    // ドロップダウンの「active」クラスを正しくセットし、再生を開始
+    const options = document.querySelectorAll('.server-option');
+    let targetOption = options[0]; // デフォルト
+    options.forEach(opt => {
+        const onclickAttr = opt.getAttribute('onclick') || '';
+        if (onclickAttr.includes("'" + serverName + "'")) {
+            targetOption = opt;
+            opt.classList.add('active');
+        } else {
+            opt.classList.remove('active');
+        }
+    });
+
+    // 初期サーバー設定で再生開始
+    changeServer(serverName, endpointPath, { currentTarget: targetOption });
+};
     async function loadRecommendations() {
         const params = new URLSearchParams({ title: "${videoData.videoTitle}", channel: "${videoData.channelName}", id: "${videoId}" });
         const res = await fetch(\`/api/recommendations?\${params.toString()}\`);
@@ -765,35 +807,7 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
             \`).join('');
         }
     }
-    window.onload = () => {
-        loadRecommendations();
-
-        // ページ読み込み時に localStorage の再生方法を即座に適用
-        // (sessionStorage ガードと setTimeout を廃止: 毎回正しいモードで初期化する)
-        const savedMode = localStorage.getItem('playbackMode') || 'googlevideo';
-        const serverEndpoints = {
-            'googlevideo':        '',
-            'youtube-nocookie':   '/nocookie/${videoId}',
-            'DL-Pro':             '/360/${videoId}',
-            'YoutubeEdu-Kahoot':  '/kahoot-edu/${videoId}',
-            'YoutubeEdu-Scratch': '/scratch-edu/${videoId}',
-            'Youtube-Pro':        '/pro-stream/${videoId}'
-        };
-        const serverName = serverEndpoints.hasOwnProperty(savedMode) ? savedMode : 'googlevideo';
-        const endpointPath = serverEndpoints[serverName];
-
-        // 対応する .server-option 要素を探してアクティブにする
-        const options = document.querySelectorAll('.server-option');
-        let targetOption = options[0];
-        options.forEach(opt => {
-            const onclick = opt.getAttribute('onclick') || '';
-            if (onclick.includes("'" + serverName + "'")) targetOption = opt;
-        });
-
-        if (targetOption) {
-            changeServer(serverName, endpointPath, { currentTarget: targetOption });
-        }
-    };
+    
 
     // 検索オートコンプリート機能
     const searchInput = document.getElementById('searchInput');
