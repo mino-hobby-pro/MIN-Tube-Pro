@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELIXIR Network</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.png">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: #0a0a0c;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #ffffff;
+        }
+
+        #particles-js {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            opacity: 0.6;
+        }
+        
+        #embed-frame {
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            display: block;
+            position: relative;
+            z-index: 2;
+        }
+        
+        /* --- Optimized Elixir Loading Animation --- */
+        .loading-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a0c 100%);
+            position: relative;
+            z-index: 10;
+        }
+        
+        .loading-content {
+            text-align: center;
+            position: relative;
+            z-index: 11;
+        }
+
+        /* Elixir Orb Animation */
+        .elixir-orb {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 2rem;
+            position: relative;
+            background: linear-gradient(45deg, #6366f1, #a855f7);
+            border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%;
+            box-shadow: 0 0 50px rgba(168, 85, 247, 0.4);
+            animation: liquid-morph 3s ease-in-out infinite, orb-glow 2s ease-in-out infinite alternate;
+        }
+
+        .elixir-orb::after {
+            content: '';
+            position: absolute;
+            top: 15%;
+            left: 15%;
+            width: 30%;
+            height: 30%;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            filter: blur(5px);
+        }
+
+        @keyframes liquid-morph {
+            0%, 100% { border-radius: 30% 70% 70% 30% / 30% 30% 70% 70%; }
+            33% { border-radius: 70% 30% 50% 50% / 50% 50% 30% 70%; }
+            66% { border-radius: 50% 50% 30% 70% / 70% 30% 50% 50%; }
+        }
+
+        @keyframes orb-glow {
+            from { transform: scale(1); box-shadow: 0 0 40px rgba(99, 102, 241, 0.3); }
+            to { transform: scale(1.05); box-shadow: 0 0 70px rgba(168, 85, 247, 0.6); }
+        }
+
+        .brand-name {
+            font-size: 1.8rem;
+            font-weight: 800;
+            letter-spacing: 0.2rem;
+            text-transform: uppercase;
+            background: linear-gradient(to right, #fff, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .status-text {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1rem;
+        }
+
+        /* Error UI */
+        .error-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background: #0a0a0c;
+            position: relative;
+            z-index: 20;
+        }
+        
+        .error-content {
+            text-align: center;
+            padding: 3rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            max-width: 450px;
+        }
+        
+        .error-content h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #ff6b6b;
+        }
+        
+        .url-example {
+            margin-top: 1.5rem;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.8rem;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+    
+    <div id="loading-container" class="loading-container">
+        <div class="loading-content">
+            <div class="elixir-orb"></div>
+            <h1 class="brand-name">ELIXIR Network</h1>
+            <p id="loading-status" class="status-text">Connecting to Node...</p>
+        </div>
+    </div>
+    
+    <div id="error-container" class="error-container" style="display: none;">
+        <div class="error-content">
+            <h1>Connection Failed</h1>
+            <p id="error-message" style="color: rgba(255,255,255,0.7)"></p>
+            <div class="url-example">/embed#https://example.com</div>
+        </div>
+    </div>
+    
+    <iframe id="embed-frame" style="display: none;"></iframe>
+    
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="uv/uv.bundle.js"></script>
+    <script src="uv/uv.config.js"></script>
+    <script type="module">
+        import { registerSW } from "/prxy/register-sw.mjs";
+        import * as BareMux from "/prxy/baremux/index.mjs";
+
+        // Particles.js Initialization (Instant)
+        particlesJS('particles-js', {
+            particles: {
+                number: { value: 60, density: { enable: true, value_area: 800 } },
+                color: { value: '#a855f7' },
+                shape: { type: 'circle' },
+                opacity: { value: 0.3 },
+                size: { value: 2, random: true },
+                line_linked: { enable: true, distance: 150, color: '#6366f1', opacity: 0.2, width: 1 },
+                move: { enable: true, speed: 1.5 }
+            },
+            interactivity: { events: { onhover: { enable: true, mode: 'grab' } } },
+            retina_detect: true
+        });
+
+        const connection = new BareMux.BareMuxConnection("/prxy/baremux/worker.js");
+        const wispServers = [
+            "wss://wisp.rhw.one/",     
+            "wss://wisp.webmc.fun/",
+            "wss://anura.pro/",
+            "wss://server.rubynetwork.co/wisp/",
+            "wss://wisp.mercurywork.shop/",    
+            "wss://wisp.43059.lrga.space/",
+            "wss://wisp.lrga.space/",
+            "wisp.artclass-eta.vercel.app",
+            "wss://wisp.gointerstellar.app/",
+            "wss://construction.services.codd70.ru/socket/",            
+            "wss://tomp.app/wisp/"
+        ];
+
+        let activeWispUrl = null;
+        async function checkWispServer(url) {
+            return new Promise((resolve) => {
+                let resolved = false;
+                try {
+                    const ws = new WebSocket(url);
+                    const timeout = setTimeout(() => {
+                        if (!resolved) {
+                            resolved = true;
+                            ws.close();
+                            resolve(false);
+                        }
+                    }, 3000);
+                    ws.onopen = () => {
+                        if (!resolved) {
+                            resolved = true;
+                            clearTimeout(timeout);
+                            ws.close();
+                            resolve(true);
+                        }
+                    };
+                    ws.onerror = () => {
+                        if (!resolved) {
+                            resolved = true;
+                            clearTimeout(timeout);
+                            ws.close();
+                            resolve(false);
+                        }
+                    };
+                } catch (e) {
+                    if (!resolved) {
+                        resolved = true;
+                        resolve(false);
+                    }
+                }
+            });
+        }
+        async function getAvailableWisp() {
+            if (activeWispUrl) return activeWispUrl;
+            
+            const statusText = document.getElementById('loading-status');
+            
+            for (const url of wispServers) {
+                if(statusText) statusText.textContent = `Testing Node: ${new URL(url).hostname}...`;
+                const isWorking = await checkWispServer(url);
+                if (isWorking) {
+                    activeWispUrl = url; 
+                    return url;
+                }
+            }
+            throw new Error("No usable nodes are currently available. All connections failed.");
+        }
+
+        function search(input, template = "https://html.duckduckgo.com/html?t=h_&q=%s") {
+            try { return new URL(input).toString(); } catch (err) {}
+            try {
+                const url = new URL(`http://${input}`);
+                if (url.hostname.includes(".")) return url.toString();
+            } catch (err) {}
+            return template.replace("%s", encodeURIComponent(input));
+        }
+
+        async function getUV(input) {
+            await registerSW();
+            let url = search(input);
+            
+            let wispUrl = await getAvailableWisp();
+            
+            if ((await connection.getTransport()) !== "/prxy/epoxy/index.mjs") {
+                await connection.setTransport("/prxy/epoxy/index.mjs", [{ wisp: wispUrl }]);
+            }
+            return __uv$config.prefix + __uv$config.encodeUrl(url);
+        }
+
+        function getUrlFromFragment() {
+            const fragment = window.location.hash.substring(1);
+            if (!fragment) return null;
+            try { return decodeURIComponent(fragment); } catch (err) { return fragment; }
+        }
+
+        function isValidUrl(string) {
+            if (!string) return false;
+            try {
+                const url = new URL(string.includes('://') ? string : `http://${string}`);
+                return url.hostname.includes('.');
+            } catch (_) { return false; }
+        }
+
+        function showError(message) {
+            document.getElementById('loading-container').style.display = 'none';
+            document.getElementById('error-message').textContent = message;
+            document.getElementById('error-container').style.display = 'flex';
+        }
+
+        async function embedUrl() {
+            const url = getUrlFromFragment();
+            const iframe = document.getElementById('embed-frame');
+            const loadingContainer = document.getElementById('loading-container');
+            const statusText = document.getElementById('loading-status');
+
+            if (!url) return showError("URL fragment missing.");
+            if (!isValidUrl(url)) return showError(`Invalid destination: ${url}`);
+
+            try {
+                statusText.textContent = "Locating optimal node...";
+                const proxiedUrl = await getUV(url);
+                
+                statusText.textContent = "Flowing to destination...";
+                iframe.onload = () => {
+                    loadingContainer.style.display = 'none';
+                    iframe.style.display = 'block';
+                    document.title = `ELIXIR | ${url}`;
+                };
+
+                iframe.onerror = () => showError("The sanctuary refused the connection.");
+                iframe.src = proxiedUrl;
+            } catch (error) {
+                showError(error.message || "Proxy infusion failed.");
+            }
+        }
+
+        window.addEventListener('hashchange', embedUrl);
+
+        const init = () => {
+            if (typeof __uv$config !== 'undefined') {
+                embedUrl();
+            } else {
+                const check = setInterval(() => {
+                    if (typeof __uv$config !== 'undefined') {
+                        clearInterval(check);
+                        embedUrl();
+                    }
+                }, 10);
+            }
+        };
+
+        if (document.readyState === 'complete') init();
+        else window.addEventListener('load', init);
+    </script>
+</body>
+</html>
