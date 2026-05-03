@@ -1,9 +1,38 @@
 # ver1.4.0
 Elixir-Networkと統合。
 # Elixir-Networkについて
-rhenrywが作成したembeddrという静的なプロキシです。UVのbareサーバーは使わず、ランマーヘッドやScamjetに近いWispというサーバーを使っています。多くのサーバーを経由するため落ちる心配がありません（今のところは）
-サーバー　wss://wisp.rhw.one/　で接続出来た場合のみYoutubeの動画を再生することができます。
-エンドポイント /embed.html#URL　（/proxy/embed.html#URL)であらゆるウェブサイトの検閲からのがれることができます。
+rhenrywが作成したembeddrという静的なプロキシです。UVのbareサーバーは使わず、ランマーヘッドやScamjetに近いWispというサーバーを使っています。多くのサーバーを経由するため落ちる心配がありません（今のところは） <br>
+サーバー　wss://wisp.rhw.one/　で接続出来た場合のみYoutubeの動画を再生することができます。 <br>
+エンドポイント /embed.html#URL　（/proxy/embed.html#URL)であらゆるウェブサイトの検閲からのがれることができます。<br>
+## 開発者向け　技術的な概要について
+静的なプロキシはほとんどの場合、コード内に直接ルートをとることを想定してそのままのパスでファイルへ接続します。<br>そのため自分のプロジェクトにプロキシを追加しようとしてもCannot get errorが起きます。<br>これを回避するためにはindex.js側でパスを書き変え、正しいディレクトリの中にあるファイルを返すように指示しなければいけません。例えばMIN-Tube-Proでは下のような技術を使っています<br>
+```js
+const PROXY_ENDPOINTS = [
+  'prxy',
+  'baremux',
+  'epoxy',
+  'libcurl',
+  'register-sw.mjs',
+  'uv'
+];
+app.use('/proxy', express.static(PROXY_DIR));
+
+app.use((req, res, next) => {
+  const fileName = req.path.replace(/^\//, '');
+
+  if (PROXY_ENDPOINTS.includes(fileName)) {
+    const targetPath = path.join(PROXY_DIR, fileName);
+
+    if (fs.existsSync(targetPath) && fs.lstatSync(targetPath).isFile()) {
+      return res.sendFile(targetPath);
+    }
+  }
+
+  next();
+});
+```
+<br>エンドポイントを絞って関数を制限することで、サーバーにかかる負荷を減らすことができます。<br>ぜひ使ってみてください！
+
 
 
 # ver1.3.5
