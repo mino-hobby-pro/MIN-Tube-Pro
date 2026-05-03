@@ -2068,21 +2068,18 @@ app.get("/abyss.png", (req, res) => {
  *     └── register-sw.mjs
  */
 app.use('/proxy', express.static(PROXY_DIR));
-
 app.use((req, res, next) => {
-    const targetPath = path.join(PROXY_DIR, req.path);
+    if (res.headersSent) return next();
 
+    const targetPath = path.join(PROXY_DIR, req.path);
     const normalizedPath = path.normalize(targetPath);
+
     if (!normalizedPath.startsWith(PROXY_DIR)) {
         return next();
     }
 
-    try {
-        if (fs.existsSync(targetPath) && fs.lstatSync(targetPath).isFile()) {
-            return res.sendFile(targetPath);
-        }
-    } catch (err) {
-        console.error(`File access error: ${err}`);
+    if (fs.existsSync(targetPath) && fs.lstatSync(targetPath).isFile()) {
+        return res.sendFile(targetPath);
     }
 
     next();
