@@ -30,8 +30,6 @@ const keys = [
   process.env.RAPIDAPI_KEY_3 || '41c9265bc6msha0fa7dfc1a63eabp18bf7cjsne6ef10b79b38'
 ];
 
-const ABYSS_DIR = path.join(__dirname, 'abyss');
-const NOVA_DIR = path.join(__dirname, 'nova');
 const PROXY_DIR = path.join(__dirname, 'proxy');
 
 
