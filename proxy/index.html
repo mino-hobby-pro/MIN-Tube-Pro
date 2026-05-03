@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elixir-Network</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.png">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Fira+Code:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-deep: #020205;
+            --bg-panel: rgba(10, 10, 20, 0.8);
+            --elixir-gradient: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+            --elixir-primary: #8b5cf6;
+            --elixir-secondary: #06b6d4;
+            --text-main: #ffffff;
+            --text-dim: #9ca3af;
+            --border-glow: rgba(139, 92, 246, 0.3);
+            --glass: rgba(255, 255, 255, 0.03);
+            --transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Boot Animation --- */
+        #boot-loader {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-deep);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.8s ease;
+        }
+
+        .boot-logo {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+            background: var(--elixir-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 15px rgba(139, 92, 246, 0.5));
+        }
+
+        .boot-progress-container {
+            width: 240px;
+            height: 2px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .boot-progress-bar {
+            width: 0%;
+            height: 100%;
+            background: var(--elixir-gradient);
+            box-shadow: 0 0 10px var(--elixir-primary);
+            transition: width 0.5s ease;
+        }
+
+        /* --- Background Particles --- */
+        #particles-js {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* --- Browser Layout --- */
+        .app-container {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header (Tab Bar) */
+        .browser-header {
+            background: rgba(5, 5, 10, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 8px 8px 0;
+        }
+
+        .tab-bar {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            overflow-x: auto;
+        }
+        .tab-bar::-webkit-scrollbar { display: none; }
+
+        .tab {
+            min-width: 140px;
+            max-width: 200px;
+            height: 36px;
+            background: var(--glass);
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: var(--transition);
+            position: relative;
+            border-bottom: none;
+        }
+
+        .tab.active {
+            background: rgba(30, 30, 45, 0.8);
+            border-color: var(--border-glow);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 0; width: 100%; height: 2px;
+            background: var(--elixir-gradient);
+        }
+
+        .tab-title {
+            font-size: 0.8rem;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-right: 8px;
+        }
+
+        .tab-close {
+            opacity: 0.5;
+            font-size: 0.7rem;
+            transition: 0.2s;
+        }
+        .tab-close:hover { opacity: 1; color: #ff4d4d; }
+
+        .new-tab-btn {
+            background: none; border: none; color: white;
+            padding: 8px; cursor: pointer; opacity: 0.7;
+        }
+
+        /* Navigation Bar */
+        .nav-bar {
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(10, 10, 15, 0.8);
+        }
+
+        .nav-controls { display: flex; gap: 8px; }
+        .nav-btn {
+            background: var(--glass);
+            border: none; color: white;
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .nav-btn:hover { background: rgba(255,255,255,0.1); transform: translateY(-1px); }
+
+        .address-bar-container {
+            flex: 1;
+            position: relative;
+        }
+
+        .address-bar {
+            width: 100%;
+            height: 38px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 19px;
+            padding: 0 45px;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .address-bar:focus {
+            border-color: var(--elixir-primary);
+            box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
+            background: rgba(0,0,0,0.6);
+        }
+
+        .bar-icon {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+        .bar-icon.search { left: 18px; }
+        .bar-icon.reload { right: 18px; cursor: pointer; }
+
+        /* --- Viewport & Start Page --- */
+        .viewport-container {
+            flex: 1;
+            position: relative;
+            background: #000;
+        }
+
+        .tab-content {
+            position: absolute;
+            inset: 0;
+            display: none;
+        }
+        .tab-content.active { display: block; }
+
+        iframe {
+            width: 100%; height: 100%; border: none;
+            background: #fff;
+        }
+
+        /* --- The Masterpiece: Start Page --- */
+        .start-page {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at center, #0a0a1a 0%, #020205 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding-bottom: 10vh;
+        }
+
+        .start-logo {
+            font-size: 5rem;
+            font-weight: 800;
+            letter-spacing: -2px;
+            background: var(--elixir-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 30px rgba(139, 92, 246, 0.4));
+        }
+
+        .start-tagline {
+            color: var(--elixir-secondary);
+            font-size: 0.9rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-top: -10px;
+            opacity: 0.8;
+        }
+
+        .mega-search-container {
+            width: 100%;
+            max-width: 650px;
+            position: relative;
+        }
+
+        .mega-search {
+            width: 100%;
+            padding: 18px 30px 18px 65px;
+            font-size: 1.1rem;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 30px;
+            color: white;
+            backdrop-filter: blur(10px);
+            transition: var(--transition);
+        }
+
+        .mega-search:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--elixir-primary);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5), 0 0 20px rgba(139, 92, 246, 0.2);
+            transform: scale(1.02);
+        }
+
+        .mega-search-icon {
+            position: absolute;
+            left: 25px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2rem;
+            color: var(--elixir-primary);
+        }
+
+        .quick-links {
+            margin-top: 30px;
+            display: flex;
+            gap: 20px;
+        }
+
+        .q-link {
+            text-decoration: none;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+        .q-link:hover { color: var(--elixir-secondary); transform: translateY(-5px); }
+        .q-link i {
+            width: 50px; height: 50px;
+            background: var(--glass);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        /* --- Loading Spinner for frames --- */
+        .frame-loader {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--elixir-gradient);
+            z-index: 100;
+            display: none;
+        }
+        .frame-loader.active { display: block; animation: loading-bar 2s infinite; }
+
+        @keyframes loading-bar {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Boot Sequence -->
+    <div id="boot-loader">
+        <div class="boot-logo"><i class="fa-solid fa-flask"></i> ELIXIR</div>
+        <div class="boot-progress-container">
+            <div class="boot-progress-bar" id="boot-bar"></div>
+        </div>
+    </div>
+
+    <div id="particles-js"></div>
+
+    <div class="app-container">
+        <!-- Browser UI Header -->
+        <header class="browser-header">
+            <div class="tab-bar" id="tab-bar">
+                <!-- Tabs injected here -->
+                <button class="new-tab-btn" onclick="addNewTab()"><i class="fa-solid fa-plus"></i></button>
+            </div>
+        </header>
+
+        <nav class="nav-bar">
+            <div class="nav-controls">
+                <button class="nav-btn" onclick="goBack()"><i class="fa-solid fa-chevron-left"></i></button>
+                <button class="nav-btn" onclick="goForward()"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <div class="address-bar-container">
+                <i class="fa-solid fa-shield-halved bar-icon search"></i>
+                <input type="text" class="address-bar" id="main-address-bar" placeholder="Enter URL or Search Elixir-Network..." autocomplete="off">
+                <i class="fa-solid fa-rotate-right bar-icon reload" onclick="reloadFrame()"></i>
+            </div>
+        </nav>
+
+        <div class="viewport-container" id="viewport-container">
+            <div class="frame-loader" id="global-loader"></div>
+            <!-- Tab Contents (Frames/StartPages) injected here -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script>
+        // --- Initialization ---
+        let tabs = [];
+        let activeTabId = null;
+        let tabCount = 0;
+
+        window.onload = () => {
+            // Boot Animation Sequence
+            const bar = document.getElementById('boot-bar');
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 30;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        document.getElementById('boot-loader').style.opacity = '0';
+                        setTimeout(() => document.getElementById('boot-loader').remove(), 800);
+                    }, 500);
+                }
+                bar.style.width = progress + '%';
+            }, 200);
+
+            addNewTab();
+            initParticles();
+        };
+
+        function initParticles() {
+            particlesJS('particles-js', {
+                particles: {
+                    number: { value: 60 },
+                    color: { value: "#8b5cf6" },
+                    shape: { type: "circle" },
+                    opacity: { value: 0.2 },
+                    size: { value: 2 },
+                    line_linked: { enable: true, distance: 150, color: "#8b5cf6", opacity: 0.1, width: 1 },
+                    move: { enable: true, speed: 1 }
+                }
+            });
+        }
+
+        // --- Proxy Logic ---
+        function getProxyUrl(input) {
+            let url = input.trim();
+            if (!url) return '';
+
+            // Check if it's a URL or search query
+            const isUrl = /^(https?:\/\/)?([\w.-]+)\.([a-z]{2,})/.test(url) && !url.includes(' ');
+            
+            if (!isUrl) {
+                // Use Startpage via Proxy for searches
+                url = `https://www.startpage.com/sp/search?query=${encodeURIComponent(url)}`;
+            } else {
+                if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+            }
+
+            // The Proxy Endpoint
+            return window.location.origin + '/embed#' + url;
+        }
+
+        // --- Tab Management ---
+        function addNewTab() {
+            const id = 'tab-' + (++tabCount);
+            const tabObj = {
+                id: id,
+                title: 'New Tab',
+                url: '',
+                isStartPage: true
+            };
+            tabs.push(tabObj);
+
+            // Create Tab Element
+            const tabEl = document.createElement('div');
+            tabEl.className = 'tab';
+            tabEl.id = 'handle-' + id;
+            tabEl.onclick = () => switchTab(id);
+            tabEl.innerHTML = `
+                <i class="fa-solid fa-flask" style="margin-right:8px; font-size:0.7rem; color:var(--elixir-secondary)"></i>
+                <span class="tab-title" id="title-${id}">New Tab</span>
+                <i class="fa-solid fa-xmark tab-close" onclick="event.stopPropagation(); closeTab('${id}')"></i>
+            `;
+            document.getElementById('tab-bar').insertBefore(tabEl, document.querySelector('.new-tab-btn'));
+
+            // Create Content Element
+            const contentEl = document.createElement('div');
+            contentEl.className = 'tab-content';
+            contentEl.id = 'content-' + id;
+            contentEl.innerHTML = createStartPageHTML(id);
+
+            document.getElementById('viewport-container').appendChild(contentEl);
+            switchTab(id);
+        }
+
+        function createStartPageHTML(tabId) {
+            return `
+                <div class="start-page">
+                    <div class="start-logo-container">
+                        <div class="start-logo"><i class="fa-solid fa-flask"></i> ELIXIR</div>
+                        <div class="start-tagline">Network Proxy Browser</div>
+                    </div>
+                    <br><br>
+                    <div class="mega-search-container">
+                        <i class="fa-solid fa-magnifying-glass mega-search-icon"></i>
+                        <input type="text" class="mega-search" placeholder="Search the web without limits..." 
+                               onkeypress="if(event.key === 'Enter') navigate('${tabId}', this.value)">
+                    </div>
+                    <div class="quick-links">
+                        <a href="#" class="q-link" onclick="navigate('${tabId}', 'google.com')"><i class="fa-brands fa-google"></i><span>Google</span></a>
+                        <a href="#" class="q-link" onclick="navigate('${tabId}', 'youtube.com')"><i class="fa-brands fa-youtube"></i><span>YouTube</span></a>
+                        <a href="#" class="q-link" onclick="navigate('${tabId}', 'discord.com')"><i class="fa-brands fa-discord"></i><span>Discord</span></a>
+                        <a href="#" class="q-link" onclick="navigate('${tabId}', 'twitter.com')"><i class="fa-brands fa-twitter"></i><span>Twitter</span></a>
+                    </div>
+                </div>
+            `;
+        }
+
+        function switchTab(id) {
+            activeTabId = id;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            document.getElementById('handle-' + id).classList.add('active');
+            document.getElementById('content-' + id).classList.add('active');
+
+            const tab = tabs.find(t => t.id === id);
+            const addressBar = document.getElementById('main-address-bar');
+            addressBar.value = tab.isStartPage ? '' : tab.url;
+            addressBar.focus();
+        }
+
+        function closeTab(id) {
+            if (tabs.length === 1) return;
+            const index = tabs.findIndex(t => t.id === id);
+            tabs.splice(index, 1);
+            document.getElementById('handle-' + id).remove();
+            document.getElementById('content-' + id).remove();
+            if (activeTabId === id) switchTab(tabs[tabs.length - 1].id);
+        }
+
+        // --- Navigation ---
+        function navigate(tabId, input) {
+            const proxyUrl = getProxyUrl(input);
+            const tab = tabs.find(t => t.id === tabId);
+            const content = document.getElementById('content-' + tabId);
+            
+            tab.url = input;
+            tab.isStartPage = false;
+            
+            // Show loader
+            document.getElementById('global-loader').classList.add('active');
+
+            // Update Tab UI
+            document.getElementById('title-' + tabId).innerText = input.replace('https://', '').split('/')[0];
+            
+            // Replace StartPage with Iframe
+            content.innerHTML = `<iframe src="${proxyUrl}" id="frame-${tabId}" onload="hideLoader()"></iframe>`;
+            
+            if (activeTabId === tabId) {
+                document.getElementById('main-address-bar').value = input;
+            }
+        }
+
+        function hideLoader() {
+            document.getElementById('global-loader').classList.remove('active');
+        }
+
+        // Global Address Bar Listener
+        document.getElementById('main-address-bar').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                navigate(activeTabId, e.target.value);
+            }
+        });
+
+        // Basic Browser Controls
+        function reloadFrame() {
+            const frame = document.getElementById('frame-' + activeTabId);
+            if (frame) frame.src = frame.src;
+        }
+
+        function goBack() {
+            const frame = document.getElementById('frame-' + activeTabId);
+            if (frame) try { frame.contentWindow.history.back(); } catch(e) {}
+        }
+
+        function goForward() {
+            const frame = document.getElementById('frame-' + activeTabId);
+            if (frame) try { frame.contentWindow.history.forward(); } catch(e) {}
+        }
+    </script>
+</body>
+</html>
