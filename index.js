@@ -1439,6 +1439,9 @@ app.get("/games.json", (req, res) => {
 app.get("/easy", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "proxy/easy.html"));
 });
+app.get("/ram", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "app/rammer.html"));
+});
 
 app.get("/urls", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "app/public-url.html"));
