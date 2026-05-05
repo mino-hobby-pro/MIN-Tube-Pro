@@ -5,11 +5,6 @@ const fetch = require("node-fetch");
 const cookieParser = require("cookie-parser");
 const https = require("https");
 const fs = require('fs');
-const { execFile } = require("child_process");
-const { promisify } = require("util");
-const execFileAsync = promisify(execFile);
-
-const YT_DLP_PATH = "./bin/yt-dlp" + (process.platform === "win32" ? ".exe" : "");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -44,35 +39,6 @@ app.use(cookieParser());
 
 let apiListCache = [];
 
-
-// キャッシュとType2を利用してm3u8を試みる
-async function getM3u8FromUserLogic(id) {
-    try {
-        // 1. キャッシュ確認
-        const cacheRes = await fetch("https://siawaseok.f5.si/api/cache");
-        const cacheData = await cacheRes.json();
-        
-        if (cacheData[id]) {
-            // 2. Type2からデータを取得
-            const type2Res = await fetch(`https://siawaseok.duckdns.org/api/stream/${id}/type2`);
-            const type2Data = await type2Res.json();
-            // m3u8形式のフォーマットを探す
-            const hls = type2Data.formats.find(f => f.isM3u8 || f.url.includes(".m3u8"));
-            if (hls) return { url: hls.url, data: type2Data };
-        }
-    } catch (e) { console.log("Cache/Type2 Error"); }
-
-    // 3. キャッシュがない場合は yt-dlp を実行 (提示された引数を使用)
-    try {
-        const args = ["--js-runtimes", "node", "-J", "--skip-download", "--no-progress", "--proxy", "http://ytproxy-siawaseok.duckdns.org:3007", `https://www.youtube.com/watch?v=${id}`];
-        const { stdout } = await execFileAsync(YT_DLP_PATH, args, { maxBuffer: 10 * 1024 * 1024 });
-        const data = JSON.parse(stdout);
-        // formatsからm3u8を抽出
-        const m3u8Format = data.formats.find(f => f.url.includes(".m3u8"));
-        if (m3u8Format) return { url: m3u8Format.url, data: data };
-        return { url: data.url, data: data }; // liveでない場合は通常のurl
-    } catch (e) { return null; }
-}
 async function updateApiListCache() {
   try {
     const response = await fetch(API_HEALTH_CHECKER);
@@ -271,20 +237,8 @@ let commentsData = { commentCount: 0, comments: [] };
 let successfulApi = null;
 
 const protocol = req.headers['x-forwarded-proto'] || 'http';
-// --- 提供されたロジックで m3u8 の取得を最優先で試行 ---
-    // --- 追加：提示されたロジックを最優先で実行 ---
-    const userStream = await getStreamUserLogic(videoId);
-    if (userStream) {
-        videoData = {
-            stream_url: userStream.url,
-            videoTitle: userStream.data.title,
-            channelName: userStream.data.uploader || (userStream.data.author && userStream.data.author.name),
-            channelImage: userStream.data.thumbnails?.[0]?.url || (userStream.data.author && userStream.data.author.thumbnail),
-            videoDes: userStream.data.description || (userStream.data.description && userStream.data.description.text),
-            videoViews: userStream.data.view_count || userStream.data.views,
-            isLive: userStream.isLive
-        };
-    }
+const host = req.headers.host;
+
 for (const apiBase of apiListCache) {
   try {
     videoData = await Promise.any([
@@ -548,7 +502,6 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${videoData.videoTitle} - YouTube Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-　　　<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         :root { --bg-main: #0f0f0f; --bg-secondary: #272727; --bg-hover: #3f3f3f; --text-main: #f1f1f1; --text-sub: #aaaaaa; --yt-red: #ff0000; }
         body { margin: 0; padding: 0; background: var(--bg-main); color: var(--text-main); font-family: "Roboto", "Arial", sans-serif; overflow-x: hidden; }
@@ -597,17 +550,6 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
         .short-thumb { aspect-ratio: 9/16; border-radius: 8px; overflow: hidden; background: #222; }
         .short-thumb img { width: 100%; height: 100%; object-fit: cover; }
         .short-info { margin-top: 8px; }
-
-        .live-badge {
-            background: #ff0000;
-            color: white;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
         .short-title { font-size: 14px; font-weight: 500; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .short-views { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
         .server-dropdown-container { position: relative; display: inline-block; margin-left: 12px; }
@@ -649,8 +591,7 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
                 <div style="font-weight: bold; font-size: 16px;">動画サーバーに接続中...</div>
             </div>
         </div>
-        <h1 class="video-title">${videoData.videoTitle} ${isLive ? '<span class="live-badge">LIVE</span>' : ''} 
-            ${videoData.videoTitle}</h1>
+        <h1 class="video-title">${videoData.videoTitle}</h1>
         <div class="owner-row">
             <div class="owner-info">
                 <a href="/channel/${encodeURIComponent(videoData.channelName)}" style="display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit;">
@@ -732,14 +673,18 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
     updateSubBtnUI();
 
     async function changeServer(serverName, endpointPath, event) {
+        // --- 修正箇所：サーバー名を localStorage に保存 ---
         localStorage.setItem('playbackMode', serverName);
+
         document.getElementById('serverMenu').classList.remove('show');
         const options = document.querySelectorAll('.server-option');
         options.forEach(opt => opt.classList.remove('active'));
         
+        // メニュー上の active 状態を同期
         if (event && event.currentTarget) {
             event.currentTarget.classList.add('active');
         } else {
+            // 自動起動時などは文字列検索で active を付与
             options.forEach(opt => {
                if (opt.getAttribute('onclick').includes("'" + serverName + "'")) opt.classList.add('active');
             });
@@ -751,7 +696,7 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
         try {
             let newUrl = '';
             if (serverName === 'googlevideo') {
-                newUrl = "${videoData.stream_url}" === "youtube-nocookie" ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1` : "${videoData.stream_url}";
+                newUrl = "${videoData.stream_url}" === "youtube-nocookie" ? \`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1\` : "${videoData.stream_url}";
             } else if (serverName === 'Youtube-Pro') {
                 newUrl = endpointPath;
             } else {
@@ -764,34 +709,23 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
             const forceIframe = ['YoutubeEdu-Kahoot', 'YoutubeEdu-Scratch', 'Youtube-Pro', 'youtube-nocookie'].includes(serverName);
             const isIframe = forceIframe || newUrl.includes('embed');
 
-            // videoタグ生成部分を以下のように修正（isIframe分岐のelseの中）
+            let playerHtml = '';
             if (isIframe) {
-                playerContainer.innerHTML = `<iframe src="${newUrl}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:relative; z-index:10;"></iframe>`;
+                playerHtml = \`<iframe id="mainIframe" src="\${newUrl}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:relative; z-index:10;"></iframe>\`;
             } else {
-                playerContainer.innerHTML = `<video id="mainPlayer" controls autoplay style="width:100%; height:100%; background:#000; position:relative; z-index:10;"></video>`;
-                const video = document.getElementById('mainPlayer');
-                
-                // URLがm3u8ならHls.jsで再生
-                if (newUrl.includes('.m3u8')) {
-                    if (Hls.isSupported()) {
-                        const hls = new Hls();
-                        hls.loadSource(newUrl);
-                        hls.attachMedia(video);
-                        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                        video.src = newUrl;
-                    }
-                } else {
-                    video.src = newUrl;
-                }
+                playerHtml = \`<video id="mainPlayer" controls autoplay style="width:100%; height:100%; position:relative; z-index:10; background:#000;"><source src="\${newUrl}" type="video/mp4"></video>\`;
             }
-                // --- ここまで ---
+            playerContainer.innerHTML = playerHtml;
+            const newVideo = document.getElementById('mainPlayer');
+            if (newVideo) { 
+                newVideo.load(); 
+                newVideo.play().catch(e => console.log("Auto")); 
 
                 if (serverName === 'googlevideo' && !window.googlevideoReloaded) {
                     window.googlevideoReloaded = true;
                     setTimeout(() => {
                         const vid = document.getElementById('mainPlayer');
-                        if (vid && !newUrl.includes('.m3u8')) { // ライブ以外でリロード処理
+                        if (vid) {
                             const currentTime = vid.currentTime;
                             const isPlaying = !vid.paused;
                             vid.load();
