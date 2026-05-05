@@ -1,4 +1,4 @@
-#ver1.4.1
+# ver1.4.1
 ライブをstream再生で見る場合、Hlsを取得して、表示するようにしました
 # ver1.4.0
 Elixir-Networkと統合。
