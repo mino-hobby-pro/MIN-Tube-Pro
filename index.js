@@ -238,6 +238,11 @@ let successfulApi = null;
 
 const protocol = req.headers['x-forwarded-proto'] || 'http';
 const host = req.headers.host;
+    const isLive = videoData && (
+      videoData.isLive === true || 
+      videoData.stream_url?.includes(".m3u8") || 
+      videoData.videoViews === 0 // ライブ中の動画はviewsが0や特殊な文字列になることが多い
+    );
 
 for (const apiBase of apiListCache) {
   try {
@@ -502,6 +507,7 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>${videoData.videoTitle} - YouTube Pro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+　　　<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
     <style>
         :root { --bg-main: #0f0f0f; --bg-secondary: #272727; --bg-hover: #3f3f3f; --text-main: #f1f1f1; --text-sub: #aaaaaa; --yt-red: #ff0000; }
         body { margin: 0; padding: 0; background: var(--bg-main); color: var(--text-main); font-family: "Roboto", "Arial", sans-serif; overflow-x: hidden; }
@@ -673,18 +679,14 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
     updateSubBtnUI();
 
     async function changeServer(serverName, endpointPath, event) {
-        // --- 修正箇所：サーバー名を localStorage に保存 ---
         localStorage.setItem('playbackMode', serverName);
-
         document.getElementById('serverMenu').classList.remove('show');
         const options = document.querySelectorAll('.server-option');
         options.forEach(opt => opt.classList.remove('active'));
         
-        // メニュー上の active 状態を同期
         if (event && event.currentTarget) {
             event.currentTarget.classList.add('active');
         } else {
-            // 自動起動時などは文字列検索で active を付与
             options.forEach(opt => {
                if (opt.getAttribute('onclick').includes("'" + serverName + "'")) opt.classList.add('active');
             });
@@ -696,7 +698,7 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
         try {
             let newUrl = '';
             if (serverName === 'googlevideo') {
-                newUrl = "${videoData.stream_url}" === "youtube-nocookie" ? \`https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1\` : "${videoData.stream_url}";
+                newUrl = "${videoData.stream_url}" === "youtube-nocookie" ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1` : "${videoData.stream_url}";
             } else if (serverName === 'Youtube-Pro') {
                 newUrl = endpointPath;
             } else {
@@ -709,23 +711,35 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
             const forceIframe = ['YoutubeEdu-Kahoot', 'YoutubeEdu-Scratch', 'Youtube-Pro', 'youtube-nocookie'].includes(serverName);
             const isIframe = forceIframe || newUrl.includes('embed');
 
-            let playerHtml = '';
             if (isIframe) {
-                playerHtml = \`<iframe id="mainIframe" src="\${newUrl}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:relative; z-index:10;"></iframe>\`;
+                playerContainer.innerHTML = `<iframe id="mainIframe" src="${newUrl}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:relative; z-index:10;"></iframe>`;
             } else {
-                playerHtml = \`<video id="mainPlayer" controls autoplay style="width:100%; height:100%; position:relative; z-index:10; background:#000;"><source src="\${newUrl}" type="video/mp4"></video>\`;
-            }
-            playerContainer.innerHTML = playerHtml;
-            const newVideo = document.getElementById('mainPlayer');
-            if (newVideo) { 
-                newVideo.load(); 
-                newVideo.play().catch(e => console.log("Auto")); 
+                // --- ここからHLS対応再生ロジック ---
+                playerContainer.innerHTML = `<video id="mainPlayer" controls autoplay style="width:100%; height:100%; position:relative; z-index:10; background:#000;"></video>`;
+                const video = document.getElementById('mainPlayer');
+                
+                // URLがm3u8形式、またはライブ判定の場合
+                if (newUrl.includes('.m3u8') || newUrl.includes('manifest/hls') || ${videoData.isLive || false}) {
+                    if (Hls.isSupported()) {
+                        const hls = new Hls();
+                        hls.loadSource(newUrl);
+                        hls.attachMedia(video);
+                        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                        // Safari用
+                        video.src = newUrl;
+                    }
+                } else {
+                    // 通常のMP4再生
+                    video.src = newUrl;
+                }
+                // --- ここまで ---
 
                 if (serverName === 'googlevideo' && !window.googlevideoReloaded) {
                     window.googlevideoReloaded = true;
                     setTimeout(() => {
                         const vid = document.getElementById('mainPlayer');
-                        if (vid) {
+                        if (vid && !newUrl.includes('.m3u8')) { // ライブ以外でリロード処理
                             const currentTime = vid.currentTime;
                             const isPlaying = !vid.paused;
                             vid.load();
