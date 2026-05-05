@@ -32,6 +32,10 @@ const keys = [
 
 const PROXY_DIR = path.join(__dirname, 'proxy');
 
+// 1. 先頭に追加
+const { execFile } = require("child_process");
+const YT_DLP_PATH = "./yt-dlp"; // バイナリのパス
+const YT_PROXY = "http://ytproxy-siawaseok.duckdns.org:3007";
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(cookieParser());
@@ -53,6 +57,25 @@ async function updateApiListCache() {
   }
 }
 
+// 2. getM3U8関数を追加
+function getM3U8(videoId) {
+  return new Promise((resolve) => {
+    const url = `https://www.youtube.com/watch?v=${videoId}`;
+    execFile(
+      YT_DLP_PATH,
+      ["--proxy", YT_PROXY, "-J", "--skip-download", "--no-playlist", "--flat-playlist", "--no-check-certificates", url],
+      { maxBuffer: 1024 * 1024 * 10 },
+      (error, stdout) => {
+        if (error) return resolve(null);
+        try {
+          const data = JSON.parse(stdout);
+          const formats = (data.formats || []).filter(f => f.url && f.url.includes(".m3u8"));
+          resolve(formats.length > 0 ? formats[formats.length - 1].url : null);
+        } catch (e) { resolve(null); }
+      }
+    );
+  });
+}
 updateApiListCache();
 setInterval(updateApiListCache, 1000 * 60 * 10);
 
@@ -1241,51 +1264,33 @@ app.get('/sia-dl/:videoId', async (req, res) => {
     const videoId = req.params.videoId;
     const protocol = req.protocol;
     const host = req.get('host');
-
     try {
         const metadataUrl = `https://siawaseok.duckdns.org/api/video2/${videoId}?depth=1`;
         const metaResponse = await fetch(metadataUrl);
-        if (!metaResponse.ok) throw new Error('Metadata API response was not ok');
-        const data = await metaResponse.json();
+        const data = metaResponse.ok ? await metaResponse.json() : {};
 
-   
         let rawStreamUrl = "";
-        
-        // ① メタデータにライブURL(m3u8)があるかチェック
-        if ((data.live_now || data.isLive) && data.hlsUrl) {
-            rawStreamUrl = data.hlsUrl;
-        } 
-        
-        // ② ライブでない、またはURLが空なら従来の360p(googlevideo)を取得
+        // ライブ中なら yt-dlp で m3u8 を取得
+        if (data.live_now || data.isLive) {
+            rawStreamUrl = await getM3U8(videoId);
+        }
+        // ライブでない、または取得失敗時は従来の360pを取得
         if (!rawStreamUrl) {
-            const streamInfoUrl = `${protocol}://${host}/360/${videoId}`;
-            const streamResponse = await fetch(streamInfoUrl);
+            const streamResponse = await fetch(`${protocol}://${host}/360/${videoId}`);
             rawStreamUrl = streamResponse.ok ? await streamResponse.text() : "";
         }
 
-        const parseCount = (str) => {
-            if (!str) return 0;
-            return parseInt(str.replace(/[^0-9]/g, '')) || 0;
-        };
-
-        const formattedResponse = {
-            stream_url: rawStreamUrl.trim(), 
-            highstreamUrl: rawStreamUrl.trim(),
-            videoId: data.id,
+        res.json({
+            stream_url: rawStreamUrl.trim(),
+            videoId: data.id || videoId,
             channelName: data.author?.name || "",
             channelImage: data.author?.thumbnail || "",
-            videoTitle: data.title,
+            videoTitle: data.title || "Video",
             videoDes: data.description?.text || "",
-            videoViews: parseCount(data.views || data.extended_stats?.views_original),
-            likeCount: parseCount(data.likes)
-        };
-
-        res.json(formattedResponse);
-
-    } catch (error) {
-        console.error('sia-dl error:', error);
-        res.status(500).json({ error: 'Internal Error' });
-    }
+            videoViews: parseInt(String(data.views || 0).replace(/[^0-9]/g, '')) || 0,
+            likeCount: parseInt(String(data.likes || 0).replace(/[^0-9]/g, '')) || 0
+        });
+    } catch (error) { res.status(500).json({ error: 'Internal Error' }); }
 });
 
 app.get('/ai-fetch/:videoId', async (req, res) => {
