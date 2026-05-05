@@ -215,17 +215,25 @@ let successfulApi = null;
 
 const protocol = req.headers['x-forwarded-proto'] || 'http';
 const host = req.headers.host;
+// --- app.get("/video/:id", ...) 内の修正箇所 ---
+// 既存のループの中で metadata から hlsUrl を探すように強化
 
 for (const apiBase of apiListCache) {
   try {
     videoData = await Promise.any([
       fetchWithTimeout(`${apiBase}/api/video/${videoId}`, {}, 5000)
         .then(res => res.ok ? res.json() : Promise.reject())
-        .then(data => data.stream_url ? data : Promise.reject()),
+        .then(data => (data.stream_url || data.hlsUrl) ? data : Promise.reject()), // hlsUrlも許可
+      
+      // 合体させた sia-dl のロジック
       fetchWithTimeout(`${protocol}://${host}/sia-dl/${videoId}`, {}, 5000)
         .then(res => res.ok ? res.json() : Promise.reject())
-        .then(data => data.stream_url ? data : Promise.reject()),
+    ]);
 
+    // もしライブ配信用のURLがあれば、stream_urlとして扱う
+    if (videoData.hlsUrl && !videoData.stream_url) {
+      videoData.stream_url = videoData.hlsUrl;
+    }
       new Promise((resolve, reject) => {
         setTimeout(() => {
           fetchWithTimeout(`${protocol}://${host}/ai-fetch/${videoId}`, {}, 5000)
@@ -651,7 +659,10 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
     }
     updateSubBtnUI();
 
-   async function changeServer(serverName, endpointPath, event) {
+
+
+// 2. changeServer関数を以下に差し替え
+async function changeServer(serverName, endpointPath, event) {
     localStorage.setItem('playbackMode', serverName);
     document.getElementById('serverMenu').classList.remove('show');
     const options = document.querySelectorAll('.server-option');
@@ -659,6 +670,10 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
     
     if (event && event.currentTarget) {
         event.currentTarget.classList.add('active');
+    } else {
+        options.forEach(opt => {
+           if (opt.getAttribute('onclick').includes("'" + serverName + "'")) opt.classList.add('active');
+        });
     }
 
     const overlay = document.getElementById('videoLoadingOverlay');
@@ -666,11 +681,18 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
 
     try {
         let newUrl = '';
+        
+        // --- サーバーごとのURL取得ロジック (Googlevideo含む) ---
         if (serverName === 'googlevideo') {
-            newUrl = "${videoData.stream_url}" === "youtube-nocookie" ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1` : "${videoData.stream_url}";
+            // 初回読み込み時のURLを使用
+            newUrl = "${videoData.stream_url}";
+            if (newUrl === "youtube-nocookie") {
+                newUrl = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1`;
+            }
         } else if (serverName === 'Youtube-Pro') {
             newUrl = endpointPath;
         } else {
+            // DL-Pro, Scratch-EduなどのエンドポイントからURLを取得
             const res = await fetch(endpointPath);
             if (!res.ok) throw new Error("サーバーエラー");
             newUrl = await res.text();
@@ -678,28 +700,35 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
 
         const playerContainer = document.getElementById('playerWrapper');
         
-        // --- HLS(ライブ配信)の判定 ---
+        // --- ★ライブ(HLS)判定ロジック ---
+        // URLに m3u8 または Googlevideoのライブマニフェストキーワードが含まれているか
         const isHls = newUrl.includes('.m3u8') || newUrl.includes('manifest/hls_variant');
+        
+        // iframeを使うべきか（ライブでなく、かつ教育用などのiframe専用サーバーの場合）
         const forceIframe = ['YoutubeEdu-Kahoot', 'YoutubeEdu-Scratch', 'Youtube-Pro', 'youtube-nocookie'].includes(serverName);
+        const isIframe = !isHls && (forceIframe || newUrl.includes('embed'));
 
-        if (forceIframe && !isHls) {
+        if (isIframe) {
             playerContainer.innerHTML = `<iframe id="mainIframe" src="${newUrl}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:relative; z-index:10;"></iframe>`;
         } else {
+            // videoタグでの再生（通常のMP4 または HLSライブ）
             playerContainer.innerHTML = `<video id="mainPlayer" controls autoplay style="width:100%; height:100%; position:relative; z-index:10; background:#000;"></video>`;
             const video = document.getElementById('mainPlayer');
 
             if (isHls) {
-                // HLS.jsを使用してライブ再生
+                // --- HLS再生モード ---
                 if (Hls.isSupported()) {
                     const hls = new Hls();
                     hls.loadSource(newUrl);
                     hls.attachMedia(video);
-                    hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(e => {}));
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        video.play().catch(e => console.log("再生がブロックされました"));
+                    });
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                    video.src = newUrl; // Safari用
+                    video.src = newUrl;
                 }
             } else {
-                // 通常のMP4再生
+                // --- 通常の動画(MP4)再生モード ---
                 video.src = newUrl;
                 video.load();
                 video.play().catch(e => console.log("Auto play blocked"));
@@ -708,18 +737,23 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
                 if (serverName === 'googlevideo' && !window.googlevideoReloaded) {
                     window.googlevideoReloaded = true;
                     setTimeout(() => {
-                        if (video) {
-                            const currentTime = video.currentTime;
-                            const isPlaying = !video.paused;
-                            video.load();
-                            video.currentTime = currentTime;
-                            if (isPlaying) video.play().catch(e => {});
+                        const vid = document.getElementById('mainPlayer');
+                        if (vid) {
+                            const currentTime = vid.currentTime;
+                            const isPlaying = !vid.paused;
+                            vid.load();
+                            vid.currentTime = currentTime;
+                            if (isPlaying) vid.play().catch(e => {});
                         }
                     }, 2000);
                 }
             }
         }
-    } catch (error) { console.error(error); } finally { overlay.classList.remove('active'); }
+    } catch (error) { 
+        console.error("サーバー切り替えエラー:", error); 
+    } finally { 
+        overlay.classList.remove('active'); 
+    }
 }
 
     async function loadRecommendations() {
