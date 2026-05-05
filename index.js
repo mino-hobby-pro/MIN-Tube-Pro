@@ -5,6 +5,11 @@ const fetch = require("node-fetch");
 const cookieParser = require("cookie-parser");
 const https = require("https");
 const fs = require('fs');
+const { execFile } = require("child_process");
+const { promisify } = require("util");
+const execFileAsync = promisify(execFile);
+
+const YT_DLP_PATH = "./bin/yt-dlp" + (process.platform === "win32" ? ".exe" : "");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -39,6 +44,35 @@ app.use(cookieParser());
 
 let apiListCache = [];
 
+
+// キャッシュとType2を利用してm3u8を試みる
+async function getM3u8FromUserLogic(id) {
+    try {
+        // 1. キャッシュ確認
+        const cacheRes = await fetch("https://siawaseok.f5.si/api/cache");
+        const cacheData = await cacheRes.json();
+        
+        if (cacheData[id]) {
+            // 2. Type2からデータを取得
+            const type2Res = await fetch(`https://siawaseok.duckdns.org/api/stream/${id}/type2`);
+            const type2Data = await type2Res.json();
+            // m3u8形式のフォーマットを探す
+            const hls = type2Data.formats.find(f => f.isM3u8 || f.url.includes(".m3u8"));
+            if (hls) return { url: hls.url, data: type2Data };
+        }
+    } catch (e) { console.log("Cache/Type2 Error"); }
+
+    // 3. キャッシュがない場合は yt-dlp を実行 (提示された引数を使用)
+    try {
+        const args = ["--js-runtimes", "node", "-J", "--skip-download", "--no-progress", "--proxy", "http://ytproxy-siawaseok.duckdns.org:3007", `https://www.youtube.com/watch?v=${id}`];
+        const { stdout } = await execFileAsync(YT_DLP_PATH, args, { maxBuffer: 10 * 1024 * 1024 });
+        const data = JSON.parse(stdout);
+        // formatsからm3u8を抽出
+        const m3u8Format = data.formats.find(f => f.url.includes(".m3u8"));
+        if (m3u8Format) return { url: m3u8Format.url, data: data };
+        return { url: data.url, data: data }; // liveでない場合は通常のurl
+    } catch (e) { return null; }
+}
 async function updateApiListCache() {
   try {
     const response = await fetch(API_HEALTH_CHECKER);
@@ -237,13 +271,20 @@ let commentsData = { commentCount: 0, comments: [] };
 let successfulApi = null;
 
 const protocol = req.headers['x-forwarded-proto'] || 'http';
-const host = req.headers.host;
-    const isLive = videoData && (
-      videoData.isLive === true || 
-      videoData.stream_url?.includes(".m3u8") || 
-      videoData.videoViews === 0 // ライブ中の動画はviewsが0や特殊な文字列になることが多い
-    );
-
+// --- 提供されたロジックで m3u8 の取得を最優先で試行 ---
+    // --- 追加：提示されたロジックを最優先で実行 ---
+    const userStream = await getStreamUserLogic(videoId);
+    if (userStream) {
+        videoData = {
+            stream_url: userStream.url,
+            videoTitle: userStream.data.title,
+            channelName: userStream.data.uploader || (userStream.data.author && userStream.data.author.name),
+            channelImage: userStream.data.thumbnails?.[0]?.url || (userStream.data.author && userStream.data.author.thumbnail),
+            videoDes: userStream.data.description || (userStream.data.description && userStream.data.description.text),
+            videoViews: userStream.data.view_count || userStream.data.views,
+            isLive: userStream.isLive
+        };
+    }
 for (const apiBase of apiListCache) {
   try {
     videoData = await Promise.any([
@@ -723,28 +764,27 @@ const streamEmbedPlaceholder = `<div style="width:100%;height:100%;display:flex;
             const forceIframe = ['YoutubeEdu-Kahoot', 'YoutubeEdu-Scratch', 'Youtube-Pro', 'youtube-nocookie'].includes(serverName);
             const isIframe = forceIframe || newUrl.includes('embed');
 
+            // videoタグ生成部分を以下のように修正（isIframe分岐のelseの中）
             if (isIframe) {
-                playerContainer.innerHTML = `<iframe id="mainIframe" src="${newUrl}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:relative; z-index:10;"></iframe>`;
+                playerContainer.innerHTML = `<iframe src="${newUrl}" frameborder="0" allowfullscreen style="width:100%; height:100%; position:relative; z-index:10;"></iframe>`;
             } else {
-                // --- ここからHLS対応再生ロジック ---
-                playerContainer.innerHTML = `<video id="mainPlayer" controls autoplay style="width:100%; height:100%; position:relative; z-index:10; background:#000;"></video>`;
+                playerContainer.innerHTML = `<video id="mainPlayer" controls autoplay style="width:100%; height:100%; background:#000; position:relative; z-index:10;"></video>`;
                 const video = document.getElementById('mainPlayer');
                 
-                // URLがm3u8形式、またはライブ判定の場合
-                if (newUrl.includes('.m3u8') || newUrl.includes('manifest/hls') || ${videoData.isLive || false}) {
+                // URLがm3u8ならHls.jsで再生
+                if (newUrl.includes('.m3u8')) {
                     if (Hls.isSupported()) {
                         const hls = new Hls();
                         hls.loadSource(newUrl);
                         hls.attachMedia(video);
                         hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
                     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                        // Safari用
                         video.src = newUrl;
                     }
                 } else {
-                    // 通常のMP4再生
                     video.src = newUrl;
                 }
+            }
                 // --- ここまで ---
 
                 if (serverName === 'googlevideo' && !window.googlevideoReloaded) {
