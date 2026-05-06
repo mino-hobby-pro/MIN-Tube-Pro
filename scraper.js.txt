@@ -1,0 +1,1541 @@
+'use strict';
+
+const express = require('express');
+const { fetch, Agent } = require('undici');
+
+const app = express();
+
+
+const VERSION = '5.0.0';
+
+// すべてInnertube
+const INNERTUBE_KEYS = [
+  'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8',  // WEB
+  'AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc',  // iOS
+  'AIzaSyA8eiZmM1fanX44Xqp1Gg9mGKL0r2GzUQw',  // Android
+];
+
+const CLIENTS = {
+  WEB_EMBEDDED: {
+    name: 'WEB_EMBEDDED_PLAYER',
+    version: '2.20210721.00.00',
+    key: INNERTUBE_KEYS[0],
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    clientName: '56',
+    embedUrl: 'https://www.youtube.com/embed/',
+    referer: 'https://www.youtube.com/',
+  },
+
+  TV_EMBEDDED: {
+    name: 'TVHTML5_SIMPLY_EMBEDDED_PLAYER',
+    version: '2.0',
+    key: INNERTUBE_KEYS[0],
+    userAgent: 'Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/6.0 TV Safari/538.1',
+    clientName: '85',
+    embedUrl: 'https://www.youtube.com',
+    referer: 'https://www.youtube.com/',
+  },
+  WEB: {
+    name: 'WEB',
+    version: '2.20241121.01.00',
+    key: INNERTUBE_KEYS[0],
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    clientName: '1',
+    referer: 'https://www.youtube.com/',
+  },
+  IOS: {
+    name: 'iOS',
+    version: '19.45.4',
+    key: INNERTUBE_KEYS[1],
+    userAgent: 'com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)',
+    clientName: '5',
+    deviceMake: 'Apple',
+    deviceModel: 'iPhone16,2',
+    osName: 'iPhone',
+    osVersion: '18.1.0.22B83',
+    referer: 'https://www.youtube.com/',
+  },
+  ANDROID: {
+    name: 'ANDROID',
+    version: '19.44.38',
+    key: INNERTUBE_KEYS[2],
+    userAgent: 'com.google.android.youtube/19.44.38(Linux; U; Android 14; en_US; Pixel 9 Pro; Build/AP3A.241005.015) gzip',
+    clientName: '3',
+    androidSdkVersion: 34,
+    referer: 'https://www.youtube.com/',
+  },
+  MWEB: {
+    name: 'MWEB',
+    version: '2.20241121.01.00',
+    key: INNERTUBE_KEYS[0],
+    userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
+    clientName: '2',
+    referer: 'https://www.youtube.com/',
+  },
+};
+
+const UA_POOL = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36 Edg/131.0.0.0',
+];
+
+let _uaIdx = 0;
+const getUA = () => UA_POOL[(_uaIdx++) % UA_POOL.length];
+
+
+
+const AGENT = new Agent({
+  connect: { timeout: 25000 },
+  keepAliveTimeout: 15000,
+  keepAliveMaxTimeout: 60000,
+  maxRedirections: 5,
+});
+
+
+async function httpGet(url, headers = {}, timeout = 20000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    return await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+        'Sec-Ch-Ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
+        'DNT': '1',
+        ...headers,
+      },
+      redirect: 'follow',
+      dispatcher: AGENT,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function httpPost(url, body, headers = {}, timeout = 20000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  try {
+    return await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Origin': 'https://www.youtube.com',
+        ...headers,
+      },
+      body: JSON.stringify(body),
+      redirect: 'follow',
+      dispatcher: AGENT,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function safeJSON(str) {
+  if (!str || typeof str !== 'string') return null;
+  try { return JSON.parse(str); } catch { return null; }
+}
+
+
+function dig(obj, ...keys) {
+  let cur = obj;
+  for (const k of keys) {
+    if (cur == null || typeof cur !== 'object') return undefined;
+    cur = Array.isArray(cur) ? cur[k] : cur[k];
+  }
+  return cur;
+}
+
+
+function getText(obj) {
+  if (obj == null) return null;
+  if (typeof obj === 'string') return obj || null;
+  if (typeof obj === 'number') return String(obj);
+  if (obj.simpleText != null) return String(obj.simpleText) || null;
+  if (Array.isArray(obj.runs)) {
+    const text = obj.runs.map(r => r?.text ?? '').join('');
+    return text || null;
+  }
+  if (obj.content != null) return String(obj.content) || null;
+  if (obj.accessibility?.accessibilityData?.label) return obj.accessibility.accessibilityData.label;
+  return null;
+}
+
+
+function parseCount(text) {
+  if (text == null) return null;
+  const str = String(text).trim();
+  if (!str) return null;
+
+  const direct = parseInt(str.replace(/[^0-9]/g, ''), 10);
+
+  // 動画のサイズを読み取り、それに合ったソースで動画を取得する。サーバーの負荷を下げるためにInnerから取得
+  const abbrevMatch = str.match(/^([\d,.]+)\s*([KMBkmb])/);
+  if (abbrevMatch) {
+    const num = parseFloat(abbrevMatch[1].replace(/,/g, ''));
+    const mult = { k: 1e3, m: 1e6, b: 1e9 }[abbrevMatch[2].toLowerCase()] || 1;
+    return Math.round(num * mult);
+  }
+
+  return isNaN(direct) ? null : direct;
+}
+
+
+function getNavUrl(endpoint) {
+  if (!endpoint) return null;
+  const web = endpoint?.commandMetadata?.webCommandMetadata?.url;
+  if (web) return web.startsWith('http') ? web : `https://www.youtube.com${web}`;
+  const browseId = endpoint?.browseEndpoint?.browseId;
+  if (browseId) {
+    const canonical = endpoint?.browseEndpoint?.canonicalBaseUrl;
+    if (canonical) return `https://www.youtube.com${canonical}`;
+    return `https://www.youtube.com/channel/${browseId}`;
+  }
+  const watchId = endpoint?.watchEndpoint?.videoId;
+  if (watchId) return `https://www.youtube.com/watch?v=${watchId}`;
+  const urlEndpoint = endpoint?.urlEndpoint?.url;
+  if (urlEndpoint) return urlEndpoint;
+  return null;
+}
+
+
+function normalizeThumbs(obj) {
+  if (!obj) return [];
+  const list = Array.isArray(obj) ? obj
+    : Array.isArray(obj.thumbnails) ? obj.thumbnails
+    : [];
+  return list
+    .filter(t => t?.url)
+    .map(t => ({
+      url: t.url,
+      width: t.width  ? parseInt(t.width,  10) : null,
+      height: t.height ? parseInt(t.height, 10) : null,
+    }))
+    .sort((a, b) => (b.width || 0) - (a.width || 0));
+}
+
+
+function buildVideoThumbs(id) {
+  return [
+    { id: 'maxres',  url: `https://i.ytimg.com/vi/${id}/maxresdefault.jpg`,  width: 1280, height: 720  },
+    { id: 'sd',      url: `https://i.ytimg.com/vi/${id}/sddefault.jpg`,      width: 640,  height: 480  },
+    { id: 'hq',      url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,      width: 480,  height: 360  },
+    { id: 'mq',      url: `https://i.ytimg.com/vi/${id}/mqdefault.jpg`,      width: 320,  height: 180  },
+    { id: 'default', url: `https://i.ytimg.com/vi/${id}/default.jpg`,        width: 120,  height: 90   },
+  ];
+}
+
+
+function formatDuration(sec) {
+  if (!sec || isNaN(sec) || sec <= 0) return null;
+  const s = Math.floor(sec);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = s % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+  return `${m}:${String(ss).padStart(2,'0')}`;
+}
+
+
+function cleanRedirectUrl(url) {
+  if (!url) return null;
+  try {
+    const u = new URL(url);
+    if (u.hostname === 'www.youtube.com' && u.pathname === '/redirect') {
+      const q = u.searchParams.get('q');
+      if (q) return decodeURIComponent(q);
+    }
+    return url;
+  } catch { return url; }
+}
+
+
+function extractJsonBlock(html, varName) {
+  if (!html || !varName) return null;
+
+  const searchPatterns = [
+    `var ${varName} = `,
+    `var ${varName}=`,
+    `window["${varName}"] = `,
+    `window['${varName}'] = `,
+    `"${varName}":`,
+    `'${varName}':`,
+    `${varName} = `,
+    `${varName}=`,
+  ];
+
+  for (const pattern of searchPatterns) {
+    const patternIdx = html.indexOf(pattern);
+    if (patternIdx === -1) continue;
+
+    const jsonStart = html.indexOf('{', patternIdx + pattern.length - 1);
+    if (jsonStart === -1 || jsonStart > patternIdx + pattern.length + 5) continue;
+
+    const result = extractBracketBlock(html, jsonStart);
+    if (result) return result;
+  }
+
+  return null;
+}
+
+function extractBracketBlock(html, startIdx) {
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let quoteChar = '';
+
+  for (let i = startIdx; i < html.length; i++) {
+    const ch = html[i];
+
+    if (escape) { escape = false; continue; }
+    if (ch === '\\' && inString) { escape = true; continue; }
+
+    if (!inString) {
+      if (ch === '"' || ch === "'") {
+        inString = true;
+        quoteChar = ch;
+        continue;
+      }
+      if (ch === '{') { depth++; continue; }
+      if (ch === '}') {
+        depth--;
+        if (depth === 0) {
+          const candidate = html.substring(startIdx, i + 1);
+          const parsed = safeJSON(candidate);
+          if (parsed && typeof parsed === 'object') return parsed;
+          return null;
+        }
+      }
+    } else {
+      if (ch === quoteChar) { inString = false; }
+    }
+  }
+  return null;
+}
+
+
+function extractArrayBlock(html, startIdx) {
+  const actualStart = html.indexOf('[', startIdx);
+  if (actualStart === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let quoteChar = '';
+
+  for (let i = actualStart; i < html.length; i++) {
+    const ch = html[i];
+
+    if (escape) { escape = false; continue; }
+    if (ch === '\\' && inString) { escape = true; continue; }
+
+    if (!inString) {
+      if (ch === '"' || ch === "'") { inString = true; quoteChar = ch; continue; }
+      if (ch === '[') { depth++; continue; }
+      if (ch === ']') {
+        depth--;
+        if (depth === 0) {
+          const candidate = html.substring(actualStart, i + 1);
+          return safeJSON(candidate);
+        }
+      }
+    } else {
+      if (ch === quoteChar) inString = false;
+    }
+  }
+  return null;
+}
+
+
+
+function extractVisitorData(html) {
+  const patterns = [
+    /"visitorData"\s*:\s*"(C[a-zA-Z0-9+/=%_-]{20,})"/,
+    /visitorData["']?\s*:\s*["'](C[a-zA-Z0-9+/=%_-]{20,})["']/,
+    /"VISITOR_DATA"\s*:\s*"([^"]{20,})"/,
+    /visitor_data["']?\s*=\s*["']([^"']{20,})["']/,
+  ];
+  for (const p of patterns) {
+    const m = html.match(p);
+    if (m && m[1]) return m[1];
+  }
+  return '';
+}
+
+function extractApiKey(html) {
+  const patterns = [
+    /"INNERTUBE_API_KEY"\s*:\s*"([^"]+)"/,
+    /"innertubeApiKey"\s*:\s*"([^"]+)"/,
+    /innertubeApiKey["']?\s*:\s*["']([^"']+)["']/,
+  ];
+  for (const p of patterns) {
+    const m = html.match(p);
+    if (m && m[1]) return m[1];
+  }
+  return INNERTUBE_KEYS[0];
+}
+
+function extractClientVersion(html) {
+  const patterns = [
+    /"INNERTUBE_CLIENT_VERSION"\s*:\s*"([^"]+)"/,
+    /"innertubeClientVersion"\s*:\s*"([^"]+)"/,
+  ];
+  for (const p of patterns) {
+    const m = html.match(p);
+    if (m && m[1]) return m[1];
+  }
+  return CLIENTS.WEB.version;
+}
+
+function extractPageBuildLabel(html) {
+  const m = html.match(/"CLIENT_PAGE_BUILD_LABEL"\s*:\s*"([^"]+)"/);
+  return m ? m[1] : null;
+}
+
+
+async function fetchWatchPage(videoId) {
+  const strategies = [
+    async () => {
+      const res = await httpGet(
+        `https://www.youtube.com/watch?v=${videoId}&hl=en&gl=US&persist_gl=1&has_verified=1`,
+        { 'User-Agent': getUA(), 'Cookie': 'CONSENT=YES+cb; YSC=fake; VISITOR_INFO1_LIVE=fake' }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.text();
+    },
+    // フォーマットを直接読み（暗号化されてるから表示しない）
+    async () => {
+      const res = await httpGet(
+        `https://www.youtube.com/watch?v=${videoId}&hl=en`,
+        { 'User-Agent': getUA() }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.text();
+    },
+    // ボット回避できないから消してもいい
+    async () => {
+      const res = await httpGet(
+        `https://www.youtube.com/watch?v=${videoId}`,
+        { 'User-Agent': 'Mozilla/5.0 (Linux; Android 14; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36' }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.text();
+    },
+
+    async () => {
+      const res = await httpGet(
+        `https://www.youtube.com/watch?v=${videoId}`,
+        { 'User-Agent': 'Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/6.0 TV Safari/538.1' }
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.text();
+    },
+  ];
+
+  let lastError = null;
+  for (let i = 0; i < strategies.length; i++) {
+    try {
+      const text = await strategies[i]();
+      if (text && (text.includes('ytInitialData') || text.includes('ytInitialPlayerResponse'))) {
+        return text;
+      }
+    } catch (e) {
+      lastError = e;
+      if (i < strategies.length - 1) await sleep(300 * (i + 1));
+    }
+  }
+  throw lastError || new Error('All watch page strategies failed');
+}
+
+
+function buildInnertubeContext(clientKey, videoId, visitorData, extraParams = {}) {
+  const client = CLIENTS[clientKey];
+  if (!client) throw new Error(`Unknown client: ${clientKey}`);
+
+  const ctx = {
+    client: {
+      clientName: client.name,
+      clientVersion: client.version,
+      hl: 'en',
+      gl: 'US',
+      visitorData: visitorData || '',
+      userAgent: client.userAgent,
+      ...( client.deviceMake        ? { deviceMake: client.deviceMake }               : {} ),
+      ...( client.deviceModel       ? { deviceModel: client.deviceModel }             : {} ),
+      ...( client.osName            ? { osName: client.osName }                       : {} ),
+      ...( client.osVersion         ? { osVersion: client.osVersion }                 : {} ),
+      ...( client.androidSdkVersion ? { androidSdkVersion: client.androidSdkVersion } : {} ),
+    },
+  };
+
+  const payload = {
+    context: ctx,
+    videoId,
+    racyCheckOk: true,
+    contentCheckOk: true,
+    ...extraParams,
+  };
+
+  if (client.embedUrl) {
+    payload.context.thirdParty = { embedUrl: client.embedUrl };
+  }
+
+  return {
+    payload,
+    url: `https://www.youtube.com/youtubei/v1`,
+    headers: {
+      'User-Agent': client.userAgent,
+      'X-YouTube-Client-Name': client.clientName,
+      'X-YouTube-Client-Version': client.version,
+      'X-Goog-Api-Format-Version': '1',
+      'Referer': client.referer || 'https://www.youtube.com/',
+      ...(client.embedUrl ? { 'Origin': 'https://www.youtube.com' } : {}),
+    },
+    key: client.key,
+  };
+}
+
+async function callPlayer(clientKey, videoId, visitorData) {
+  const { payload, headers, key } = buildInnertubeContext(clientKey, videoId, visitorData);
+  const url = `https://www.youtube.com/youtubei/v1/player?key=${key}&prettyPrint=false`;
+  const res = await httpPost(url, payload, headers);
+  if (!res.ok) throw new Error(`player[${clientKey}] HTTP ${res.status}`);
+  return res.json();
+}
+
+
+async function callNext(videoId, visitorData, apiKey, clientVersion) {
+  const payload = {
+    context: {
+      client: {
+        clientName: 'WEB',
+        clientVersion: clientVersion || CLIENTS.WEB.version,
+        hl: 'en',
+        gl: 'US',
+        visitorData: visitorData || '',
+        userAgent: CLIENTS.WEB.userAgent,
+      },
+    },
+    videoId,
+    racyCheckOk: true,
+    contentCheckOk: true,
+  };
+  const res = await httpPost(
+    `https://www.youtube.com/youtubei/v1/next?key=${apiKey || INNERTUBE_KEYS[0]}&prettyPrint=false`,
+    payload,
+    {
+      'User-Agent': CLIENTS.WEB.userAgent,
+      'X-YouTube-Client-Name': '1',
+      'X-YouTube-Client-Version': clientVersion || CLIENTS.WEB.version,
+      'Referer': `https://www.youtube.com/watch?v=${videoId}`,
+    }
+  );
+  if (!res.ok) throw new Error(`next HTTP ${res.status}`);
+  return res.json();
+}
+
+async function callBrowse(browseId, params, apiKey, clientVersion) {
+  const payload = {
+    context: {
+      client: {
+        clientName: 'WEB',
+        clientVersion: clientVersion || CLIENTS.WEB.version,
+        hl: 'en',
+        gl: 'US',
+        userAgent: CLIENTS.WEB.userAgent,
+      },
+    },
+    browseId,
+    params: params || '',
+  };
+  const res = await httpPost(
+    `https://www.youtube.com/youtubei/v1/browse?key=${apiKey || INNERTUBE_KEYS[0]}&prettyPrint=false`,
+    payload,
+    {
+      'User-Agent': CLIENTS.WEB.userAgent,
+      'X-YouTube-Client-Name': '1',
+      'X-YouTube-Client-Version': clientVersion || CLIENTS.WEB.version,
+    }
+  );
+  if (!res.ok) throw new Error(`browse HTTP ${res.status}`);
+  return res.json();
+}
+
+
+function parsePlayerResponse(pr) {
+  if (!pr || typeof pr !== 'object') return {};
+
+  const vd = pr.videoDetails                     || {};
+  const mf = pr.microformat?.playerMicroformatRenderer || {};
+  const ps = pr.playabilityStatus                || {};
+  const sd = pr.streamingData                    || {};
+
+  // 今のところ5個のソース
+  let duration = null;
+  const durationCandidates = [
+    vd.lengthSeconds ? parseInt(vd.lengthSeconds, 10) : null,
+    mf.lengthSeconds ? parseInt(mf.lengthSeconds, 10) : null,
+    sd.formats?.[0]?.approxDurationMs ? Math.round(parseInt(sd.formats[0].approxDurationMs, 10) / 1000) : null,
+    sd.adaptiveFormats?.[0]?.approxDurationMs ? Math.round(parseInt(sd.adaptiveFormats[0].approxDurationMs, 10) / 1000) : null,
+  ];
+  for (const d of durationCandidates) {
+    if (d && d > 0) { duration = d; break; }
+  }
+
+  const kwSet = new Set();
+  (Array.isArray(vd.keywords) ? vd.keywords : []).forEach(k => k && kwSet.add(k));
+  (Array.isArray(mf.tags) ? mf.tags : []).forEach(k => k && kwSet.add(k));
+
+  let viewCount = null;
+  if (vd.viewCount) {
+    const n = parseInt(vd.viewCount, 10);
+    if (!isNaN(n)) viewCount = n;
+  }
+
+  const channelId = vd.channelId || mf.externalChannelId || null;
+
+  // ライブ判定
+  const isLive = !!(vd.isLiveContent && vd.isLive);
+
+
+  const availableCountries = Array.isArray(mf.availableCountries)
+    ? mf.availableCountries : [];
+
+
+  const embed = mf.embed ? {
+    iframe_url:        mf.embed.iframeUrl        || null,
+    width:             mf.embed.width            || null,
+    height:            mf.embed.height           || null,
+    flash_secure_url:  mf.embed.flashSecureUrl   || null,
+  } : null;
+
+
+  const storyboards = [];
+  try {
+    const spec = pr.storyboards?.playerStoryboardSpecRenderer?.spec;
+    if (spec) {
+      spec.split('|').filter(Boolean).forEach((s, i) => storyboards.push({ index: i, spec: s }));
+    }
+  } catch {}
+
+
+  const captions = [];
+  try {
+    const tracks = pr.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+    tracks.forEach(t => captions.push({
+      language:          t.languageCode   || null,
+      language_name:     getText(t.name)  || null,
+      url:               t.baseUrl        || null,
+      is_translatable:   !!t.isTranslatable,
+      kind:              t.kind           || null,
+      vss_id:            t.vssId          || null,
+    }));
+  } catch {}
+
+
+  const playability = {
+    status:         ps.status         || null,
+    reason:         ps.reason         || null,
+    error_code:     ps.errorCode      || null,
+    messages:       ps.messages       || [],
+    plays_anywhere: !!ps.playsAnyway,
+  };
+
+  return {
+    videoId:           vd.videoId            || null,
+    title:             vd.title              || getText(mf.title)       || null,
+    description:       vd.shortDescription   || getText(mf.description) || null,
+    duration,
+    viewCount,
+    author:            vd.author             || null,
+    channelId,
+    externalChannelId: mf.externalChannelId  || null,
+    isLive,
+    isLiveContent:     !!vd.isLiveContent,
+    isPrivate:         !!vd.isPrivate,
+    isUnlisted:        !!mf.isUnlisted,
+    isAgeRestricted:   mf.isFamilySafe === false,
+    isFamilySafe:      mf.isFamilySafe !== false,
+    isUpcoming:        ps.status === 'LIVE_STREAM_OFFLINE',
+    allowRatings:      !!vd.allowRatings,
+    category:          mf.category           || null,
+    uploadDate:        mf.uploadDate         || null,
+    publishDate:       mf.publishDate        || null,
+    availableCountries,
+    keywords:          [...kwSet],
+    embed,
+    playability,
+    captions,
+    storyboards,
+    hasStreamingData:  !!(sd.formats?.length || sd.adaptiveFormats?.length),
+  };
+}
+
+
+
+function parsePrimaryInfo(initialData) {
+  if (!initialData || typeof initialData !== 'object') return {};
+
+  const result = {
+    title: null, viewCount: null, dateText: null, likeCount: null,
+    channelName: null, channelUrl: null, channelId: null,
+    channelVerified: false, subscriberText: null, channelThumbs: [],
+    description: null, descLinks: [], hashtags: [],
+  };
+
+  try {
+    const contents = dig(initialData, 'contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents') || [];
+    let primary   = null;
+    let secondary = null;
+
+    for (const c of contents) {
+      if (c?.videoPrimaryInfoRenderer)   primary   = c.videoPrimaryInfoRenderer;
+      if (c?.videoSecondaryInfoRenderer) secondary = c.videoSecondaryInfoRenderer;
+    }
+
+    if (!primary && !secondary) {
+      // モバイル版（slim）
+      const mContents = dig(initialData, 'contents', 'singleColumnWatchNextResults', 'results', 'results', 'contents') || [];
+      for (const c of mContents) {
+        const slim = c?.slimVideoMetadataSectionRenderer?.contents || [];
+        for (const s of slim) {
+          if (s?.slimVideoMetadataRenderer) primary = s.slimVideoMetadataRenderer;
+        }
+      }
+    }
+
+    result.title = getText(primary?.title) || null;
+
+    const vcr = primary?.viewCount?.videoViewCountRenderer;
+    const vcText = getText(vcr?.viewCount) || getText(vcr?.shortViewCount);
+    if (vcText) result.viewCount = parseCount(vcText);
+
+
+    result.dateText = getText(primary?.dateText) || null;
+
+
+    result.likeCount = extractLikeCount(primary);
+
+    const ownerR = secondary?.owner?.videoOwnerRenderer;
+    if (ownerR) {
+      result.channelName    = getText(ownerR.title) || null;
+      result.channelUrl     = getNavUrl(ownerR.navigationEndpoint) || null;
+      result.channelId      = ownerR.navigationEndpoint?.browseEndpoint?.browseId || null;
+      result.channelVerified = extractVerified(ownerR.badges);
+      result.subscriberText = getText(ownerR.subscriberCountText) || null;
+      result.channelThumbs  = normalizeThumbs(ownerR.thumbnail);
+    }
+
+    result.description = extractDescription(secondary);
+    result.descLinks   = extractDescriptionLinks(secondary, result.description);
+
+    result.hashtags = extractHashtags(primary, secondary);
+
+  } catch (e) {
+  }
+
+  return result;
+}
+
+
+function extractLikeCount(primary) {
+  if (!primary) return null;
+
+  try {
+    const buttons = primary?.videoActions?.menuRenderer?.topLevelButtons || [];
+
+    for (const btn of buttons) {
+      const sldvm = btn?.segmentedLikeDislikeButtonViewModel;
+      if (sldvm) {
+        const likeVM = sldvm.likeButtonViewModel?.likeButtonViewModel
+          ?.toggleButtonViewModel?.toggleButtonViewModel;
+        if (likeVM) {
+          for (const textKey of ['defaultText', 'toggledText', 'accessibilityText']) {
+            const txt = getText(likeVM[textKey]);
+            if (txt) {
+              const n = parseCount(txt);
+              if (n && n > 0) return n;
+            }
+          }
+        }
+      }
+
+      const bvm = btn?.buttonViewModel;
+      if (bvm?.iconName === 'LIKE' || bvm?.accessibilityText?.includes('like')) {
+        const txt = getText(bvm.title) || getText(bvm.accessibilityText);
+        if (txt) {
+          const n = parseCount(txt);
+          if (n && n > 0) return n;
+        }
+      }
+
+      const tbr = btn?.toggleButtonRenderer;
+      if (tbr) {
+        const txt = getText(tbr.defaultText) || getText(tbr.toggledText);
+        if (txt) {
+          const n = parseCount(txt);
+          if (n && n > 0) return n;
+        }
+      }
+
+     
+      const sldbr = btn?.segmentedLikeDislikeButtonRenderer;
+      if (sldbr) {
+        const likeBtn = sldbr.likeButton?.toggleButtonRenderer;
+        if (likeBtn) {
+          const accLabel = likeBtn.accessibilityData?.accessibilityData?.label || '';
+          const m = accLabel.match(/([\d,]+)\s+like/i);
+          if (m) return parseInt(m[1].replace(/,/g, ''), 10);
+          const txt = getText(likeBtn.defaultText);
+          if (txt) {
+            const n = parseCount(txt);
+            if (n && n > 0) return n;
+          }
+        }
+      }
+    }
+  } catch {}
+
+  return null;
+}
+
+
+function extractVerified(badges) {
+  if (!Array.isArray(badges)) return false;
+  return badges.some(b => {
+    const mbr = b?.metadataBadgeRenderer;
+    return mbr?.style?.includes('VERIFIED') || mbr?.icon?.iconType === 'CHECK_CIRCLE_THICK';
+  });
+}
+
+
+function extractDescription(secondary) {
+  if (!secondary) return null;
+  try {
+    // 最も完全
+    const attrDesc = secondary.attributedDescription;
+    if (attrDesc?.content) return attrDesc.content;
+
+
+    const desc = secondary.description;
+    if (desc) return getText(desc);
+
+
+    const expandable = secondary.expandableVideoDescriptionBodyRenderer;
+    if (expandable) {
+      return getText(expandable.descriptionBodyText) || getText(expandable.attributedDescriptionBodyText);
+    }
+  } catch {}
+  return null;
+}
+
+
+function extractDescriptionLinks(secondary, descriptionText) {
+  const links = [];
+  if (!secondary) return links;
+
+  try {
+    const attrDesc = secondary.attributedDescription;
+    if (attrDesc?.commandRuns) {
+      for (const run of attrDesc.commandRuns) {
+        const url = run?.onTap?.innertubeCommand?.urlEndpoint?.url
+          || run?.onTap?.innertubeCommand?.commandMetadata?.webCommandMetadata?.url;
+        if (url) {
+          const text = descriptionText
+            ? descriptionText.substring(run.startIndex || 0, (run.startIndex || 0) + (run.length || 0))
+            : null;
+          links.push({
+            text: text || null,
+            url: cleanRedirectUrl(url),
+            raw_url: url,
+          });
+        }
+      }
+    }
+
+    // runs内のURLナビ
+    if (links.length === 0 && secondary.description?.runs) {
+      for (const run of secondary.description.runs) {
+        const url = run?.navigationEndpoint?.urlEndpoint?.url
+          || run?.navigationEndpoint?.commandMetadata?.webCommandMetadata?.url;
+        if (url) {
+          links.push({
+            text: run.text || null,
+            url: cleanRedirectUrl(url),
+            raw_url: url,
+          });
+        }
+      }
+    }
+  } catch {}
+
+  return links;
+}
+
+
+function extractHashtags(primary, secondary) {
+  const tags = new Set();
+  try {
+    const superRuns = primary?.superTitleLink?.runs || [];
+    superRuns.filter(r => r?.text?.startsWith('#')).forEach(r => tags.add(r.text));
+
+    const headerLinks = primary?.headerLinks?.runs || [];
+    headerLinks.filter(r => r?.text?.startsWith('#')).forEach(r => tags.add(r.text));
+
+    if (secondary?.description?.runs) {
+      let count = 0;
+      for (const run of secondary.description.runs) {
+        if (run?.text?.startsWith('#') && count < 3) {
+          const endpoint = run?.navigationEndpoint?.commandMetadata?.webCommandMetadata?.url;
+          if (endpoint?.includes('/hashtag/')) {
+            tags.add(run.text);
+            count++;
+          }
+        }
+      }
+    }
+  } catch {}
+  return [...tags];
+}
+
+
+function parseRelatedVideos(initialData, nextData, limit = 30) {
+  const videos = [];
+  const seen = new Set();
+
+  const addVideo = (item) => {
+    if (!item?.id || seen.has(item.id)) return;
+    seen.add(item.id);
+    videos.push(item);
+  };
+
+  if (initialData) {
+    const results1 = dig(initialData, 'contents', 'twoColumnWatchNextResults', 'secondaryResults', 'secondaryResults', 'results') || [];
+    const results2 = dig(initialData, 'contents', 'twoColumnWatchNextResults', 'secondaryResults', 'results') || [];
+    const results = results1.length > 0 ? results1 : results2;
+
+    for (const item of results) {
+      if (videos.length >= limit) break;
+      extractRelatedItem(item, addVideo);
+    }
+  }
+
+  if (videos.length < limit && nextData) {
+    const results = dig(nextData, 'contents', 'twoColumnWatchNextResults', 'secondaryResults', 'secondaryResults', 'results') || [];
+    for (const item of results) {
+      if (videos.length >= limit) break;
+      extractRelatedItem(item, addVideo);
+    }
+  }
+
+  return videos;
+}
+
+function extractRelatedItem(item, addVideo) {
+  if (!item) return;
+
+  const cvr = item?.compactVideoRenderer;
+  if (cvr?.videoId) {
+    addVideo(buildVideoItem(cvr, false));
+    return;
+  }
+
+
+  const auto = item?.compactAutoplayRenderer?.contents;
+  if (auto) {
+    for (const c of auto) {
+      if (c?.compactVideoRenderer?.videoId) {
+        addVideo(buildVideoItem(c.compactVideoRenderer, false));
+      }
+    }
+    return;
+  }
+
+  const reel = item?.reelItemRenderer;
+  if (reel?.videoId) {
+    addVideo({
+      id:         reel.videoId,
+      title:      getText(reel.headline) || null,
+      url:        `https://www.youtube.com/shorts/${reel.videoId}`,
+      short_url:  `https://youtu.be/${reel.videoId}`,
+      duration:   null,
+      view_count: parseCount(getText(reel.viewCountText)) || null,
+      view_count_text: getText(reel.viewCountText) || null,
+      published:  null,
+      thumbnail:  normalizeThumbs(reel.thumbnail)[0]?.url || `https://i.ytimg.com/vi/${reel.videoId}/hqdefault.jpg`,
+      thumbnails: normalizeThumbs(reel.thumbnail),
+      channel:    { name: null, id: null, url: null, thumbnail: null },
+      is_live:    false,
+      is_short:   true,
+      badges:     [],
+    });
+    return;
+  }
+
+  const lockup = item?.lockupViewModel;
+  if (lockup) {
+    const vid = lockup?.contentId || lockup?.rendererContext?.commandContext?.onTap?.watchEndpoint?.videoId;
+    if (vid) {
+      const title = getText(lockup?.metadata?.lockupMetadataViewModel?.title?.content) || null;
+      addVideo({
+        id:         vid,
+        title,
+        url:        `https://www.youtube.com/watch?v=${vid}`,
+        short_url:  `https://youtu.be/${vid}`,
+        duration:   null,
+        view_count: null,
+        view_count_text: null,
+        published:  null,
+        thumbnail:  `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`,
+        thumbnails: buildVideoThumbs(vid),
+        channel:    { name: null, id: null, url: null, thumbnail: null },
+        is_live:    false,
+        is_short:   false,
+        badges:     [],
+      });
+    }
+  }
+}
+
+function buildVideoItem(r, isShort) {
+  const channelRuns = r.shortBylineText?.runs || r.longBylineText?.runs || [];
+  const channelRun  = channelRuns[0];
+  const vcText      = getText(r.viewCountText);
+  const thumbs      = normalizeThumbs(r.thumbnail);
+
+  return {
+    id:              r.videoId,
+    title:           getText(r.title) || null,
+    url:             `https://www.youtube.com/watch?v=${r.videoId}`,
+    short_url:       `https://youtu.be/${r.videoId}`,
+    duration:        getText(r.lengthText) || null,
+    duration_secs:   parseDurationText(getText(r.lengthText)),
+    view_count:      parseCount(vcText) || null,
+    view_count_text: vcText || null,
+    published:       getText(r.publishedTimeText) || null,
+    thumbnail:       thumbs[0]?.url || `https://i.ytimg.com/vi/${r.videoId}/hqdefault.jpg`,
+    thumbnails:      thumbs,
+    channel: {
+      name:      getText(r.shortBylineText) || getText(r.longBylineText) || null,
+      id:        channelRun?.navigationEndpoint?.browseEndpoint?.browseId || null,
+      url:       getNavUrl(channelRun?.navigationEndpoint) || null,
+      thumbnail: null,
+    },
+    is_live:  !!(r.badges?.find(b => b?.liveBadgeRenderer || b?.metadataBadgeRenderer?.style?.includes('LIVE'))),
+    is_short: !!isShort,
+    badges:   (r.badges || []).map(b => getText(b?.liveBadgeRenderer?.label || b?.metadataBadgeRenderer?.label)).filter(Boolean),
+  };
+}
+
+
+function parseDurationText(text) {
+  if (!text) return null;
+  const parts = text.split(':').map(Number);
+  if (parts.some(isNaN)) return null;
+  if (parts.length === 2) return parts[0] * 60 + parts[1];
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  return null;
+}
+
+
+
+function parseChapters(initialData) {
+  if (!initialData) return [];
+
+  try {
+    const markersMap = dig(
+      initialData,
+      'playerOverlays', 'playerOverlayRenderer',
+      'decoratedPlayerBarRenderer', 'decoratedPlayerBarRenderer',
+      'playerBar', 'multiMarkersPlayerBarRenderer', 'markersMap'
+    ) || [];
+
+    for (const entry of markersMap) {
+      const chapters = entry?.value?.chapters;
+      if (Array.isArray(chapters) && chapters.length > 0) {
+        return chapters.map(c => {
+          const ch = c?.chapterRenderer;
+          return {
+            title:      getText(ch?.title)    || null,
+            start_time: ch?.timeRangeStartMillis != null ? ch.timeRangeStartMillis / 1000 : null,
+            thumbnail:  normalizeThumbs(ch?.thumbnail)[0]?.url || null,
+          };
+        });
+      }
+    }
+  } catch {}
+
+
+  try {
+    const panels = initialData?.engagementPanels || [];
+    for (const panel of panels) {
+      const contents = dig(panel, 'engagementPanelSectionListRenderer', 'content', 'macroMarkersListRenderer', 'contents') || [];
+      if (contents.length > 0) {
+        return contents.map(i => {
+          const m = i?.macroMarkersListItemRenderer;
+          if (!m) return null;
+          return {
+            title:      getText(m.title)            || null,
+            start_time: getText(m.timeDescription)  || null,
+            thumbnail:  normalizeThumbs(m.thumbnail)[0]?.url || null,
+          };
+        }).filter(Boolean);
+      }
+    }
+  } catch {}
+
+  return [];
+}
+
+
+function parsePlaylist(initialData) {
+  if (!initialData) return null;
+  try {
+    const pl = dig(initialData, 'contents', 'twoColumnWatchNextResults', 'playlist', 'playlist');
+    if (!pl) return null;
+
+    const items = (pl.contents || []).map(c => {
+      const r = c?.playlistPanelVideoRenderer || c?.playlistPanelVideoWrapperRenderer?.primaryPlaylistPanelVideoRenderer;
+      if (!r) return null;
+      return {
+        id:          r.videoId || null,
+        title:       getText(r.title) || null,
+        duration:    getText(r.lengthText) || null,
+        url:         r.videoId ? `https://www.youtube.com/watch?v=${r.videoId}` : null,
+        thumbnail:   normalizeThumbs(r.thumbnail)[0]?.url || null,
+        is_selected: !!r.selected,
+        index:       r.index?.simpleText ? parseInt(r.index.simpleText, 10) : null,
+      };
+    }).filter(Boolean);
+
+    return {
+      id:            pl.playlistId   || null,
+      title:         getText(pl.title) || null,
+      total:         parseCount(getText(pl.totalVideos)) || null,
+      current_index: pl.currentIndex ?? null,
+      items,
+    };
+  } catch { return null; }
+}
+
+
+function parseChannelBrowse(browseData) {
+  if (!browseData || typeof browseData !== 'object') return null;
+
+  try {
+    const header = browseData?.header?.c4TabbedHeaderRenderer
+      || browseData?.header?.pageHeaderRenderer
+      || browseData?.header?.carouselHeaderRenderer?.contents?.[0]?.topicChannelDetailsRenderer
+      || browseData?.header?.interactiveTabbedHeaderRenderer
+      || null;
+
+    if (!header) return null;
+
+    const name = getText(header?.title) || null;
+
+
+    let handle = null;
+    const handleText = getText(header?.channelHandleText);
+    if (handleText) handle = handleText.startsWith('@') ? handleText : `@${handleText}`;
+    if (!handle) {
+      const canonicalUrl = header?.navigationEndpoint?.commandMetadata?.webCommandMetadata?.url;
+      if (canonicalUrl?.startsWith('/@')) handle = canonicalUrl.substring(1);
+    }
+
+    const verified    = extractVerified(header?.badges);
+    const subText     = getText(header?.subscriberCountText) || null;
+    const videosText  = getText(header?.videosCountText) || null;
+    
+    const avatar = normalizeThumbs(header?.avatar || header?.thumbnail || header?.channelAvatarImageUrl);
+
+    const banner    = normalizeThumbs(header?.banner);
+    const tvBanner  = normalizeThumbs(header?.tvBanner);
+    const mobBanner = normalizeThumbs(header?.mobileBanner);
+
+    let description = null;
+    try {
+      const tabs = browseData?.contents?.twoColumnBrowseResultsRenderer?.tabs || [];
+      outer: for (const tab of tabs) {
+        const sections = dig(tab, 'tabRenderer', 'content', 'sectionListRenderer', 'contents') || [];
+        for (const sec of sections) {
+          const items = sec?.itemSectionRenderer?.contents || [];
+          for (const item of items) {
+            const d = item?.channelAboutFullMetadataRenderer?.description
+              || item?.structuredDescriptionContentRenderer?.items?.[0]?.expandableVideoDescriptionBodyRenderer?.attributedDescriptionBodyText;
+            if (d) { description = getText(d); break outer; }
+          }
+        }
+      }
+    } catch {}
+
+
+    let country = null;
+    try {
+      const tabs = browseData?.contents?.twoColumnBrowseResultsRenderer?.tabs || [];
+      for (const tab of tabs) {
+        const items = dig(tab, 'tabRenderer', 'content', 'sectionListRenderer', 'contents', 0, 'itemSectionRenderer', 'contents') || [];
+        for (const item of items) {
+          const meta = item?.channelAboutFullMetadataRenderer;
+          if (meta) {
+            country = getText(meta.country) || null;
+            break;
+          }
+        }
+      }
+    } catch {}
+
+    return {
+      name, handle, verified,
+      subscriber_count: subText,
+      videos_count:     videosText,
+      description,
+      country,
+      avatar, banner, tv_banner: tvBanner, mobile_banner: mobBanner,
+    };
+  } catch { return null; }
+}
+
+async function resolvePlayerData(videoId, visitorData) {
+  const clientOrder = ['TV_EMBEDDED', 'WEB_EMBEDDED', 'IOS', 'ANDROID', 'MWEB', 'WEB'];
+  const results = {};
+
+  const settled = await Promise.allSettled(
+    clientOrder.map(async key => {
+      const data = await callPlayer(key, videoId, visitorData);
+      return { key, data };
+    })
+  );
+
+  for (const r of settled) {
+    if (r.status === 'fulfilled') {
+      results[r.value.key] = r.value.data;
+    }
+  }
+
+  let bestPR   = null;
+  let bestKey  = null;
+
+  for (const key of clientOrder) {
+    const pr = results[key];
+    if (!pr) continue;
+    const status = pr?.playabilityStatus?.status;
+    if (status === 'OK') {
+      bestPR  = pr;
+      bestKey = key;
+      break;
+    }
+    if (!bestPR && pr?.videoDetails?.videoId) {
+      bestPR  = pr;
+      bestKey = key;
+    }
+  }
+
+  return { bestPR, bestKey, allResults: results };
+}
+
+
+
+async function scrapeYouTubeMeta(videoId) {
+  const debug = {
+    html_fetched:    false,
+    initial_data:    false,
+    player_response: false,
+    best_client:     null,
+    client_statuses: {},
+    next_api:        false,
+    channel_browse:  false,
+    errors:          [],
+  };
+
+
+  let html = '';
+  try {
+    html = await fetchWatchPage(videoId);
+    debug.html_fetched = true;
+  } catch (e) {
+    debug.errors.push(`watch_page: ${e.message}`);
+    throw new Error(`Watch page unavailable: ${e.message}`);
+  }
+
+  const visitorData    = extractVisitorData(html);
+  const dynamicApiKey  = extractApiKey(html);
+  const dynamicVersion = extractClientVersion(html);
+
+
+  const initialData    = extractJsonBlock(html, 'ytInitialData');
+  const embeddedPR     = extractJsonBlock(html, 'ytInitialPlayerResponse');
+
+  debug.initial_data    = !!initialData;
+  debug.player_response = !!embeddedPR;
+
+
+  let earlyChannelId = null;
+  try {
+    earlyChannelId = embeddedPR?.videoDetails?.channelId
+      || (() => {
+        const contents = dig(initialData, 'contents', 'twoColumnWatchNextResults', 'results', 'results', 'contents') || [];
+        for (const c of contents) {
+          const id = c?.videoSecondaryInfoRenderer?.owner?.videoOwnerRenderer?.navigationEndpoint?.browseEndpoint?.browseId;
+          if (id) return id;
+        }
+        return null;
+      })();
+  } catch {}
+
+
+  const [playerResult, nextResult, browseResult] = await Promise.allSettled([
+    resolvePlayerData(videoId, visitorData),
+    callNext(videoId, visitorData, dynamicApiKey, dynamicVersion),
+    earlyChannelId
+      ? callBrowse(earlyChannelId, 'EgVhYm91dA%3D%3D', dynamicApiKey, dynamicVersion)
+      : Promise.resolve(null),
+  ]);
+
+
+  let bestPR  = null;
+  let bestKey = null;
+  if (playerResult.status === 'fulfilled') {
+    bestPR  = playerResult.value.bestPR;
+    bestKey = playerResult.value.bestKey;
+    debug.best_client = bestKey;
+    for (const [k, v] of Object.entries(playerResult.value.allResults || {})) {
+      debug.client_statuses[k] = {
+        status:    v?.playabilityStatus?.status || 'ERROR',
+        reason:    v?.playabilityStatus?.reason || null,
+        has_video: !!v?.videoDetails?.videoId,
+      };
+    }
+  } else {
+    debug.errors.push(`player: ${playerResult.reason?.message}`);
+  }
+
+
+  const finalPR = bestPR || embeddedPR;
+
+  let nextData = null;
+  if (nextResult.status === 'fulfilled') {
+    nextData = nextResult.value;
+    debug.next_api = true;
+  } else {
+    debug.errors.push(`next: ${nextResult.reason?.message}`);
+  }
+
+  let browseData = null;
+  if (browseResult.status === 'fulfilled' && browseResult.value) {
+    browseData = browseResult.value;
+    debug.channel_browse = true;
+  } else if (browseResult.status === 'rejected') {
+    debug.errors.push(`browse: ${browseResult.reason?.message}`);
+  }
+
+
+  const prParsed    = parsePlayerResponse(finalPR);
+  const primary     = parsePrimaryInfo(initialData);
+  const channelEx   = parseChannelBrowse(browseData);
+  const chapters    = parseChapters(initialData);
+  const playlist    = parsePlaylist(initialData);
+  const related     = parseRelatedVideos(initialData, nextData, 30);
+
+
+  let nextKeywords = [];
+  try {
+    const engagements = nextData?.engagementPanels || [];
+    for (const ep of engagements) {
+      const kws = dig(ep, 'engagementPanelSectionListRenderer', 'content', 'structuredDescriptionContentRenderer', 'items');
+      if (kws) {
+
+      }
+    }
+  } catch {}
+
+
+
+  const title       = prParsed.title       || primary.title       || null;
+  const description = primary.description  || prParsed.description || null;
+  const duration    = prParsed.duration    || null;
+  const viewCount   = prParsed.viewCount   || primary.viewCount   || null;
+  const uploadDate  = prParsed.uploadDate  || primary.dateText    || null;
+  const publishDate = prParsed.publishDate || null;
+  const category    = prParsed.category    || null;
+
+
+  const kwSet = new Set([
+    ...prParsed.keywords,
+    ...nextKeywords,
+  ]);
+  const keywords = [...kwSet];
+
+  const chId       = prParsed.channelId || primary.channelId || earlyChannelId || null;
+  const chName     = primary.channelName  || prParsed.author   || channelEx?.name     || null;
+  const chUrl      = primary.channelUrl   || (chId ? `https://www.youtube.com/channel/${chId}` : null);
+  const chVerified = primary.channelVerified || channelEx?.verified || false;
+  const chSubs     = primary.subscriberText  || channelEx?.subscriber_count || null;
+
+  const chThumbs   = primary.channelThumbs?.length > 0
+    ? primary.channelThumbs
+    : (channelEx?.avatar || []);
+
+  const videoThumbs = buildVideoThumbs(videoId);
+
+
+  const captions = prParsed.captions.length > 0
+    ? prParsed.captions
+    : (embeddedPR ? parsePlayerResponse(embeddedPR).captions : []);
+
+
+
+  return {
+    success:           true,
+    extractor:         'youtube',
+    extractor_version: VERSION,
+
+
+    id:                videoId,
+    title,
+    description,
+    duration,
+    duration_string:   formatDuration(duration),
+
+
+    view_count:        viewCount,
+    like_count:        primary.likeCount    || null,
+    upload_date:       uploadDate,
+    publish_date:      publishDate,
+    category,
+
+
+    is_live:           prParsed.isLive        || false,
+    is_live_content:   prParsed.isLiveContent || false,
+    is_private:        prParsed.isPrivate     || false,
+    is_unlisted:       prParsed.isUnlisted    || false,
+    is_upcoming:       prParsed.isUpcoming    || false,
+    is_age_restricted: prParsed.isAgeRestricted || false,
+    is_family_safe:    prParsed.isFamilySafe  !== false,
+    allow_ratings:     prParsed.allowRatings  ?? null,
+
+
+    available_countries: prParsed.availableCountries || [],
+
+    keywords,
+    tags:              keywords,
+    hashtags:          primary.hashtags || [],
+
+
+    channel: {
+      id:               chId,
+      external_id:      prParsed.externalChannelId || null,
+      name:             chName,
+      url:              chUrl,
+      verified:         chVerified,
+      subscriber_count: chSubs,
+      description:      channelEx?.description   || null,
+      handle:           channelEx?.handle         || null,
+      country:          channelEx?.country        || null,
+      videos_count:     channelEx?.videos_count   || null,
+      thumbnail:        chThumbs[0]?.url          || null,
+      thumbnails:       chThumbs,
+      banner:           channelEx?.banner         || [],
+      tv_banner:        channelEx?.tv_banner      || [],
+      mobile_banner:    channelEx?.mobile_banner  || [],
+    },
+
+
+    thumbnails:         videoThumbs,
+    thumbnail:          videoThumbs[0]?.url || null,
+
+
+    webpage_url:        `https://www.youtube.com/watch?v=${videoId}`,
+    embed_url:          `https://www.youtube.com/embed/${videoId}`,
+    short_url:          `https://youtu.be/${videoId}`,
+    embed_info:         prParsed.embed || null,
+
+
+    captions,
+    subtitles:          captions,
+
+
+    chapters,
+
+
+    storyboards:        prParsed.storyboards || [],
+
+
+    related_videos:     related,
+    related_count:      related.length,
+
+
+    playlist,
+
+
+    description_links:  primary.descLinks || [],
+
+
+    playability:        prParsed.playability || { status: null, reason: null },
+
+
+    _debug: debug,
+  };
+}
+
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
+
+app.get('/yt-sc/:videoId', async (req, res) => {
+  const { videoId } = req.params;
+
+  if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+    return res.status(400).json({
+      success: false,
+      error:   'Invalid YouTube video ID (must be exactly 11 characters)',
+    });
+  }
+
+  try {
+    const data = await scrapeYouTubeMeta(videoId);
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    return res.status(200).json(data);
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      error:   err.message,
+      videoId,
+    });
+  }
+});
+
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`YouTube Meta API v${VERSION} on port ${PORT}`));
+
+module.exports = app;
