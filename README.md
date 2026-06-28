@@ -8,6 +8,7 @@ CG / YouTube web app.
 - https://min-tube2.vercel.app
 - https://min-tube-pro.vercel.app
 - https://min-tube-pro-roan.vercel.app
+- https://kaki-tube.vercel.app
 
 ---
 
