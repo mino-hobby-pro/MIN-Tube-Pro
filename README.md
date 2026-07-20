@@ -55,6 +55,10 @@ node index.js
 ---
 
 ## 更新履歴(min-wlyt-plus)
+### ver1.0.4
+ - Elixir-networkでのnode errorを修正。
+ - 漫画raw・anime・映画は著作権違反ページ（dmca）に転移するように修正。（これによりrenderやrailwayにデプロイした際にbanされるリスクが低くなります、あとねむいが作ったやつ普通に犯罪だからこっちgithubアカウントとかbanされたらだるい。minoには許可とった。）
+
 ### ver1.0.3
 - Elixir-networkでの漫画、映画が確実に使えるように調整
 - WOOLsite追加
