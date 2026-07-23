@@ -1,4 +1,4 @@
-# Min-WLYT-Plus
+# [Min-WLYT-Plus](https://github.com/wl-unblock/MIN-wlyt-Plus)
 
 CG / YouTube web app.  
 「Min-wlyt-Plus」は、YouTube や動画視聴をより快適にするための Web アプリです。  
